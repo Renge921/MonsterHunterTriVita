@@ -1,159 +1,104 @@
-# Controls
+# 操作方法
 
-The game always sees one Wii Remote with a Classic Controller (RVL-005, not
-the Pro) on channel 0, and plays fully on it: no motion or Nunchuk prompts
-([controller input](optimizations/system/controller-input.md)). The PS
-Vita's controls, SDL gamepads and the keyboard are mapped onto that
-controller, and the front touch screen (the mouse elsewhere) is the remote's
-pointer. Recordings, playback and the control file (`MH3_INPUT`) hold the
-resulting Classic report, so they replay the same on every host; the pointer
-stays live during playback.
+ゲーム内では常にチャンネル 0 に Wii リモコン＋クラシックコントローラ（RVL-005、PRO ではない通常版）が接続されているものとして認識され、モーション操作やヌンチャクを一切使わずに最後までプレイできます（[コントローラ入力の仕組み](optimizations/system/controller-input.md)）。PS Vita 本体、SDL ゲームパッド、キーボード／マウスの入力はすべてクラシックコントローラ入力へ変換され、前面タッチスクリーン（PC ではマウス）は Wii リモコンのポインタとして動作します。入力録画・再生やコントロールファイル（`MH3_INPUT`）も同じクラシックコントローラ形式で保存されるため、環境を問わず同一の再生結果になります（再生中もポインタ操作は有効です）。
 
 ## PS Vita
 
-| Classic Controller | PS Vita | PS TV controller | In the game |
+| クラシックコントローラ | PS Vita | PS TV コントローラ | ゲーム内の操作 |
 | --- | --- | --- | --- |
-| Left stick | Left stick | Left stick | Move |
-| Right stick | Right stick | Right stick | Attack (the game's default) or camera (its camera option); turns the hunter in character creation |
-| A | ○ | ○ | Confirm, act |
-| B | × | × | Back |
-| X | △ | △ | Per control style |
-| Y | □ | □ | Per control style |
-| D-pad | D-pad | D-pad | Menu cursor; camera (the game's default) |
-| L (trigger, fully pressed) | L | L1 | Per control style; menu tab |
-| R (trigger, fully pressed) | R | R1 | Per control style; menu tab |
-| ZL | — | L2 | Per control style |
-| ZR | — | R2 | Per control style |
-| + | START | START | Pause menu |
-| − | SELECT | SELECT | Per control style |
-| HOME | — | L3 + R3 | HOME Menu |
+| 左スティック | 左スティック | 左スティック | 移動 |
+| 右スティック | 右スティック | 右スティック | 攻撃（初期設定）またはカメラ操作（ゲーム内オプション準拠）／キャラ作成時の回転 |
+| A | ○ | ○ | 決定・アクション |
+| B | × | × | キャンセル・回避 |
+| X | △ | △ | 操作タイプ準拠 |
+| Y | □ | □ | 操作タイプ準拠 |
+| 十字キー | 十字キー | 十字キー | メニュー移動／カメラ操作（初期設定） |
+| L（トリガー全押し） | L | L1 | 操作タイプ準拠／メニュータブ切替 |
+| R（トリガー全押し） | R | R1 | 操作タイプ準拠／メニュータブ切替 |
+| ZL | — | L2 | 操作タイプ準拠 |
+| ZR | — | R2 | 操作タイプ準拠 |
+| + | START | START | ポーズメニュー |
+| − | SELECT | SELECT | 操作タイプ準拠 |
+| HOME | — | L3 + R3 | HOME メニュー |
+| — | **L + SELECT** | **L1 + SELECT** | **倍速プレイ切替（1 倍速 ⇔ 2 倍速）** |
 
-"Per control style": the game's Classic Style 1/2 options decide the field
-actions. Every Classic control stays where it is on the original controller,
-so both styles work as the game's help screens show them.
+「操作タイプ準拠」のボタンは、ゲーム内オプションのクラシック操作タイプ 1 / 2 の設定に従います。すべてのボタンは元のクラシックコントローラと同じ物理配置に割り当てられているため、ゲーム内の操作説明どおりに操作できます。
 
-- **Face buttons by position**: ○ confirms and acts, × rolls and backs out,
-  as in the PSP games. The launcher's own menus keep the system convention
-  (× selects).
-- **L/R are the Classic L/R triggers**, reported fully pressed.
-- **Touch**: the front screen is the Wii Remote's pointer (below); the rear
-  panel is not read. The handheld has no control for ZL, ZR or HOME; a PS TV
-  controller has them on L2/R2 and L3 + R3.
-- **System menus**: while the quick menu (a long press of PS) or a
-  notification's menu is over the game, the game sees a neutral controller.
-- **Button prompts** show the Vita's buttons: the Classic's a, b, y, + and −
-  draw as ○, ×, □, START and SELECT (`runtime/src/button_glyphs.cpp`).
+- **物理配置ベースのフェイスボタン**: PSP 版モンハンと同様に、ゲーム内では `○` が決定・アクション、`×` が回避・キャンセルとなります。ランチャーのメニューのみ `×` 決定、`○` 戻るです。
+- **L / R トリガー**: クラシックコントローラの L / R トリガー全押しとして送信されます。
+- **倍速プレイモード**: プレイ中に `L + SELECT`（PS TV では `L1 + SELECT`）を押すと、描画や音声ピッチを維持したまま通常（1 倍速）と 2 倍速をトグル切り替えできます。切り替え時の `SELECT` 入力はゲーム側へ誤送信されないよう抑止されます。
+- **タッチ操作**: 前面タッチスクリーンが Wii リモコンのポインタになります（詳細は後述）。背面タッチパッドは使用しません。PS Vita 本体には ZL / ZR / HOME に相当するボタンがありませんが、PS TV のコントローラでは `L2` / `R2` と `L3 + R3` で操作できます。
+- **システムメニュー表示中**: PS ボタン長押しのクイックメニューや通知メニューが開いている間は、ゲーム側へニュートラル（無入力）が送られます。
+- **ボタンアイコン表示**: 画面上のクラシックコントローラ用ボタン表示（a, b, y, +, −）は、PS Vita 用の `○`, `×`, `□`, `START`, `SELECT` に置き換えて描画されます（`runtime/src/button_glyphs.cpp`）。
 
-### Keyboard
+### キーボード入力
 
-The launcher's Keyboard option picks what opens where the game asks for text
-(chat, player search, messages, shout-outs): the game's own keyboard, or
-the Vita's system keyboard with touch typing and its languages. The game keeps
-running behind the Vita's keyboard, with its controls neutral. Characters the
-game's font lacks show as `?`, and emoji are saved as `?`.
+- **Vita システムキーボードは非対応です。**
+- キャラクター名入力や定型文・メモなどの文字入力画面では、**ゲーム内のキーボード**を使用してください。
 
-### Pointer
+### ポインタ操作（モンスターリスト登録など）
 
-In the village and the field the game lets the hunter point the Wii Remote
-at a monster and drag it onto the log on the HUD, which notes it in the
-save (online, a hunter's entry goes into a list the same way). On the Wii
-the remote's B shows the cursor, A over a target takes it, and A held drags
-it. With the touch screen:
+村やフィールドでは、Wii リモコンでモンスターを指し示して HUD のログへドラッグすることで、ハンターノートに記録できます。Wii 実機では B ボタンでカーソル表示、対象の上で A ボタンを押して掴み、A を押したままドラッグする操作ですが、PS Vita のタッチスクリーンでは以下のように操作します。
 
-1. Touch a monster on the screen: the cursor opens under the finger (B).
-2. Keep the finger down: once the cursor has opened (under a second) and
-   rests on the monster, it takes it (A).
-3. Drag it onto the log and lift the finger.
+1. 画面上のモンスターをタッチすると、指の位置にカーソルが開きます（B ボタン相当）。
+2. そのまま指を押し続けると、カーソルが開き切ったタイミング（1 秒未満）で対象を掴みます（A ボタン相当）。
+3. 指を離さずに HUD のログまでドラッグし、指を離すと登録完了です。
 
-A target that can't be taken plays a refusal sound until the finger lifts.
-Code: `runtime/src/wpad_services.cpp` (the remote's B and A, the sensor bar
-dots), `runtime/src/pad_pointer.cpp` (the game's KPAD and cursor) and
-`runtime/src/log_pointer.cpp` (the pointing).
+掴めない対象をタッチした場合は、指を離すまで無効音が鳴ります。  
+関連コード: `runtime/src/wpad_services.cpp`（リモコンの B / A・センサーバー座標）、`runtime/src/pad_pointer.cpp`（KPAD とカーソル）、`runtime/src/log_pointer.cpp`（ポインタ処理）。
 
-### Sticks
+### アナログスティック補正
 
-The game reads a stick's length in a narrow window (raw 90..187 of the
-report's −512..511). The Vita mapping spreads that window over the stick's
-travel: a 30 % radial dead zone, then the game's threshold rising linearly
-to its full length at 78 % of the travel, then the rest of the report range,
-so full tilt reports what a real Classic stick does. The hunter walks at
-about 12–50 % of the travel and runs beyond. In the default layout a partial
-tilt of the right stick already draws the weapon and attacks.
+元のゲームはスティックの傾きを狭い範囲（生値 −512..511 のうち 90..187）で判定します。PS Vita 版ではこの範囲をスティックの可動域全体に広げてマッピングしています。放射状デッドゾーンを 30% とし、そこから可動域の 78% にかけてゲーム側の判定閾値まで線形に立ち上げ、残りの領域で最大値へ達するように調整しています。これにより、約 12〜50% の傾きで歩き、それ以上で走りになります。また、初期操作タイプでは右スティックを軽く倒すだけで抜刀・攻撃が行えます。
 
-Code: `runtime/vita/vita_controller.cpp` (the pad, port 1 first so a PS TV
-controller works) and `runtime/native/mh3_classic_map.c` (the mapping;
-`tests/native/test_mh3_classic_map.c`).
+関連コード: `runtime/vita/vita_controller.cpp`（PS TV コントローラ対応のためポート 1 を優先取得）、`runtime/native/mh3_classic_map.c`（マッピング処理、`tests/native/test_mh3_classic_map.c`）。
 
-## Linux (SDL)
+## Linux（SDL）
 
-The first SDL gamepad is the same Classic Controller, by position:
+最初に検出された SDL ゲームパッドが、物理配置ベースでクラシックコントローラに割り当てられます。
 
-| Classic Controller | Xbox layout | PlayStation layout |
+| クラシックコントローラ | Xbox 配置 | PlayStation 配置 |
 | --- | --- | --- |
 | A / B / X / Y | B / A / Y / X | ○ / × / △ / □ |
-| L / R (analog triggers) | LT / RT | L2 / R2 |
+| L / R（アナログトリガー） | LT / RT | L2 / R2 |
 | ZL / ZR | LB / RB | L1 / R1 |
 | + / − / HOME | Menu / View / Guide | Options / Create (Share) / PS |
-| Sticks, D-pad | Sticks, D-pad | Sticks, D-pad |
+| スティック・十字キー | スティック・十字キー | スティック・十字キー |
 
-Nintendo layouts land on the same physical buttons. The triggers set the
-digital L/R past half way; the sticks use the Vita's curve with a 15 % dead
-zone.
+Nintendo 配置のコントローラも同じく物理位置に対応します。アナログトリガーは半分以上押し込むとデジタル L / R がオンになり、スティックは PS Vita と同じカーブ（デッドゾーン 15%）を使用します。
 
-Keyboard and mouse, while the window has focus, after Monster Hunter:
-World's defaults where the game has the action:
+ウィンドウにフォーカスがある間のキーボード＆マウス操作は、対応するアクションについて『モンスターハンター：ワールド』の初期設定に準拠しています。
 
-| Keys and mouse | Classic Controller | In the game |
+| キー・マウス | クラシックコントローラ | ゲーム内の操作 |
 | --- | --- | --- |
-| W A S D | Left stick | Move |
-| Mouse (captured) | — | Camera, turned by the mouse itself (below) |
-| Left button (captured) | X | Draw the weapon, attack |
-| Right button (captured) | A | Second attack |
-| Space | B | Evade, back |
-| Left Shift | R (fully pressed) | Dash; the weapon's guard or charge |
-| E | Y | Use an item, sheathe |
-| F / Enter | A | Talk, gather, confirm |
-| Q | L (fully pressed) | Camera behind the hunter; held, the item bar |
-| Q held + left / right button (captured) | — | Item bar: the previous / next item |
-| Z / C | ZL / ZR | Per control style |
-| Escape | + | Pause menu |
-| Tab / M | − | Quest menu (item pouch, map, signal) |
-| Backspace | B | Back |
-| Arrow keys | D-pad | Menu cursor |
-| I J K L | Right stick | Camera or attack, as the game's option |
-| Home | HOME | HOME Menu |
+| W A S D | 左スティック | 移動 |
+| マウス（キャプチャ中） | — | カメラ操作（直接回転、詳細は後述） |
+| 左クリック（キャプチャ中） | X | 抜刀・攻撃 |
+| 右クリック（キャプチャ中） | A | 攻撃 2 |
+| Space | B | 回避・キャンセル |
+| Left Shift | R（全押し） | ダッシュ・ガード・溜め |
+| E | Y | アイテム使用・納刀 |
+| F / Enter | A | 会話・採取・決定 |
+| Q | L（全押し） | カメラ正面リセット／長押しでアイテムバー |
+| Q 長押し ＋ 左／右クリック（キャプチャ中） | — | アイテムバーの前／次へスクロール |
+| Z / C | ZL / ZR | 操作タイプ準拠 |
+| Escape | + | ポーズメニュー |
+| Tab / M | − | クエストメニュー（ポーチ・マップ・サイン） |
+| Backspace | B | 戻る |
+| 矢印キー | 十字キー | メニュー移動 |
+| I J K L | 右スティック | カメラ操作または攻撃（ゲーム内オプション準拠） |
+| Home | HOME | HOME メニュー |
 
-Keyboard and gamepad sticks combine per stick (a held key wins). There is no
-remapping yet: the tables live in `mh3_classic_map.c` (Vita) and
-`controller_host.cpp` (SDL, keyboard).
+キーボードとゲームパッドのスティック入力は軸ごとに合成されます（キー押下を優先）。キーコンフィグ機能は未実装で、割り当てテーブルは `mh3_classic_map.c`（PS Vita）および `controller_host.cpp`（SDL・キーボード）に定義されています。
 
-### Mouse look
+### マウスカメラ操作
 
-A click in the window captures the mouse; Left Alt held frees the cursor
-(the window or the browser keeps it otherwise). Captured, the mouse turns
-the field camera directly instead of standing in for the right stick, whose
-camera only turns at fixed speeds:
+ウィンドウ内をクリックするとマウスがキャプチャされ、`Left Alt` を押している間だけカーソルが解放されます。キャプチャ中のマウス移動は、一定速度でしか回らない右スティック入力の代替ではなく、フィールドカメラを直接回転させます。
 
-- across, the yaw turns with the mouse, one to one and without the stick's
-  ramp (22 angle units a pixel, 0.12°), and holds off the camera's swing
-  back behind the hunter as a turning stick does;
-- up and down, on land, where the stick only steps between the camera's
-  five distance rows (0 high and close, 1 high and far, 2 the middle, 3 low
-  and far with the narrower view, 4 low and close), the mouse moves between
-  them continuously (96 pixels a row): the camera's row is the blend of the
-  two nearest, written to 32 bytes the runtime reserves in MEM2, so the
-  camera's collision and limits see the same row; swimming, it tilts the
-  pitch as the stick does.
+- **水平方向（ヨー）**: スティックの加速カーブを介さず、マウス移動量に 1 対 1 で追従（1 ピクセルあたり 22 角度単位・0.12°）し、スティック操作時と同様にカメラの自動背後戻りを抑止します。
+- **垂直方向（ピッチ／距離段）**: 地上では、元のスティック操作が 5 段階の距離段（0: 高く近い〜4: 低く近い）を切り替えるだけなのに対し、マウスでは 1 段あたり 96 ピクセルで段間を連続補間します。補間結果は MEM2 上の予約領域（32 バイト）へ書き込まれるため、カメラの地形衝突判定や可動制限にもそのまま反映されます。水中ではスティックと同様にピッチ角を傾けます。
 
-While L is held (Q) the item bar is open, and the captured buttons scroll it
-instead of attacking: the runtime replays the bar's own scroll
-(`runtime/src/item_bar.cpp`, the game's 0x8025E12C), its sound, the next
-usable pouch slot back or forward and the HUD's turn.
+`Q`（L ボタン）長押しでアイテムバーを開いている間は、キャプチャ中の左右クリックが攻撃ではなくアイテムバーのスクロールになります（ランタイムがゲーム本来のスクロール処理 `runtime/src/item_bar.cpp` を再生し、効果音・次の使用可能スロット選択・HUD 回転を再現します）。
 
-`MH3_MOUSE_SENSITIVITY` scales both (default 1) and `MH3_MOUSE_INVERT_Y=1`
-turns the vertical round; the game's own camera inversion options apply too.
-Free, the left button over the game's picture is the Wii Remote's pointer: a
-finger on the Vita's screen ([pointer](#pointer)). Code:
-`runtime/src/controller_host.cpp` (capture, `TakeMouseMotion`),
-`runtime/src/camera_input.cpp` and `field_camera.cpp` (the camera), and the
-camera helpers ported for it in `runtime/src/camera_controls.cpp`.
+環境変数 `MH3_MOUSE_SENSITIVITY` で感度倍率（既定 `1`）、`MH3_MOUSE_INVERT_Y=1` で上下反転を設定できます（ゲーム内オプションのカメラ反転設定も適用されます）。マウス解放時は、ゲーム画面上の左クリックが Wii リモコンのポインタ（PS Vita のタッチ操作と同等）として機能します。  
+関連コード: `runtime/src/controller_host.cpp`（キャプチャ・`TakeMouseMotion`）、`runtime/src/camera_input.cpp`・`field_camera.cpp`（カメラ制御）、`runtime/src/camera_controls.cpp`（補助処理）。

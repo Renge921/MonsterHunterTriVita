@@ -1154,32 +1154,21 @@ enum class Item { Start, Village, City, Adhoc, Quests, Create, Cheats, Widescree
 
 constexpr Item MainItems[]{Item::Start,
                            Item::Village,
-#ifndef __EMSCRIPTEN__
-                           Item::City,
-                           Item::Adhoc,
-#endif
                            Item::Quests,
                            Item::Create,
-                           Item::Cheats,
                            Item::Widescreen,
                            Item::Upscaling,
                            Item::FrameLimit,
 #ifdef __EMSCRIPTEN__
-                           Item::Ssaa,
+                           Item::Ssaa
 #else
-                           Item::Msaa,
-#endif
-#ifdef __vita__
-                           Item::Keyboard,
-#endif
-                           Item::Language,
-#ifndef __EMSCRIPTEN__
-                           Item::Online
+                           Item::Msaa
 #endif
 };
 
 size_t MainRow(Item item) {
-    return size_t(std::find(std::begin(MainItems), std::end(MainItems), item) - std::begin(MainItems));
+    const auto found = std::find(std::begin(MainItems), std::end(MainItems), item);
+    return found == std::end(MainItems) ? 0 : size_t(found - std::begin(MainItems));
 }
 
 // The Framelimit row's choices, in order: the Vita's VBlank modes and off;
