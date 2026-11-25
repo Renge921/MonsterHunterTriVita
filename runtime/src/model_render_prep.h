@@ -115,8 +115,8 @@ struct ModelPrepInputs {
 // Host mirror of the G3DState CPU caches a dispatch reads and writes, with
 // the guest layout so the portable C cache producers run unchanged.
 struct ModelPrepMirror {
-    static constexpr uint32_t BaseA = 0x80685300, SizeA = 0x240; // genmode .. view sources
-    static constexpr uint32_t BaseB = 0x80796db0, SizeB = 0x20;  // sync .. depth compare
+    static constexpr uint32_t BaseA = 0x80866560, SizeA = 0x240; // genmode .. view sources
+    static constexpr uint32_t BaseB = 0x8089a330, SizeB = 0x20;  // sync .. depth compare
     uint8_t a[SizeA]{}, b[SizeB]{};
     uint8_t unused[48]{}; // fog/light/view caches stay on the game thread
     uint32_t pipeline_address = 0;

@@ -26,4 +26,4 @@ extern "C" void MH3_HomeButtonInitializeRendering(CpuContext*) {
     raster.color_write = 1;
     SetNativeRaster(raster);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FD28, MH3_HomeButtonInitializeRendering, "hbm_InitGX__Fv");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8003FD28, MH3_HomeButtonInitializeRendering, "hbm_InitGX__Fv");

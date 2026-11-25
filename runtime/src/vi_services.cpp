@@ -39,7 +39,7 @@ void ServiceVideoRetrace(CpuContext* cpu) {
     // pacing; missed retraces should be skipped, not accumulated or restarted.
     nextRetrace = AdvanceRetraceDeadline(nextRetrace, now, std::chrono::nanoseconds(VideoRetracePeriodNs()));
     const auto saved = *cpu;
-    const uint32_t before = Memory::Read32(saved.gpr[13] - 0x379C);
+    const uint32_t before = Memory::Read32(saved.gpr[13] - 0x3E74);
     BeginVideoRetrace();
     {
         ScopeExit end([&] {
@@ -53,10 +53,10 @@ void ServiceVideoRetrace(CpuContext* cpu) {
         if (!cpu->gpr[4] || !Memory::Contains(cpu->gpr[4], 0x2C8))
             MH3_THROW(std::runtime_error("VI retrace has no valid guest OS context"));
 
-        InvokeIndirectCpu(0x804E6F30, cpu);
+        InvokeIndirectCpu(0x80439564, cpu);
     }
 
-    const uint32_t after = Memory::Read32(saved.gpr[13] - 0x379C);
+    const uint32_t after = Memory::Read32(saved.gpr[13] - 0x3E74);
 
     if (after != before + 1)
         MH3_THROW(std::runtime_error("VI handler did not deliver a retrace"));
@@ -83,7 +83,7 @@ extern "C" void MH3_VIWaitForRetrace(CpuContext* cpu) {
     ServiceOsAlarms(cpu);
     ServiceVideoRetrace(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804E8050, MH3_VIWaitForRetrace, "MH3_VIWaitForRetrace");
+REGISTER_NATIVE_FUNCTION(0x8043A66C, MH3_VIWaitForRetrace);
 
 void RunVideoTimingSelfTests() {
     const auto start = Clock::time_point{};

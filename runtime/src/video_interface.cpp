@@ -31,7 +31,7 @@ void ResetVideoInterface() {
 
     // PAL interlaced scanout established by the host boot environment. VIInit
     // reads the active mode to construct its timing and framebuffer state.
-    registers[1] = 0x0101;
+    registers[1] = 0x0001;
 }
 
 bool ReadVideoRegister16(uint32_t address, uint16_t& value) {
@@ -91,11 +91,11 @@ extern "C" void MH3_VIEncoderSend(CpuContext* ctx) {
     for (uint32_t i = 1; i < length; ++i)
         encoder[index + i - 1] = Memory::Read8(data + i);
 
-    Memory::Write32(0x80797B48, 1); // r13 - 0x3798, I2C initialized
-    Memory::Write32(0x80796648, 1); // r13 - 0x4C98, bus polarity
+    Memory::Write32(0x808A0A10, 1); // r13 - 0x3798, I2C initialized
+    Memory::Write32(0x8089ED30, 1); // r13 - 0x4C98, bus polarity
     ctx->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION(0x804E9C20, MH3_VIEncoderSend);
+REGISTER_NATIVE_FUNCTION(0x8043C1DC, MH3_VIEncoderSend);
 
 uint64_t VideoRetracePeriodNs() {
     return ((registers[1] >> 8) & 3) == 1 ? 20000000 : 16683333;

@@ -28,12 +28,6 @@ int sceNetCtlAdhocConnectSsid(const char* ssid);
 int sceNetCtlAdhocShellEventA(int which);
 int sceNetCtlAdhocShellEventB(int which);
 
-struct SceNpCommunicationConfig {
-    const SceNpCommunicationId* id;
-    const void* passphrase;
-    const void* signature;
-};
-
 int sceNpInit(const SceNpCommunicationConfig* config, void* option);
 }
 #endif

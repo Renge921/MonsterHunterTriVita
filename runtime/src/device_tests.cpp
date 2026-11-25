@@ -1683,7 +1683,7 @@ void RunDeviceSelfTests(CpuContext* cpu) {
     cpu->gpr[7] = 0x80001500;
     MH3_IOSIoctlv(cpu);
 
-    if (cpu->gpr[3] || Memory::Read64(0x80001600) != 0x00010000524D4850ull)
+    if (cpu->gpr[3] || Memory::Read64(0x80001600) != 0x00010000524D484Aull)
         MH3_THROW(std::runtime_error("ES title identity failed"));
 
     Memory::Write32(0x80001508, 0x80001700);
@@ -1695,7 +1695,7 @@ void RunDeviceSelfTests(CpuContext* cpu) {
     cpu->gpr[7] = 0x80001500;
     MH3_IOSIoctlv(cpu);
 
-    if (cpu->gpr[3] || std::string(reinterpret_cast<char*>(Memory::GetPointer(0x80001700, 30))) != "/title/00010000/524d4850/data")
+    if (cpu->gpr[3] || std::string(reinterpret_cast<char*>(Memory::GetPointer(0x80001700, 30))) != "/title/00010000/524d484a/data")
         MH3_THROW(std::runtime_error("ES data directory failed"));
 
     for (uint32_t i = 0; i < 0x2A4; ++i)

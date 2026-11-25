@@ -214,7 +214,7 @@ extern "C" void MH3_CheatLedgeFind(CpuContext* ctx) {
     func_80277CF8(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80277CF8, MH3_CheatLedgeFind, "CheatLedgeFind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80277CF8, MH3_CheatLedgeFind, "CheatLedgeFind");
 
 // FieldSetAction (0x80275754, plw, ...): Enhanced movement speed (US
 // 0x80275784, EU 0x802757E8) makes the action's motion speed 2; its
@@ -237,7 +237,7 @@ extern "C" void MH3_CheatSetAction(CpuContext* ctx) {
         Memory::Write32(plw + 0x318, crossbow);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80275754, MH3_CheatSetAction, "CheatSetAction");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80275754, MH3_CheatSetAction, "CheatSetAction");
 
 // VillageSetAction (0x8020A448): the same in the village (US 0x8020A474, EU
 // 0x8020A4D8: r2 - 16248).
@@ -248,7 +248,7 @@ extern "C" void MH3_CheatVillageSetAction(CpuContext* ctx) {
     func_8020A448(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8020A448, MH3_CheatVillageSetAction, "CheatVillageSetAction");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8020A448, MH3_CheatVillageSetAction, "CheatVillageSetAction");
 
 // 0x80252C78 (plw): a walk (motion 101). Enhanced movement speed (US
 // 0x80252E08 and 0x80252E14, EU 0x80252E6C and 0x80252E78) makes its two
@@ -264,7 +264,7 @@ extern "C" void MH3_CheatWalk101(CpuContext* ctx) {
     PortCheck::Call(ctx, "FieldWalk101", func_80252C78, FieldWalk101);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80252C78, MH3_CheatWalk101, "CheatWalk101");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80252C78, MH3_CheatWalk101, "CheatWalk101");
 
 // Enhanced dashing in the field's runs (the constants' only loads there;
 // the step-scaled ports read them from guest memory):
@@ -283,7 +283,7 @@ extern "C" void MH3_CheatRun3(CpuContext* ctx) {
     PortCheck::Call(ctx, "FieldRun3", func_80252704, FieldRun3);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80252704, MH3_CheatRun3, "CheatRun3");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80252704, MH3_CheatRun3, "CheatRun3");
 
 // 0x80253750 (motion 39): the step 10 (not 1.5, US 0x802537E0, EU
 // 0x80253844).
@@ -294,7 +294,7 @@ extern "C" void MH3_CheatRun39(CpuContext* ctx) {
     PortCheck::Call(ctx, "FieldRun39", func_80253750, FieldRun39);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80253750, MH3_CheatRun39, "CheatRun39");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80253750, MH3_CheatRun39, "CheatRun39");
 
 // 0x802539F8 (motion 38): the step 32 (not 5, US 0x80253BB8, EU 0x80253C1C).
 extern "C" void func_802539F8(CpuContext* ctx);
@@ -304,7 +304,7 @@ extern "C" void MH3_CheatRun38(CpuContext* ctx) {
     PortCheck::Call(ctx, "FieldRun38", func_802539F8, FieldRun38);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802539F8, MH3_CheatRun38, "CheatRun38");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802539F8, MH3_CheatRun38, "CheatRun38");
 
 // 0x80254190 (motion 115): the motion speed 4 (not 1.6, US 0x80254234, EU
 // 0x80254298).
@@ -315,7 +315,7 @@ extern "C" void MH3_CheatRun115(CpuContext* ctx) {
     func_80254190(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80254190, MH3_CheatRun115, "CheatRun115");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80254190, MH3_CheatRun115, "CheatRun115");
 
 // 0x8024F674 (plw): the panic dive (motions 46 to 48). Enhanced panic jump
 // (US 0x8024F704, 0x8024F71C and 0x8024F738; EU 0x8024F768, 0x8024F780 and
@@ -330,7 +330,7 @@ extern "C" void MH3_CheatPanicDive(CpuContext* ctx) {
     func_8024F674(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8024F674, MH3_CheatPanicDive, "CheatPanicDive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8024F674, MH3_CheatPanicDive, "CheatPanicDive");
 
 namespace {
 
@@ -409,7 +409,7 @@ extern "C" void MH3_CheatSkillCheck(CpuContext* ctx) {
                 ctx->gpr[3] = 1;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80271374, MH3_CheatSkillCheck, "CheatSkillCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80271374, MH3_CheatSkillCheck, "CheatSkillCheck");
 
 // rotVecY (0x800510C8, vec, angle) and rotVecXYZ (0x80051224, vec, angles):
 // the vector turned in place.
@@ -418,7 +418,7 @@ extern "C" void MH3_CheatRotVecY(CpuContext* ctx) {
     Nw4rMath::RotVecYChecked(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x800510C8, MH3_CheatRotVecY, "CheatRotVecY");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800510C8, MH3_CheatRotVecY, "CheatRotVecY");
 
 extern "C" void func_80051224(CpuContext* ctx);
 
@@ -427,7 +427,7 @@ extern "C" void MH3_CheatRotVecXYZ(CpuContext* ctx) {
     func_80051224(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80051224, MH3_CheatRotVecXYZ, "CheatRotVecXYZ");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80051224, MH3_CheatRotVecXYZ, "CheatRotVecXYZ");
 
 namespace {
 
@@ -459,7 +459,7 @@ extern "C" void MH3_CheatHitShape(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80225498, MH3_CheatHitShape, "CheatHitShape");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80225498, MH3_CheatHitShape, "CheatHitShape");
 
 // 0x8029F268 (hit, data): a hit's setup; its size (+0x24) 1 (r2 - 14076, its
 // only load there). Exceed weapon size (US 0x8029F2C0, EU 0x8029F324) makes
@@ -471,7 +471,7 @@ extern "C" void MH3_CheatHitSetup(CpuContext* ctx) {
     func_8029F268(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8029F268, MH3_CheatHitSetup, "CheatHitSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8029F268, MH3_CheatHitSetup, "CheatHitSetup");
 
 // LandSweepNormalizeVector (0x80293AE0, vec, f1 length): the wall sweep's
 // vector scaled to length 1. Walk through walls (US 0x80293A7C, EU
@@ -488,7 +488,7 @@ extern "C" void MH3_CheatSweepNormalize(CpuContext* ctx) {
             Memory::WriteFloat32(vec + k, -Memory::ReadFloat32(vec + k));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80293AE0, MH3_CheatSweepNormalize, "CheatSweepNormalize");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80293AE0, MH3_CheatSweepNormalize, "CheatSweepNormalize");
 
 // 0x80298CA0 (capsule, plw): the hunter's body capsule against monsters: a
 // segment between its joints, its ends pushed out by 40 (r2 - 14096), the
@@ -510,7 +510,7 @@ extern "C" void MH3_CheatBodyCapsule(CpuContext* ctx) {
         Memory::WriteFloat32(capsule + 0x18, radius);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80298CA0, MH3_CheatBodyCapsule, "CheatBodyCapsule");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80298CA0, MH3_CheatBodyCapsule, "CheatBodyCapsule");
 
 // ShellSlotUpdate (0x800D9348): the stick's tilt scaled by 1/127 (r2 - 30376,
 // its only load there); Slow-mo (US 0x800D9508, EU 0x800D956C) scales it by 1
@@ -522,7 +522,7 @@ extern "C" void MH3_CheatShellSlotUpdate(CpuContext* ctx) {
     func_800D9348(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x800D9348, MH3_CheatShellSlotUpdate, "CheatShellSlotUpdate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800D9348, MH3_CheatShellSlotUpdate, "CheatShellSlotUpdate");
 
 // 0x800E0E44 (mhchar, f1 frame, f2 rate, ...): a motion set; its rate (+0x5C)
 // twice f2 (US 0x800E0F4C, EU 0x800E0FB0). Slow-mo makes it a quarter of f2
@@ -536,4 +536,4 @@ extern "C" void MH3_CheatMotionSet(CpuContext* ctx) {
     func_800E0E44(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x800E0E44, MH3_CheatMotionSet, "CheatMotionSet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E0E44, MH3_CheatMotionSet, "CheatMotionSet");

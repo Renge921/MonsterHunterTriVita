@@ -58,4 +58,4 @@ uint32_t StrcmpChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_Strcmp(CpuContext* ctx) {
     ctx->gpr[3] = StrcmpChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8045FD04, MH3_Strcmp, "strcmp");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8045FD04, MH3_Strcmp, "strcmp");

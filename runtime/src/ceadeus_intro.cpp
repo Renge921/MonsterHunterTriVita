@@ -47,14 +47,14 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    SetUp = 0x801304DC,       // (work, 2)
-    SetMotion = 0x8012F61C,   // (work, motion, 0, blend): 0x8012F568
-    SetAngles = 0x80146170,   // (work; f1-f3 degrees)
-    DemoReached = 0x8014606C, // (n) -> 1 from demo step n / 2
-    FrameCheck = 0x8012F980,  // em_frame_check(work, mode; f1 frame, f2 end) -> 1
-    MotionDone = 0x8012F9A0,  // (work) -> 1: 0x800E21FC on the MHchar
-    DemoSteps = 0x80146048,   // () -> s16, the event demo clock
-    Spawn = 0x8030456C,       // (work, kind, joint, offset or 0; f1 scale)
+    SetUp = 0x8016A708,       // (work, 2)
+    SetMotion = 0x80168FD4,   // (work, motion, 0, blend): RMHJ08
+    SetAngles = 0x80184778,   // (work; f1-f3 degrees)
+    DemoReached = 0x801846E4, // (n) -> 1 from demo step n / 2
+    FrameCheck = 0x80169ABC,  // em_frame_check(work, mode; f1 frame, f2 end) -> 1
+    MotionDone = 0x80169AD4,  // (work) -> 1
+    DemoSteps = 0x801846C0,   // () -> s16, the event demo clock
+    Spawn = 0x800673A0,       // (work, kind, joint, offset or 0; f1 scale)
 };
 
 // 0x801460BC, inlined: the position, and the previous position the same.
@@ -268,8 +268,8 @@ void CeadeusIntroPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_80371730(CpuContext* ctx);
+extern "C" void func_801097F4(CpuContext* ctx);
 extern "C" void MH3_CeadeusIntro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CeadeusIntro", func_80371730, CeadeusIntroPort);
+    PortCheck::Call(ctx, "CeadeusIntro", func_801097F4, CeadeusIntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80371730, MH3_CeadeusIntro, "CeadeusIntro");
+REGISTER_NATIVE_FUNCTION_AS(0x801097F4, MH3_CeadeusIntro, "CeadeusIntro");

@@ -1,6 +1,5 @@
 // RMHP08 application UI paths, reconstructed from their Ghidra C listings.
 // This is the guest ABI boundary; typed C writes native attributes directly.
-#include "language_pack.h"
 #include "abi_bridge.h"
 #include "fatal.h"
 #include "guest_call.h"
@@ -9,19 +8,22 @@
 #include "native_graphics.h"
 #include "native_shade_snapshot.h"
 #include "port_check.h"
+#include "render_diag.h"
 #include "../native/mh3_ui.h"
 #include "../native/mh3_system_ui.h"
 #include "../native/adapters/model_state_bridge.h"
 #include "../native/adapters/ui_bridge.h"
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstring>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace {
-constexpr uint32_t Shape = 0x8066CDA0, ScreenWidth = 0x8065B4C0, ScreenHeight = 0x8065B4C4;
+constexpr uint32_t Shape = 0x80753AB0, ScreenWidth = 0x807693FC, ScreenHeight = 0x80769400;
 uint32_t uiFlags = 0;
 bool uiTextured = false;
 uint32_t uiStages = 1;
@@ -107,12 +109,12 @@ void RasterQuad(bool blend, bool depthTest) {
 }
 
 void Invalidate(GuestCall& call, uint32_t fields = 0x7FF) {
-    call(0x800885F4, {fields});
+    call(0x8052C0C0, {fields});
 }
 
 void RestoreWorld(GuestCall& call) {
     uiStages = 1;
-    call(0x800E47B8);
+    call(0x802AF3B0);
     Invalidate(call);
 }
 
@@ -190,9 +192,9 @@ void SetupPrimitive(GuestCall& call, uint32_t flags, uint32_t texture, uint32_t 
     uiFlags = flags;
 
     if (flags & 1) {
-        call(0x800E47B8);
+        call(0x802AF3B0);
         GuestFrame scratch(call.cpu, 0x40);
-        call(0x802BDCA4, {scratch[0x10]}); // get_current_view_mtx, pure CPU copy
+        call(0x80375DB4, {scratch[0x10]}); // get_current_view_mtx, pure CPU copy
         float matrix[12];
 
         for (unsigned i = 0; i < 12; ++i)
@@ -237,7 +239,7 @@ void SetupPrimitive(GuestCall& call, uint32_t flags, uint32_t texture, uint32_t 
             BindNativePalette(0, colors);
         }
 
-        StoreNativeTextureObject(0x8066CE98, binding);
+        StoreNativeTextureObject(Shape + 0xF8, binding);
         BindNativeTexture(binding);
     }
 }
@@ -273,7 +275,7 @@ mh3_ui_stream ShapeStream(uint32_t flags, uint32_t count) {
         stream.uvs = Span(Memory::Read32(Shape + 16), size_t(count) * (flags & 0x40000 ? 4 : 8));
 
         if (flags & 0x40000) {
-            const auto binding = ResourceBinding(0x8066CE80);
+            const auto binding = ResourceBinding(Shape + 0xE0);
 
             if (!binding.source.width || !binding.source.height)
                 MH3_THROW(std::runtime_error("Native shape texture has zero dimensions"));
@@ -286,7 +288,7 @@ mh3_ui_stream ShapeStream(uint32_t flags, uint32_t count) {
             stream.transform_uv = 1;
 
             for (unsigned i = 0; i < 12; ++i)
-                stream.uv_matrix[i] = Memory::ReadFloat32(0x8066CE44 + i * 4);
+                stream.uv_matrix[i] = Memory::ReadFloat32(Shape + 0xA4 + i * 4);
         }
     }
 
@@ -310,18 +312,18 @@ void ObserveShape(uint32_t flags, uint32_t count) {
 
     if (flags & 4)
         for (unsigned i = 0; i < 12; ++i)
-            state.position[i] = Memory::ReadFloat32(0x8066CE14 + i * 4);
+            state.position[i] = Memory::ReadFloat32(Shape + 0x74 + i * 4);
     else
         mh3_draw_identity_position(state.position);
 
-    auto binding = ResourceBinding(0x8066CE80);
-    binding.sampler.wrap_s = Memory::Read32(0x8066CE74);
-    binding.sampler.wrap_t = Memory::Read32(0x8066CE78);
+    auto binding = ResourceBinding(Shape + 0xE0);
+    binding.sampler.wrap_s = Memory::Read32(Shape + 0xD4);
+    binding.sampler.wrap_t = Memory::Read32(Shape + 0xD8);
     mh3_native_palette_source palette{};
     const mh3_native_palette_source* colors = nullptr;
 
     if (binding.source.indexed) {
-        palette = ReadNativeResPalette(0x8066CE84);
+        palette = ReadNativeResPalette(Shape + 0xE4);
         colors = &palette;
     }
 
@@ -339,7 +341,7 @@ void DrawBeta(CpuContext* cpu, bool textured) {
     if (textured)
         ScreenOrtho();
     else {
-        call(0x80040354, {frame[0x10]});
+        call(0x80033134, {frame[0x10]});
         Ortho(0, Memory::ReadFloat32(frame[0x14]), 0, Memory::ReadFloat32(frame[0x10]), 0, 1);
     }
 
@@ -355,8 +357,11 @@ void DrawBeta(CpuContext* cpu, bool textured) {
     ReadPosition(position, origin);
     uint8_t rgba[4];
     ReadColor(color, rgba);
+    const float w = Memory::ReadFloat32(size), h = Memory::ReadFloat32(size + 4);
+    if (w >= 300.0f && h >= 200.0f)
+        RenderDiag::NoteOverlay(textured ? "DrawBetaTex" : "DrawBeta", 0, w, h, rgba[0], rgba[1], rgba[2], rgba[3]);
     mh3_ui_vertex vertices[4];
-    mh3_ui_rect(vertices, origin[0], origin[1], origin[0] + Memory::ReadFloat32(size), origin[1] + Memory::ReadFloat32(size + 4), origin[2], rgba, 0, 0, 1, 1);
+    mh3_ui_rect(vertices, origin[0], origin[1], origin[0] + w, origin[1] + h, origin[2], rgba, 0, 0, 1, 1);
     DrawVertices(MH3_UI_QUADS, vertices, 4, textured);
 }
 } // namespace
@@ -369,23 +374,23 @@ extern "C" void MH3_Setup2DProjection(CpuContext*) {
     Ortho(0, 480, 0, 640, 0, 1);
     Identity();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80046E98, MH3_Setup2DProjection, "Setup2DProjection");
+REGISTER_NATIVE_FUNCTION(0x802A16DC, MH3_Setup2DProjection);
 extern "C" void MH3_UIScreenProjection(CpuContext*) {
     ScreenOrtho(-10000, 10000);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80052770, MH3_UIScreenProjection, "UIScreenProjection");
+// REGISTER_NATIVE_FUNCTION(0x80052770, MH3_UIScreenProjection); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_DrawBeta(CpuContext* cpu) {
     DrawBeta(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80041470, MH3_DrawBeta, "DrawBeta");
+REGISTER_NATIVE_FUNCTION(0x802C9268, MH3_DrawBeta);
 extern "C" void MH3_DrawBetaTexture(CpuContext* cpu) {
     DrawBeta(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005AC3C, MH3_DrawBetaTexture, "DrawBetaTexture");
+REGISTER_NATIVE_FUNCTION(0x80034020, MH3_DrawBetaTexture);
 extern "C" void MH3_DebugDrawSetup(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
-    const auto mode = Memory::Read32(frame.Arg(13) - 0x46B8);
+    const auto mode = Memory::Read32(frame.Arg(13) - 0x4738);
     const float width = Memory::Read16(mode + 4) * 0.913460016f, height = Memory::Read16(mode + 6);
     Invalidate(call, 4);
     Ortho(-height * 0.5f, height * 0.5f, -width * 0.5f, width * 0.5f, -10, 10);
@@ -412,7 +417,7 @@ extern "C" void MH3_DebugDrawSetup(CpuContext* cpu) {
     mh3_native_fog fog{};
     SetNativeFog(fog);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005AF80, MH3_DebugDrawSetup, "DebugDrawSetup");
+REGISTER_NATIVE_FUNCTION(0x80034340, MH3_DebugDrawSetup);
 extern "C" void MH3_UITextureBind(CpuContext* cpu) {
     auto binding = ResourceBinding(cpu->gpr[3]);
     binding.map_id = cpu->gpr[5];
@@ -430,10 +435,10 @@ extern "C" void MH3_UITextureBind(CpuContext* cpu) {
         BindNativePalette(binding.tlut_id, ReadNativeResPalette(cpu->gpr[4]));
     }
 
-    StoreNativeTextureObject(0x8066CE98 + binding.map_id * 32, binding);
+    StoreNativeTextureObject(Shape + 0xF8 + binding.map_id * 32, binding);
     BindNativeTexture(binding);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80052C90, MH3_UITextureBind, "UITextureBind");
+// REGISTER_NATIVE_FUNCTION(0x80052C90, MH3_UITextureBind); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UIColorPipeline(CpuContext*) {
     uiTextured = false;
     uiStages = 1;
@@ -441,12 +446,17 @@ extern "C" void MH3_UIColorPipeline(CpuContext*) {
     mh3_system_ui_application_pipeline(&material, 0);
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80052F68, MH3_UIColorPipeline, "UIColorPipeline");
+// REGISTER_NATIVE_FUNCTION(0x80052F68, MH3_UIColorPipeline); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UITexturePipeline(CpuContext* cpu) {
     const auto texture = cpu->gpr[3], palette = cpu->gpr[4];
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
-    call(0x80052C90, {texture, palette, 0, 0, 0});
+    cpu->gpr[3] = texture;
+    cpu->gpr[4] = palette;
+    cpu->gpr[5] = 0;
+    cpu->gpr[6] = 0;
+    cpu->gpr[7] = 0;
+    MH3_UITextureBind(cpu);
     uiTextured = true;
     uiStages = 1;
     ConfigureDirectCoordinates(0, 1, 4, 60);
@@ -456,14 +466,14 @@ extern "C" void MH3_UITexturePipeline(CpuContext* cpu) {
     mh3_system_ui_direct_stages(&material, &stage, 1);
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80052FB4, MH3_UITexturePipeline, "UITexturePipeline");
+// REGISTER_NATIVE_FUNCTION(0x80052FB4, MH3_UITexturePipeline); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UITextureCoordinates(CpuContext* cpu) {
     ConfigureDirectCoordinates(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5], cpu->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053028, MH3_UITextureCoordinates, "UITextureCoordinates");
-REGISTER_NATIVE_FUNCTION_AS(0x8005AF74, MH3_UITextureCoordinates, "BetaTextureCoordinates");
-REGISTER_NATIVE_FUNCTION_AS(0x8005C564, MH3_UITextureCoordinates, "FontTextureCoordinates");
-REGISTER_NATIVE_FUNCTION_AS(0x80048D3C, MH3_UITextureCoordinates, "SpriteTextureCoordinates");
+// REGISTER_NATIVE_FUNCTION(0x80053028, MH3_UITextureCoordinates); // Inlined/Unused in JPN (RMHJ08)
+// REGISTER_NATIVE_FUNCTION(0x8005AF74, MH3_UITextureCoordinates); // Inlined/Unused in JPN (RMHJ08)
+// REGISTER_NATIVE_FUNCTION(0x8005C564, MH3_UITextureCoordinates); // Inlined/Unused in JPN (RMHJ08)
+// REGISTER_NATIVE_FUNCTION(0x80048D3C, MH3_UITextureCoordinates); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UIStageCount(CpuContext* cpu) {
     const uint32_t count = cpu->gpr[3] & 255;
 
@@ -484,23 +494,23 @@ extern "C" void MH3_UIStageCount(CpuContext* cpu) {
     mh3_system_ui_direct_stages(&material, stages, count);
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053034, MH3_UIStageCount, "UIStageCount");
+// REGISTER_NATIVE_FUNCTION(0x80053034, MH3_UIStageCount); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UIVertexFormat(CpuContext* cpu) {
     uiFlags = cpu->gpr[3];
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800530D0, MH3_UIVertexFormat, "UIVertexFormat");
+// REGISTER_NATIVE_FUNCTION(0x800530D0, MH3_UIVertexFormat); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_UIPrimitiveSetup(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     SetupPrimitive(call, frame.Arg(3) & 255, frame.Arg(4), frame.Arg(5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800531C4, MH3_UIPrimitiveSetup, "UIPrimitiveSetup");
+REGISTER_NATIVE_FUNCTION(0x8028D938, MH3_UIPrimitiveSetup);
 extern "C" void MH3_UIPrimitiveFinish(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     RestoreWorld(call);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800533D4, MH3_UIPrimitiveFinish, "UIPrimitiveFinish");
+// REGISTER_NATIVE_FUNCTION(0x800533D4, MH3_UIPrimitiveFinish); // Inlined/Unused in JPN (RMHJ08)
 extern "C" void MH3_DrawLine2D(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -521,7 +531,7 @@ extern "C" void MH3_DrawLine2D(CpuContext* cpu) {
 
     RestoreWorld(call);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005342C, MH3_DrawLine2D, "DrawLine2D");
+REGISTER_NATIVE_FUNCTION(0x8028DE2C, MH3_DrawLine2D);
 extern "C" void MH3_DrawRect2D(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -531,14 +541,18 @@ extern "C" void MH3_DrawRect2D(CpuContext* cpu) {
         const auto record = frame.Arg(3);
         uint8_t rgba[4];
         ReadColor(record + 8, rgba);
+        const int16_t x0 = int16_t(Memory::Read16(record)), y0 = int16_t(Memory::Read16(record + 2));
+        const int16_t x1 = int16_t(Memory::Read16(record + 4)), y1 = int16_t(Memory::Read16(record + 6));
+        if (std::abs(x1 - x0) >= 300 && std::abs(y1 - y0) >= 200)
+            RenderDiag::NoteOverlay("Rect2D", 0, float(std::abs(x1 - x0)), float(std::abs(y1 - y0)), rgba[0], rgba[1], rgba[2], rgba[3]);
         mh3_ui_vertex vertices[4];
-        mh3_ui_rect(vertices, int16_t(Memory::Read16(record)), int16_t(Memory::Read16(record + 2)), int16_t(Memory::Read16(record + 4)), int16_t(Memory::Read16(record + 6)), 0, rgba, 0, 0, 0, 0);
+        mh3_ui_rect(vertices, x0, y0, x1, y1, 0, rgba, 0, 0, 0, 0);
         DrawVertices(MH3_UI_QUADS, vertices, 4, false);
     }
 
     RestoreWorld(call);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053580, MH3_DrawRect2D, "DrawRect2D");
+REGISTER_NATIVE_FUNCTION(0x8028DED4, MH3_DrawRect2D);
 extern "C" void MH3_DrawRect2DTexture(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -554,15 +568,19 @@ extern "C" void MH3_DrawRect2DTexture(CpuContext* cpu) {
         const float du = 1.f / binding.source.width, dv = 1.f / binding.source.height;
         uint8_t rgba[4];
         ReadColor(record + 8, rgba);
+        const int16_t x0 = int16_t(Memory::Read16(record)), y0 = int16_t(Memory::Read16(record + 2));
+        const int16_t x1 = int16_t(Memory::Read16(record + 4)), y1 = int16_t(Memory::Read16(record + 6));
+        if (std::abs(x1 - x0) >= 300 && std::abs(y1 - y0) >= 200)
+            RenderDiag::NoteOverlay("Rect2DTex", 0, float(std::abs(x1 - x0)), float(std::abs(y1 - y0)), rgba[0], rgba[1], rgba[2], rgba[3]);
         mh3_ui_vertex vertices[4];
-        mh3_ui_rect(vertices, int16_t(Memory::Read16(record)), int16_t(Memory::Read16(record + 2)), int16_t(Memory::Read16(record + 4)), int16_t(Memory::Read16(record + 6)), 0, rgba,
+        mh3_ui_rect(vertices, x0, y0, x1, y1, 0, rgba,
                     int16_t(Memory::Read16(record + 12)) * du, int16_t(Memory::Read16(record + 14)) * dv, int16_t(Memory::Read16(record + 16)) * du, int16_t(Memory::Read16(record + 18)) * dv);
         DrawVertices(MH3_UI_QUADS, vertices, 4, true);
     }
 
     RestoreWorld(call);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053620, MH3_DrawRect2DTexture, "DrawRect2DTexture");
+REGISTER_NATIVE_FUNCTION(0x8028DF94, MH3_DrawRect2DTexture);
 
 extern "C" void MH3_UIShapeSetup(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
@@ -573,7 +591,7 @@ extern "C" void MH3_UIShapeSetup(CpuContext* cpu) {
 
     if (!(flags & 1) && (flags & 4)) {
         for (unsigned i = 0; i < 12; ++i)
-            matrix[i] = Memory::ReadFloat32(0x8066CE14 + i * 4);
+            matrix[i] = Memory::ReadFloat32(Shape + 0x74 + i * 4);
 
         overrideMatrix = matrix;
     }
@@ -581,12 +599,12 @@ extern "C" void MH3_UIShapeSetup(CpuContext* cpu) {
     // The original binds the shape's texture clamped, then again with its
     // wrap modes: one binding with the wrap modes leaves the same state.
     const bool textured = (flags & 2) != 0;
-    SetupPrimitive(call, flags, 0x8066CE80, 0x8066CE84, overrideMatrix, textured ? Memory::Read32(0x8066CE74) : 0, textured ? Memory::Read32(0x8066CE78) : 0);
+    SetupPrimitive(call, flags, Shape + 0xE0, Shape + 0xE4, overrideMatrix, textured ? Memory::Read32(Shape + 0xD4) : 0, textured ? Memory::Read32(Shape + 0xD8) : 0);
 
     if (textured)
         ConfigureDirectCoordinates(0, flags & 8 ? 0 : 1, 4, flags & 8 ? 54 : 60);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800545E4, MH3_UIShapeSetup, "UIShapeSetup");
+REGISTER_NATIVE_FUNCTION(0x8028F390, MH3_UIShapeSetup);
 extern "C" void MH3_DrawShape(CpuContext* cpu) {
     const auto flags = Memory::Read32(Shape);
 
@@ -601,7 +619,7 @@ extern "C" void MH3_DrawShape(CpuContext* cpu) {
 
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
-    call(0x800545E4);
+    call(0x8028F390);
     const auto primitiveValue = Memory::Read8(Shape + 4);
 
     if (!count) {
@@ -613,7 +631,7 @@ extern "C" void MH3_DrawShape(CpuContext* cpu) {
         return; // original unsupported shape selector emits nothing
     const auto primitive = mh3_ui_primitive(primitiveValue);
 
-    if ((flags & 2) && (primitive == MH3_UI_POINTS || primitive == MH3_UI_LINES || primitive == MH3_UI_LINE_STRIP) && Memory::Read8(0x8066CE7C) != 0)
+    if ((flags & 2) && (primitive == MH3_UI_POINTS || primitive == MH3_UI_LINES || primitive == MH3_UI_LINE_STRIP) && Memory::Read8(Shape + 0xDC) != 0)
         MH3_THROW(std::runtime_error("Native UI textured line/point offset requires a pixel offset implementation"));
 
     const auto stream = ShapeStream(flags, count);
@@ -621,12 +639,26 @@ extern "C" void MH3_DrawShape(CpuContext* cpu) {
 
     if (Allocate(primitive, count, geometry)) {
         Checked(mh3_ui_build_stream(&GetNativeDrawState(), primitive, &stream, Memory::Read8(Shape + 5) / 6.f, &geometry));
+        if (count >= 3 && geometry.vertices) {
+            float minX = geometry.vertices[0].position[0], maxX = minX;
+            float minY = geometry.vertices[0].position[1], maxY = minY;
+            for (uint32_t i = 1; i < count; ++i) {
+                minX = std::min(minX, geometry.vertices[i].position[0]);
+                maxX = std::max(maxX, geometry.vertices[i].position[0]);
+                minY = std::min(minY, geometry.vertices[i].position[1]);
+                maxY = std::max(maxY, geometry.vertices[i].position[1]);
+            }
+            if ((maxX - minX) >= 300.0f && (maxY - minY) >= 200.0f) {
+                const auto& c = geometry.vertices[0].color;
+                RenderDiag::NoteOverlay("Shape", primitiveValue, maxX - minX, maxY - minY, c[0], c[1], c[2], c[3]);
+            }
+        }
         SubmitNativeGeometry(geometry, (flags & 2) != 0);
     }
 
     RestoreWorld(call);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005480C, MH3_DrawShape, "DrawShape");
+REGISTER_NATIVE_FUNCTION(0x8028F91C, MH3_DrawShape);
 
 extern "C" void MH3_DrawGradientFade(CpuContext* cpu) {
     const auto self = cpu->gpr[3];
@@ -636,10 +668,10 @@ extern "C" void MH3_DrawGradientFade(CpuContext* cpu) {
 
     GuestFrame frame(cpu, 0x20);
     GuestCall call{cpu};
-    call(0x80040354, {frame[0x10]});
+    call(0x80033134, {frame[0x10]});
     const float width = Memory::ReadFloat32(frame[0x10]), height = Memory::ReadFloat32(frame[0x14]);
-    const bool wide = call(0x8004045C) != 0;
-    const float split = wide ? Memory::ReadFloat32(ScreenHeight) * Memory::ReadFloat32(0x80798118) : Memory::ReadFloat32(ScreenHeight);
+    const bool wide = call(0x80033208) != 0;
+    const float split = wide ? Memory::ReadFloat32(ScreenHeight) * 0.5f : Memory::ReadFloat32(ScreenHeight);
     Ortho(0, height, 0, width, 0, 1);
     Identity();
     RasterQuad(true, true);
@@ -667,6 +699,7 @@ extern "C" void MH3_DrawGradientFade(CpuContext* cpu) {
             ReadColor(colors + c[i] * 4, vertices[i].color);
         }
 
+        RenderDiag::NoteOverlay("GradFade", mode, width, bottom - top, vertices[1].color[0], vertices[1].color[1], vertices[1].color[2], vertices[1].color[3]);
         DrawVertices(MH3_UI_QUADS, vertices, 8, false);
     };
 
@@ -677,7 +710,7 @@ extern "C" void MH3_DrawGradientFade(CpuContext* cpu) {
         drawBand(split, middle, Memory::ReadFloat32(ScreenHeight), self + 0x2C);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80057A08, MH3_DrawGradientFade, "DrawGradientFade");
+REGISTER_NATIVE_FUNCTION(0x80294398, MH3_DrawGradientFade);
 
 extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
     if (!NativeGraphicsFrameShouldRender())
@@ -685,7 +718,9 @@ extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
 
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
-    const auto list = Memory::Read32(0x80796D30 + (frame.Arg(3) & 255) * 4);
+    const auto list = Memory::Read32(0x808A01C8 + (frame.Arg(3) & 255) * 4);
+    if (!list)
+        return;
     bool active = false;
 
     for (unsigned slot = 0; slot < 32; ++slot)
@@ -696,7 +731,7 @@ extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
     if (!active)
         return;
 
-    call(0x8005AF80);
+    MH3_DebugDrawSetup(cpu);
     ScreenOrtho();
     Identity();
     RasterQuad(true, true);
@@ -712,7 +747,9 @@ extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
         if (count > 16)
             MH3_THROW(std::runtime_error("Native sprite batch exceeds its CPU quad slots"));
 
-        const auto texture = call(0x800D05CC, {uint32_t(textureId)});
+        const auto texture = call(0x802BD974, {uint32_t(textureId)});
+        if (!texture)
+            continue;
         BindNativeTexture(ReadNativeTextureObject(texture));
         const auto records = list + 128 + slot * 576;
         AuroraNativeGeometry geometry{};
@@ -724,8 +761,12 @@ extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
             const auto record = records + quadIndex * 36;
             uint8_t rgba[4];
             ReadColor(record + 32, rgba);
+            const int16_t x0 = int16_t(Memory::Read16(record + 4)), y0 = int16_t(Memory::Read16(record + 8));
+            const int16_t x1 = int16_t(Memory::Read16(record + 6)), y1 = int16_t(Memory::Read16(record + 10));
+            if (std::abs(x1 - x0) >= 300 && std::abs(y1 - y0) >= 200)
+                RenderDiag::NoteOverlay("UISprite", uint32_t(textureId), float(std::abs(x1 - x0)), float(std::abs(y1 - y0)), rgba[0], rgba[1], rgba[2], rgba[3]);
             mh3_ui_vertex vertices[4];
-            mh3_ui_rect(vertices, int16_t(Memory::Read16(record + 4)), int16_t(Memory::Read16(record + 8)), int16_t(Memory::Read16(record + 6)), int16_t(Memory::Read16(record + 10)), 0, rgba,
+            mh3_ui_rect(vertices, x0, y0, x1, y1, 0, rgba,
                         Memory::ReadFloat32(record + 16), Memory::ReadFloat32(record + 24), Memory::ReadFloat32(record + 20), Memory::ReadFloat32(record + 28));
             AuroraNativeGeometry quadGeometry{geometry.vertices + quadIndex * 4, geometry.indices + quadIndex * 6, 4, 6, geometry.frame, geometry.slot};
             Checked(mh3_ui_build_vertices(&GetNativeDrawState(), MH3_UI_QUADS, vertices, 4, 1, &quadGeometry));
@@ -737,69 +778,61 @@ extern "C" void MH3_DrawUISprites(CpuContext* cpu) {
         SubmitNativeGeometry(geometry, true);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800489C8, MH3_DrawUISprites, "DrawUISprites");
+REGISTER_NATIVE_FUNCTION(0x800347F8, MH3_DrawUISprites);
+
+static void PopulateUITextureRecord(GuestCall& call, uint32_t tpl, uint32_t index, uint32_t record, bool mutableSource) {
+    const auto descriptor = call(0x804C4284, {tpl, index});
+    const auto header = Memory::Read32(descriptor);
+    mh3_ui_texture_header image{};
+    Checked(mh3_ui_texture_header_read(Span(header, 36), &image));
+    mh3_native_texture_binding binding{};
+    binding.source.resource_address = header;
+    binding.source.payload_address = image.payload_address;
+    binding.source.width = image.width;
+    binding.source.height = image.height;
+    binding.source.format = image.format;
+    binding.source.levels = 1;
+    binding.source.generation = NextGeneration(image.payload_address);
+    if (!binding.source.generation)
+        binding.source.generation = 1;
+    binding.source.mutable_source = mutableSource;
+    binding.sampler.wrap_s = image.wrap_s;
+    binding.sampler.wrap_t = image.wrap_t;
+    binding.sampler.min_filter = binding.sampler.mag_filter = 1;
+    Memory::Write32(record + 0x24, image.payload_address);
+    Memory::Write16(record + 0x28, uint16_t(image.width));
+    Memory::Write16(record + 0x2A, uint16_t(image.height));
+    Memory::Write32(record + 0x2C, image.format);
+    Memory::Write32(record + 0x30, image.wrap_s);
+    Memory::Write32(record + 0x34, image.wrap_t);
+    MarkNativeTextureProduced(image.payload_address, binding.source.generation);
+    StoreNativeTextureObject(record + 4, binding);
+    Memory::Write8(record, 1);
+}
 
 static uint32_t BuildUITextureTPL(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     const auto tpl = frame.Arg(3), id = frame.Arg(4);
-    call(0x804E4C30, {tpl}); // TPLBind relocates CPU pointers; no rendering
-    uint32_t record = 0;
+    call(0x804C4170, {tpl}); // TPLBind relocates CPU pointers; no rendering
 
-    if (id == 0xFF)
-        record = 0x8065B3CC;
-    else if (id == 0xFE)
-        record = 0x8065B404;
-    else if (id == 0xFD)
-        record = 0x8065B43C;
-    else if (id < 32)
-        record = 0x8065AB1C + id * 56;
-    else
+    if (id >= 32)
         return 0;
 
+    uint32_t record = 0x80768B64 + id * 56;
     const uint32_t count = Memory::Read32(tpl + 4);
     uint32_t created = 0;
 
     for (uint32_t index = 0; index < count; ++index) {
-        if (id >= 0xFD) {
-            if (Memory::Read8(record))
-                break;
-        } else if (id + index >= 32)
+        if (id + index >= 32)
             break;
 
         if (!Memory::Read8(record)) {
-            if (id == 5 && index == 2)
-                record = 0x8065AD84;
+            if (id == 6 && index == 2)
+                record = 0x80768DCC;
 
-            const auto descriptor = call(0x804E4D50, {tpl, index});
-            const auto header = Memory::Read32(descriptor);
-            mh3_ui_texture_header image{};
-            Checked(mh3_ui_texture_header_read(Span(header, 36), &image));
-            mh3_native_texture_binding binding{};
-            binding.source.resource_address = header;
-            binding.source.payload_address = image.payload_address;
-            binding.source.width = image.width;
-            binding.source.height = image.height;
-            binding.source.format = image.format;
-            binding.source.levels = 1;
-            binding.source.generation = NextGeneration(image.payload_address);
-            binding.source.mutable_source = id == 0xFE;
-            binding.sampler.wrap_s = image.wrap_s;
-            binding.sampler.wrap_t = image.wrap_t;
-            binding.sampler.min_filter = binding.sampler.mag_filter = 1;
-            Memory::Write32(record + 0x24, image.payload_address);
-            Memory::Write16(record + 0x28, uint16_t(image.width));
-            Memory::Write16(record + 0x2A, uint16_t(image.height));
-            Memory::Write32(record + 0x2C, image.format);
-            Memory::Write32(record + 0x30, image.wrap_s);
-            Memory::Write32(record + 0x34, image.wrap_t);
-            MarkNativeTextureProduced(image.payload_address, binding.source.generation);
-            StoreNativeTextureObject(record + 4, binding);
-            Memory::Write8(record, 1);
+            PopulateUITextureRecord(call, tpl, index, record, false);
             ++created;
-
-            if (id == 0xFF)
-                break;
         }
 
         record += 56;
@@ -811,7 +844,30 @@ static uint32_t BuildUITextureTPL(CpuContext* cpu) {
 extern "C" void MH3_UITextureTPL(CpuContext* cpu) {
     cpu->gpr[3] = BuildUITextureTPL(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D0174, MH3_UITextureTPL, "UITextureTPL");
+REGISTER_NATIVE_FUNCTION(0x802BD744, MH3_UITextureTPL);
+
+static uint32_t BuildUITextureTPLBuffer(CpuContext* cpu) {
+    GuestFrame frame(cpu, 0x10);
+    GuestCall call{cpu};
+    const auto tpl = frame.Arg(3);
+    uint32_t record = frame.Arg(4);
+    call(0x804C4170, {tpl}); // TPLBind relocates CPU pointers; no rendering
+    const uint32_t count = Memory::Read32(tpl + 4);
+    uint32_t created = 0;
+
+    for (uint32_t index = 0; index < count; ++index) {
+        PopulateUITextureRecord(call, tpl, index, record, false);
+        ++created;
+        record += 56;
+    }
+
+    return created;
+}
+
+extern "C" void MH3_UITextureTPLBuffer(CpuContext* cpu) {
+    cpu->gpr[3] = BuildUITextureTPLBuffer(cpu);
+}
+REGISTER_NATIVE_FUNCTION(0x802BD884, MH3_UITextureTPLBuffer);
 
 // Explicit producer hook for any CPU code replacing font atlas pixels. Font
 // lifecycle construction above publishes the initial generation. The RMHP08
@@ -844,14 +900,13 @@ static uint32_t ProduceFontAtlas(CpuContext* cpu) {
         MH3_THROW(std::runtime_error("Native font producer image exceeds its decoded bytes"));
 
     NativeUIFontAtlasProduced(destination + payload);
-    LanguagePack::EuropeanAtlasDecoded(destination + payload, Memory::Read16(destination + header + 2), Memory::Read16(destination + header), Memory::Read32(destination + header + 4));
     return bytes;
 }
 
 extern "C" void MH3_FontAtlasDecode(CpuContext* cpu) {
     cpu->gpr[3] = ProduceFontAtlas(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8004119C, MH3_FontAtlasDecode, "FontAtlasDecode");
+// REGISTER_NATIVE_FUNCTION(0x8004119C, MH3_FontAtlasDecode); // Inlined/Unused in JPN (RMHJ08)
 
 extern "C" void MH3_UIShapeTextureObject(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
@@ -861,13 +916,13 @@ extern "C" void MH3_UIShapeTextureObject(CpuContext* cpu) {
     if (id >= 33)
         MH3_THROW(std::runtime_error("Native shape texture resource id is out of range"));
 
-    call(0x80053A18, {id});
-    Memory::Write32(frame[0x10], Memory::Read32(0x8066CFF8 + id * 4));
-    Memory::Write32(frame[0x14], Memory::Read32(0x8066D07C + id * 4));
-    Memory::Write32(frame.Arg(4), 0x8066CE98);
-    Memory::Write32(frame.Arg(5), 0x8066CF98);
-    Memory::Write32(0x8066CE74, 0);
-    Memory::Write32(0x8066CE78, 0);
+    call(0x8028E40C, {id});
+    Memory::Write32(frame[0x10], Memory::Read32(Shape + 0x258 + id * 4));
+    Memory::Write32(frame[0x14], Memory::Read32(Shape + 0x2DC + id * 4));
+    Memory::Write32(frame.Arg(4), Shape + 0xF8);
+    Memory::Write32(frame.Arg(5), Shape + 0x1F8);
+    Memory::Write32(Shape + 0xD4, 0);
+    Memory::Write32(Shape + 0xD8, 0);
     auto binding = ResourceBinding(frame[0x10]);
     binding.map_id = 0;
     binding.tlut_id = 0;
@@ -880,14 +935,14 @@ extern "C" void MH3_UIShapeTextureObject(CpuContext* cpu) {
         }
 
         const auto palette = ReadNativeResPalette(frame[0x14]);
-        StoreNativePaletteObject(0x8066CF98, palette);
+        StoreNativePaletteObject(Shape + 0x1F8, palette);
         BindNativePalette(0, palette);
     } else
         Memory::Write32(frame.Arg(5), 0);
 
-    StoreNativeTextureObject(0x8066CE98, binding);
+    StoreNativeTextureObject(Shape + 0xF8, binding);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80054CD8, MH3_UIShapeTextureObject, "UIShapeTextureObject");
+// REGISTER_NATIVE_FUNCTION(0x80054CD8, MH3_UIShapeTextureObject); // Inlined/Unused in JPN (RMHJ08)
 
 // HUD parts' text: the font queue positions a part appended (per bank) and
 // its anchor, which the flush draws them with (BeginNativeHudPart). Cleared
@@ -896,6 +951,89 @@ namespace {
 struct GlyphAnchor {
     uint32_t bank, begin, end, anchor;
 };
+
+constexpr uint32_t kFontAtlasWidth = 768;
+constexpr uint32_t kFontAtlasHeight = 384;
+constexpr uint32_t kFontAtlasBytes = kFontAtlasWidth * kFontAtlasHeight / 2;
+constexpr uint32_t kFontSlotCacheCapacity = 1024;
+
+struct FontGlyphSlotEntry {
+    uint32_t dstOffset = 0xFFFFFFFFu;
+    uint32_t src = 0;
+    uint32_t firstWord = 0;
+    uint32_t midWord = 0;
+};
+
+struct FontBankGlyphCache {
+    uint32_t payload = 0;
+    uint32_t glyphW = 0;
+    uint32_t glyphH = 0;
+    uint32_t rowTiles = 0;
+    uint32_t lutWord = 0;
+    uint32_t used = 0;
+    std::array<FontGlyphSlotEntry, kFontSlotCacheCapacity> slots{};
+
+    bool MatchesConfig(uint32_t p, uint32_t w, uint32_t h, uint32_t rt, uint32_t lut) const {
+        return payload == p && glyphW == w && glyphH == h && rowTiles == rt && lutWord == lut;
+    }
+
+    void ClearSlots() {
+        used = 0;
+        for (auto& s : slots)
+            s.dstOffset = 0xFFFFFFFFu;
+    }
+
+    void Reset(uint32_t p, uint32_t w, uint32_t h, uint32_t rt, uint32_t lut) {
+        payload = p;
+        glyphW = w;
+        glyphH = h;
+        rowTiles = rt;
+        lutWord = lut;
+        ClearSlots();
+    }
+
+    static uint32_t StartIndex(uint32_t dstOffset) {
+        return ((dstOffset >> 5) * 2654435761u) & (kFontSlotCacheCapacity - 1);
+    }
+
+    bool Matches(uint32_t dstOffset, uint32_t src, uint32_t firstWord, uint32_t midWord) const {
+        const uint32_t start = StartIndex(dstOffset);
+        for (uint32_t probe = 0; probe < kFontSlotCacheCapacity; ++probe) {
+            const auto& e = slots[(start + probe) & (kFontSlotCacheCapacity - 1)];
+            if (e.dstOffset == dstOffset)
+                return e.src == src && e.firstWord == firstWord && e.midWord == midWord;
+            if (e.dstOffset == 0xFFFFFFFFu)
+                return false;
+        }
+        return false;
+    }
+
+    void Record(uint32_t dstOffset, uint32_t src, uint32_t firstWord, uint32_t midWord) {
+        if (used >= kFontSlotCacheCapacity - 64)
+            ClearSlots();
+        const uint32_t start = StartIndex(dstOffset);
+        for (uint32_t probe = 0; probe < kFontSlotCacheCapacity; ++probe) {
+            auto& e = slots[(start + probe) & (kFontSlotCacheCapacity - 1)];
+            if (e.dstOffset == dstOffset || e.dstOffset == 0xFFFFFFFFu) {
+                if (e.dstOffset == 0xFFFFFFFFu)
+                    ++used;
+                e = {dstOffset, src, firstWord, midWord};
+                return;
+            }
+        }
+    }
+};
+
+struct FontAtlasState {
+    uint32_t payload = 0;
+    uint64_t generation = 0;
+    uint64_t writeEpoch = 0;
+};
+
+std::mutex fontGlyphCacheMutex;
+std::atomic<uint64_t> fontAtlasWriteEpoch[2]{{1}, {1}};
+FontBankGlyphCache fontBankGlyphCache[2]{};
+FontAtlasState fontAtlasCache[2]{};
 
 std::vector<GlyphAnchor> glyphAnchors;
 uint32_t partAnchor = 0, partQueued[2] = {};
@@ -924,37 +1062,80 @@ void BeginNativeHudPart(uint32_t anchor) {
     if (!anchor)
         return;
 
-    if (const auto font = Memory::Read32(0x80796D98))
+    if (const auto font = Memory::Read32(0x808A03B8))
         for (uint32_t bank = 0; bank < 2; ++bank)
-            partQueued[bank] = Memory::Read16(font + 0x15094 + bank * 2);
+            partQueued[bank] = Memory::Read16(font + 0xA894 + bank * 2);
 }
 
 void EndNativeHudPart() {
     if (!partAnchor)
         return;
 
-    if (const auto font = Memory::Read32(0x80796D98))
+    if (const auto font = Memory::Read32(0x808A03B8))
         for (uint32_t bank = 0; bank < 2; ++bank)
-            if (const uint32_t end = Memory::Read16(font + 0x15094 + bank * 2); end > partQueued[bank])
+            if (const uint32_t end = Memory::Read16(font + 0xA894 + bank * 2); end > partQueued[bank])
                 glyphAnchors.push_back({bank, partQueued[bank], end, partAnchor});
 
     partAnchor = 0;
     SetNativeHudAnchor(0);
 }
 
+extern "C" void func_80295524(CpuContext*);
+extern "C" void MH3_FontGlyphWrite(CpuContext* cpu) {
+    const uint32_t font = cpu->gpr[3], src = cpu->gpr[4], dst = cpu->gpr[5];
+    const uint32_t bank = font ? (Memory::Read32(font + 0x50) & 1u) : 0u;
+    const uint32_t payload = font ? Memory::Read32(font + 0x38 + bank * 4) : 0u;
+    if (payload != 0 && dst >= payload && dst + 4 <= payload + kFontAtlasBytes) {
+        const uint32_t glyphW = Memory::Read32(font + 8);
+        const uint32_t glyphH = Memory::Read32(font + 12);
+        const uint32_t rowTiles = Memory::Read32(font + 0xB4B0);
+        const uint32_t lutAddr = cpu->gpr[13] - 25816;
+        const uint32_t lutWord = Memory::Contains(lutAddr, 4) ? Memory::Read32(lutAddr) : 0u;
+        const uint32_t dstOffset = dst - payload;
+        const auto readMid = [](uint32_t addr, uint32_t offset) -> uint32_t {
+            return (offset + 20 <= kFontAtlasBytes) ? Memory::Read32(addr + 16) : 0u;
+        };
+        const uint32_t firstWord = Memory::Read32(dst);
+        const uint32_t midWord = readMid(dst, dstOffset);
+        {
+            std::lock_guard<std::mutex> lock(fontGlyphCacheMutex);
+            auto& bc = fontBankGlyphCache[bank];
+            if (!bc.MatchesConfig(payload, glyphW, glyphH, rowTiles, lutWord))
+                bc.Reset(payload, glyphW, glyphH, rowTiles, lutWord);
+            else if (bc.Matches(dstOffset, src, firstWord, midWord))
+                return;
+        }
+        func_80295524(cpu);
+        const uint32_t newFirst = Memory::Read32(dst);
+        const uint32_t newMid = readMid(dst, dstOffset);
+        {
+            std::lock_guard<std::mutex> lock(fontGlyphCacheMutex);
+            auto& bc = fontBankGlyphCache[bank];
+            if (!bc.MatchesConfig(payload, glyphW, glyphH, rowTiles, lutWord))
+                bc.Reset(payload, glyphW, glyphH, rowTiles, lutWord);
+            bc.Record(dstOffset, src, newFirst, newMid);
+        }
+        fontAtlasWriteEpoch[bank].fetch_add(1, std::memory_order_release);
+        return;
+    }
+    func_80295524(cpu);
+    fontAtlasWriteEpoch[bank].fetch_add(1, std::memory_order_release);
+}
+REGISTER_NATIVE_FUNCTION_AS(0x80295524, MH3_FontGlyphWrite, "FontGlyphWrite");
+
 extern "C" void MH3_FontFlush(CpuContext* cpu) {
-    const auto font = Memory::Read32(0x80796D98);
+    const auto font = Memory::Read32(0x808A03B8);
 
     if (!font)
         return;
 
-    const auto queued = Memory::Read32(font + 0x1505C), flushed = Memory::Read32(font + 0x168CC);
+    const auto queued = Memory::Read32(font + 0xA85C), flushed = Memory::Read32(font + 0xB4CC);
 
     if (!queued || queued == flushed)
         return;
 
-    const int16_t end[2] = {int16_t(Memory::Read16(font + 0x15094)), int16_t(Memory::Read16(font + 0x15096))};
-    const int16_t begin[2] = {int16_t(Memory::Read16(font + 0x168C8)), int16_t(Memory::Read16(font + 0x168CA))};
+    const int16_t end[2] = {int16_t(Memory::Read16(font + 0xA894)), int16_t(Memory::Read16(font + 0xA896))};
+    const int16_t begin[2] = {int16_t(Memory::Read16(font + 0xB4C8)), int16_t(Memory::Read16(font + 0xB4CA))};
 
     if (begin[0] >= end[0] && begin[1] >= end[1])
         return;
@@ -963,37 +1144,48 @@ extern "C" void MH3_FontFlush(CpuContext* cpu) {
     GuestCall call{cpu};
 
     if (NativeGraphicsFrameShouldRender()) {
-        call(0x8005AF80);
+        MH3_DebugDrawSetup(cpu);
         ScreenOrtho();
         Identity();
         RasterQuad(true, true);
         uiStages = 1;
         uiTextured = true;
-        auto binding = ReadNativeTextureObject(0x8065B408);
-        binding.sampler.min_filter = binding.sampler.mag_filter = 1;
-        binding.source.min_lod = binding.source.max_lod = 0;
-
-        // An imported language's atlas, the European glyphs in it.
-        if (const auto* language = LanguagePack::ActiveFont()) {
-            static uint32_t generation = NextGeneration(language->atlas);
-
-            if (!ReadNativeTextureGeneration(language->atlas))
-                MarkNativeTextureProduced(language->atlas, generation);
-
-            binding.source.resource_address = binding.source.payload_address = language->atlas;
-            binding.source.width = uint16_t(language->width);
-            binding.source.height = uint16_t(language->height);
-            binding.source.generation = generation;
+        const uint32_t bank = Memory::Read32(font + 0x50) & 1u;
+        const uint32_t payload = Memory::Read32(font + 0x38 + bank * 4);
+        if (payload) {
+            const uint64_t writeEpoch = fontAtlasWriteEpoch[bank].load(std::memory_order_acquire);
+            auto& cache = fontAtlasCache[bank];
+            if (cache.payload != payload || cache.generation == 0 || cache.writeEpoch != writeEpoch) {
+                uint64_t generation = NextGeneration(payload);
+                if (!generation)
+                    generation = 1;
+                cache.payload = payload;
+                cache.generation = generation;
+                cache.writeEpoch = writeEpoch;
+                MarkNativeTextureProduced(payload, generation);
+            }
+            mh3_native_texture_binding binding{};
+            binding.source.resource_address = payload;
+            binding.source.payload_address = payload;
+            binding.source.width = 768;
+            binding.source.height = 384;
+            binding.source.format = 0; // GX_TF_I4
+            binding.source.levels = 1;
+            binding.source.min_lod = binding.source.max_lod = 0;
+            binding.source.mutable_source = 1;
+            binding.source.generation = cache.generation;
+            binding.sampler.wrap_s = 0;
+            binding.sampler.wrap_t = 0;
+            binding.sampler.min_filter = binding.sampler.mag_filter = 1;
+            BindNativeTexture(binding);
         }
-
-        BindNativeTexture(binding);
         const auto records = Memory::Read32(font + 0x44);
 
         for (unsigned layer = 0; layer < 2; ++layer) {
             if (begin[layer] >= end[layer])
                 continue;
 
-            if (begin[layer] < 0 || end[layer] > 1024)
+            if (begin[layer] < 0 || end[layer] > 512)
                 MH3_THROW(std::runtime_error("Native font glyph batch exceeds its CPU index array"));
 
             // Runs of glyphs that share their HUD part's anchor.
@@ -1005,13 +1197,13 @@ extern "C" void MH3_FontFlush(CpuContext* cpu) {
                     ++next;
 
                 const uint32_t count = next - at;
-                const auto indexAddress = font + 0x15098 + layer * 0x800 + at * 2;
+                const auto indexAddress = font + 0xA898 + layer * 0x400 + at * 2;
                 uint32_t largest = 0;
 
                 for (uint32_t index = 0; index < count; ++index)
                     largest = std::max(largest, uint32_t(Memory::Read16(indexAddress + index * 2)));
 
-                if (largest >= Memory::Read32(font + 0x15058))
+                if (largest >= Memory::Read32(font + 0xA858))
                     MH3_THROW(std::runtime_error("Native font glyph index exceeds its CPU records"));
 
                 AuroraNativeGeometry geometry{};
@@ -1032,48 +1224,46 @@ extern "C" void MH3_FontFlush(CpuContext* cpu) {
     // CPU submission cursors advance even when frame admission/draw capacity skips.
     for (unsigned layer = 0; layer < 2; ++layer)
         if (begin[layer] < end[layer])
-            Memory::Write16(font + 0x168C8 + layer * 2, uint16_t(end[layer]));
+            Memory::Write16(font + 0xB4C8 + layer * 2, uint16_t(end[layer]));
     Invalidate(call);
-    Memory::Write32(font + 0x168CC, queued);
+    Memory::Write32(font + 0xB4CC, queued);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005C174, MH3_FontFlush, "FontFlush");
+REGISTER_NATIVE_FUNCTION(0x80295AF0, MH3_FontFlush);
 
-// 0x8005B52C flfntStackReset: empties the font's draw stacks before a frame's
-// logic, once a frame. Each of the two stack banks (+0x15094, +0x168C8 u16
-// counts) gets its 32 runs of 32 u16 slots (+0x15098, 0x800 bytes each) set
-// to 0xFFFF; the 1024 u16 entries at +0x160A0 and the words +0x15090,
-// +0x16098, +0x1505C (queued), +0x168CC (flushed), +0x1507C and +0x15080 are
-// zeroed; +0x44 points at bank +0x50's 0x15000-byte buffer at +0x54. The
-// original stored halfword by halfword (about 3,000 stores a frame).
+// 0x8029501C flfntStackReset: empties the font's draw stacks before a frame's
+// logic, once a frame. Each of the two stack banks (+0xA894, +0xB4C8 u16
+// counts) gets its 16 runs of 32 u16 slots (+0xA898, 0x400 bytes each) set
+// to 0xFFFF; the 512 u16 entries at +0xB0A0 and the words +0xA890,
+// +0xB098, +0xA85C (queued), +0xB4CC (flushed), +0xA87C and +0xA880 are
+// zeroed; +0x44 points at bank +0x50's 0xA800-byte buffer at +0x54.
 namespace {
 void FontStackReset(CpuContext*) {
-    const uint32_t font = Memory::Read32(0x80796D98);
+    const uint32_t font = Memory::Read32(0x808A03B8);
     glyphAnchors.clear();
 
     if (!font)
         return;
 
     for (uint32_t bank = 0; bank < 2; ++bank) {
-        Memory::Write16(font + 0x15094 + bank * 2, 0);
-        Memory::Write16(font + 0x168C8 + bank * 2, 0);
+        Memory::Write16(font + 0xA894 + bank * 2, 0);
+        Memory::Write16(font + 0xB4C8 + bank * 2, 0);
     }
 
-    std::memset(Memory::GetPointer(font + 0x15098, 0x1000), 0xFF, 0x1000);
-    Memory::Write32(font + 0x15090, 0);
-    std::memset(Memory::GetPointer(font + 0x160A0, 0x800), 0, 0x800);
+    std::memset(Memory::GetPointer(font + 0xA898, 0x800), 0xFF, 0x800);
+    Memory::Write32(font + 0xA890, 0);
+    std::memset(Memory::GetPointer(font + 0xB0A0, 0x400), 0, 0x400);
 
-    for (const uint32_t word : {0x16098u, 0x1505Cu, 0x168CCu, 0x1507Cu, 0x15080u})
+    for (const uint32_t word : {0xB098u, 0xA85Cu, 0xB4CCu, 0xA87Cu, 0xA880u})
         Memory::Write32(font + word, 0);
 
-    Memory::Write32(font + 0x44, font + Memory::Read32(font + 0x50) * 0x15000 + 0x54);
+    Memory::Write32(font + 0x44, font + Memory::Read32(font + 0x50) * 0xA800 + 0x54);
 }
 } // namespace
 
-extern "C" void func_8005B52C(CpuContext* cpu);
 extern "C" void MH3_FontStackReset(CpuContext* cpu) {
-    PortCheck::Call(cpu, "FontStackReset", func_8005B52C, FontStackReset);
+    FontStackReset(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005B52C, MH3_FontStackReset, "FontStackReset");
+REGISTER_NATIVE_FUNCTION(0x8029501C, MH3_FontStackReset);
 
 // net_data.rso, the online menus (connection, terms, CAPCOM ID), draws its
 // sprites with GX itself. Two overlay functions, decompiled with Ghidra and
@@ -1092,7 +1282,7 @@ REGISTER_NATIVE_FUNCTION_AS(0x8005B52C, MH3_FontStackReset, "FontStackReset");
 extern "C" void MH3_NetMenuDrawSetup(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x80);
     GuestCall call{cpu};
-    call(0x8005AF80); // DebugDrawSetup
+    MH3_DebugDrawSetup(cpu); // DebugDrawSetup
     ScreenOrtho();
     Identity();
     RasterQuad(false, true);
@@ -1120,7 +1310,7 @@ extern "C" void MH3_NetMenuDrawSprites(CpuContext* cpu) {
     GuestCall call{cpu};
     const uint32_t atlases = frame.Arg(3), sprites = frame.Arg(4);
     const int32_t count = int32_t(frame.Arg(5));
-    call(0x80040354, {frame[0x18]}); // get_ScreenSize(MH_VEC2*)
+    call(0x80033134, {frame[0x18]}); // get_ScreenSize(MH_VEC2*)
     const int16_t shift = int16_t(int32_t((Memory::ReadFloat32(frame[0x18]) - 640.0f) * 0.5f));
 
     for (int32_t i = 0; i < count; ++i) {
@@ -1160,3 +1350,187 @@ extern "C" void MH3_NetMenuDrawSprites(CpuContext* cpu) {
         DrawVertices(MH3_UI_QUADS, vertices, 4, true);
     }
 }
+
+#include "../vita/launcher_font.h"
+#include <cstdio>
+
+namespace {
+
+static uint32_t DecodeShiftJisChar(uint16_t code) {
+    if (code == 0x8140) return 0x20; // Space
+    if (code == 0x8141) return 0x3001; // 、
+    if (code == 0x8142) return 0x3002; // 。
+    if (code == 0x8148) return 0xFF1F; // ？
+    if (code == 0x8149) return 0xFF01; // ！
+    if (code == 0x815B) return 0x30FC; // ー
+    if (code == 0x8163) return 0x2026; // …
+    if (code == 0x8169) return 0xFF08; // （
+    if (code == 0x816A) return 0xFF09; // ）
+    if (code == 0x8175) return 0x300C; // 「
+    if (code == 0x8176) return 0x300D; // 」
+    if (code >= 0x824F && code <= 0x8258) return 0xFF10 + (code - 0x824F); // ０-９
+    if (code >= 0x8260 && code <= 0x8279) return 0xFF21 + (code - 0x8260); // Ａ-Ｚ
+    if (code >= 0x8281 && code <= 0x829A) return 0xFF41 + (code - 0x8281); // ａ-ｚ
+    if (code >= 0x829F && code <= 0x82F1) return 0x3041 + (code - 0x829F); // ぁ-ん
+    if (code >= 0x8340 && code <= 0x837E) return 0x30A1 + (code - 0x8340); // ァ-ミ
+    if (code >= 0x8380 && code <= 0x8396) return 0x30E0 + (code - 0x8380); // ム-ヶ
+
+    // Kanji lookup
+    switch (code) {
+        case 0x89E6: return 0x753B; // 画
+        case 0x89F3: return 0x58CA; // 壊
+        case 0x8A4A: return 0x958B; // 開
+        case 0x8AC7: return 0x7BA1; // 管
+        case 0x8C88: return 0x6C7A; // 決
+        case 0x8CB9: return 0x6E90; // 源
+        case 0x8D87: return 0x5408; // 合
+        case 0x8DEC: return 0x4F5C; // 作
+        case 0x8DED: return 0x524A; // 削
+        case 0x8E6E: return 0x59CB; // 始
+        case 0x8F9C: return 0x9664; // 除
+        case 0x8FEA: return 0x5834; // 場
+        case 0x9056: return 0x65B0; // 新
+        case 0x90AC: return 0x6210; // 成
+        case 0x91B6: return 0x5B58; // 存
+        case 0x91CC: return 0x4F53; // 体
+        case 0x92E8: return 0x5B9A; // 定
+        case 0x9364: return 0x96FB; // 電
+        case 0x954B: return 0x5FC5; // 必
+        case 0x95DB: return 0x4FDD; // 保
+        case 0x967B: return 0x672C; // 本
+        case 0x96CA: return 0x9762; // 面
+        case 0x9776: return 0x8981; // 要
+        case 0x979D: return 0x7406; // 理
+        default: break;
+    }
+    return 0x3F; // '?'
+}
+
+static std::string ShiftJisToUtf8(const char* sjis) {
+    std::string out;
+    if (!sjis) return out;
+
+    while (*sjis) {
+        uint8_t c1 = static_cast<uint8_t>(*sjis++);
+        if (c1 < 0x80) {
+            out.push_back(static_cast<char>(c1));
+        } else if (c1 >= 0xA1 && c1 <= 0xDF) {
+            uint32_t cp = 0xFF61 + (c1 - 0xA1);
+            out.push_back(static_cast<char>(0xEF));
+            out.push_back(static_cast<char>(0xBD | ((cp >> 6) & 0x01)));
+            out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+        } else if ((c1 >= 0x81 && c1 <= 0x9F) || (c1 >= 0xE0 && c1 <= 0xFC)) {
+            if (!*sjis) break;
+            uint8_t c2 = static_cast<uint8_t>(*sjis++);
+            uint16_t code = (c1 << 8) | c2;
+            if (code == 0x8140) {
+                out.push_back(' ');
+                out.push_back(' ');
+                continue;
+            }
+            uint32_t cp = DecodeShiftJisChar(code);
+            if (cp == 0) cp = 0x3F;
+            if (cp < 0x80) {
+                out.push_back(static_cast<char>(cp));
+            } else if (cp < 0x800) {
+                out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+                out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+            } else if (cp < 0x10000) {
+                out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+                out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+                out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+            }
+        }
+    }
+    return out;
+}
+
+static std::unique_ptr<VitaLauncher::Font> s_dialogFont;
+static bool s_dialogFontInitialized = false;
+
+static void EnsureDialogFont() {
+    if (!s_dialogFontInitialized) {
+        s_dialogFontInitialized = true;
+        VitaLauncher::Font::Open(s_dialogFont);
+    }
+}
+
+} // namespace
+
+// 0x802968B4: Dialog / message box string rendering routine (called by 0x80297DE4).
+// Replaced native implementation: renders Shift-JIS text via VitaLauncher::Font (ScePvf)
+// directly to native UI vertex stream, avoiding legacy GX FIFO writes and enabling
+// proper save data dialog interaction.
+extern "C" void MH3_DialogDrawString(CpuContext* cpu) {
+    const int16_t x = static_cast<int16_t>(cpu->gpr[3]);
+    const int16_t y = static_cast<int16_t>(cpu->gpr[4]);
+    const uint32_t textPtr = cpu->gpr[5];
+
+    if (!textPtr || !Memory::Contains(textPtr, 1))
+        return;
+
+    std::string sjisText;
+    for (uint32_t p = textPtr; Memory::Contains(p, 1); ++p) {
+        char c = Memory::Read8(p);
+        if (!c) break;
+        sjisText.push_back(c);
+        if (sjisText.size() > 512) break;
+    }
+
+#ifdef MH3_DEVELOPMENT
+    std::fprintf(stderr, "MH3 DialogDrawString: x=%d y=%d len=%zu text=\"%s\"\n", x, y, sjisText.size(), sjisText.c_str());
+#endif
+
+    EnsureDialogFont();
+    if (!s_dialogFont)
+        return;
+
+    std::string utf8Text = ShiftJisToUtf8(sjisText.c_str());
+    if (utf8Text.empty())
+        return;
+
+    if (!NativeGraphicsFrameShouldRender())
+        return;
+
+    ScreenOrtho();
+    Identity();
+    RasterQuad(false, true);
+    auto material = GetNativeMaterialState();
+    mh3_system_ui_fade_material(&material);
+    SetNativeMaterial(material);
+    uiTextured = false;
+    uiStages = 1;
+
+    std::vector<VitaLauncher::Rectangle> rects;
+    float drawX = static_cast<float>(x);
+    float drawY = static_cast<float>(y);
+
+    size_t lineStart = 0;
+    while (lineStart < utf8Text.size()) {
+        size_t lineEnd = utf8Text.find('\n', lineStart);
+        if (lineEnd == std::string::npos)
+            lineEnd = utf8Text.size();
+
+        std::string_view line(&utf8Text[lineStart], lineEnd - lineStart);
+        s_dialogFont->Text(rects, drawX, drawY, line, 0xFF000000, 800.0f);
+        drawY += 22.0f;
+        lineStart = lineEnd + 1;
+    }
+
+    if (!rects.empty()) {
+        const uint8_t color[4] = {0, 0, 0, 255};
+        for (const auto& r : rects) {
+            mh3_ui_vertex v[4];
+            mh3_ui_rect(v, static_cast<int16_t>(r.x), static_cast<int16_t>(r.y),
+                        static_cast<int16_t>(r.x + r.w), static_cast<int16_t>(r.y + r.h),
+                        0, color, 0, 0, 0, 0);
+            DrawVertices(MH3_UI_QUADS, v, 4, false);
+        }
+    }
+}
+REGISTER_NATIVE_FUNCTION(0x802968B4, MH3_DialogDrawString);
+
+// 0x80296744: Dialog quad FIFO burst rendering routine called by 0x802968B4.
+extern "C" void MH3_DialogDrawQuad(CpuContext*) {
+}
+REGISTER_NATIVE_FUNCTION(0x80296744, MH3_DialogDrawQuad);

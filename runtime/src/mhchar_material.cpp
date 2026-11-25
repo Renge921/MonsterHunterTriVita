@@ -99,19 +99,19 @@ extern "C" void func_800E2FA4(CpuContext* ctx);
 extern "C" void MH3_CharAlphaTest(CpuContext* ctx) {
     PortCheck::Call(ctx, "CharAlphaTest", func_800E2FA4, AlphaTest);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E2FA4, MH3_CharAlphaTest, "CharAlphaTest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E2FA4, MH3_CharAlphaTest, "CharAlphaTest");
 
 extern "C" void func_800E2A0C(CpuContext* ctx);
 extern "C" void MH3_CharSetColours(CpuContext* ctx) {
     PortCheck::Call(ctx, "CharSetColours", func_800E2A0C, SetColours);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E2A0C, MH3_CharSetColours, "CharSetColours");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E2A0C, MH3_CharSetColours, "CharSetColours");
 
 extern "C" void func_800E2A84(CpuContext* ctx);
 extern "C" void MH3_CharSetAlphas(CpuContext* ctx) {
     PortCheck::Call(ctx, "CharSetAlphas", func_800E2A84, SetAlphas);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E2A84, MH3_CharSetAlphas, "CharSetAlphas");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E2A84, MH3_CharSetAlphas, "CharSetAlphas");
 
 extern "C" void MH3_CharMaterialCount(CpuContext* ctx) {
     uint32_t count;
@@ -123,7 +123,7 @@ extern "C" void MH3_CharMaterialCount(CpuContext* ctx) {
 
     ctx->gpr[3] = count;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E2948, MH3_CharMaterialCount, "CharMaterialCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E2948, MH3_CharMaterialCount, "CharMaterialCount");
 
 extern "C" void MH3_ResMatPixel(CpuContext* ctx) {
     uint32_t pixel;
@@ -135,12 +135,12 @@ extern "C" void MH3_ResMatPixel(CpuContext* ctx) {
 
     ctx->gpr[3] = pixel;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800767C8, MH3_ResMatPixel, "ResMatPixel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800767C8, MH3_ResMatPixel, "ResMatPixel");
 
 extern "C" void MH3_ResMatPixelMake(CpuContext* ctx) {
     W32(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800767F8, MH3_ResMatPixelMake, "ResMatPixelMake");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800767F8, MH3_ResMatPixelMake, "ResMatPixelMake");
 
 extern "C" void func_8007BE10(CpuContext* ctx);
 extern "C" void MH3_CopiedMatPixel(CpuContext* ctx) {
@@ -159,11 +159,11 @@ extern "C" void MH3_CopiedMatPixel(CpuContext* ctx) {
         c->gpr[3] = pixel;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007BE10, MH3_CopiedMatPixel, "CopiedMatPixel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007BE10, MH3_CopiedMatPixel, "CopiedMatPixel");
 
 extern "C" void MH3_CopiedMatFlush(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     GuestCall game{ctx};
     game.Call<0x80094180>({frame.Arg(3), 0});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007E4EC, MH3_CopiedMatFlush, "CopiedMatFlush");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007E4EC, MH3_CopiedMatFlush, "CopiedMatFlush");

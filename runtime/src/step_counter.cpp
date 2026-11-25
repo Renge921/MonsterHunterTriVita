@@ -33,25 +33,28 @@
 
 namespace {
 
-constexpr uint32_t kCounter = 0x8065AA6C;                    // system_w+0xC: u32 steps
-constexpr uint32_t kPlaySteps = 0x8065B2F4;                  // system_w+0x894: u32 steps of play time
-constexpr uint32_t kPlaySeconds = 0x8065B2F0;                // system_w+0x890: u32 seconds of play time
+constexpr uint32_t kCounter = 0x80768AB4;                    // system_w+0xC: u32 steps
+constexpr uint32_t kPlaySteps = 0x8076933C;                  // system_w+0x894: u32 steps of play time
+constexpr uint32_t kPlaySeconds = 0x80769338;                // system_w+0x890: u32 seconds of play time
 constexpr uint32_t kPlaySecondsMax = 35999999;               // 9999:59:59
-constexpr uint32_t kVillage = 0x806ACFC4;                    // village scene work
+constexpr uint32_t kVillage = 0x80750120;                    // village scene work
 constexpr uint32_t kVillageSteps = kVillage + 0x30;          // u32
 constexpr uint32_t kVillageCountdown = kVillage + 0x28;      // u8
 constexpr uint32_t kVillageRamp = kVillage + 0x34;           // s16: steps in the current state, +-60
-constexpr uint32_t kVillageTalk = 0x806ACD48;                // village talk work
+constexpr uint32_t kVillageTalk = 0x8074FEA0;                // village talk work
 constexpr uint32_t kVillageTalkSteps = kVillageTalk + 0x150; // u32
 
-// Steps in the area, advanced by AreaStepCounters (0x802E4C88, below).
-constexpr uint32_t kAreaSteps[] = {0x806C04E8, 0x806C02D8, 0x806C046C};
+// Steps in the area, advanced by AreaStepCounters (inlined in RMHJ08; covered by tick_sites).
+constexpr uint32_t kAreaSteps[] = {0x8073B340, 0x8073B130, 0x8073B2C4};
 
-// Quest clock steps (quest work+0x28), advanced by 0x803B0228 (tick sites).
-constexpr uint32_t kQuestSteps = 0x806C7D00;
+// Pointer to active quest work; quest clock steps live at (*kQuestWorkPtr) + 0x28.
+constexpr uint32_t kQuestWorkPtr = 0x808A02C0;
 
 bool IsCounter(uint32_t address) {
-    return address == kCounter || address == kPlaySteps || address == kVillageSteps || address == kVillageTalkSteps || address == kQuestSteps ||
+    const uint32_t questWork = Memory::Read32(kQuestWorkPtr);
+    const uint32_t questSteps = questWork != 0 ? questWork + 0x28 : 0;
+    return address == kCounter || address == kPlaySteps || address == kVillageSteps || address == kVillageTalkSteps ||
+           (questSteps != 0 && address == questSteps) ||
            std::find(std::begin(kAreaSteps), std::end(kAreaSteps), address) != std::end(kAreaSteps);
 }
 
@@ -64,6 +67,7 @@ struct Site {
 
 constexpr Site kSites[] = {
 #include "step_counter_sites.inc"
+    {0xFFFFFFFF, 0, 0, 0}
 };
 
 const Site* Find(uint32_t pc) {
@@ -85,6 +89,8 @@ extern "C" uint32_t MH3_HookedLoad32(uint32_t base, int32_t offset, uint32_t pc)
         return counter;
 
     if (site->kind == 1 && !IsCounter(address))
+        return counter;
+    if (site->kind == 2 && offset != 0x20)
         return counter;
 
     if (site->n == 0)
@@ -110,12 +116,12 @@ bool StepCounter::Every(uint32_t n, uint32_t k) {
 }
 
 // RunTasks: the counter advances by the ticks of this step (RunTasks adds 1).
-extern "C" void func_800416F8(CpuContext* ctx);
+extern "C" void func_802A5C38(CpuContext* ctx);
 extern "C" void MH3_RunTasks(CpuContext* ctx) {
     Memory::Write32(kCounter, Memory::Read32(kCounter) + GameStep::Ticks() - 1);
-    func_800416F8(ctx);
+    func_802A5C38(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800416F8, MH3_RunTasks, "RunTasks");
+REGISTER_NATIVE_FUNCTION_AS(0x802A5C38, MH3_RunTasks, "RunTasks");
 
 // The play-time clock (0x800D2F80, called by each scene's step): steps, and
 // seconds every 30 of them. One pass per tick. No playtime increase
@@ -136,15 +142,15 @@ static void PlayTimeTickPort(CpuContext*) {
     }
 }
 
-extern "C" void func_800D2F80(CpuContext* ctx);
+extern "C" void func_802BFC2C(CpuContext* ctx);
 extern "C" void MH3_PlayTimeTick(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PlayTimeTick", func_800D2F80, PlayTimeTickPort);
+    PortCheck::Call(ctx, "PlayTimeTick", func_802BFC2C, PlayTimeTickPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D2F80, MH3_PlayTimeTick, "PlayTimeTick");
+REGISTER_NATIVE_FUNCTION_AS(0x802BFC2C, MH3_PlayTimeTick, "PlayTimeTick");
 
-// The village's step counters (0x80212680, called by the village step
-// 0x801FC750): a countdown, a ramp that counts steps towards +60 or -60 with
-// the state of 0x8021F29C, and the step counter. One pass per tick.
+// The village's step counters (0x8025B058, called by the village step
+// 0x80244DA8): a countdown, a ramp that counts steps towards +60 or -60 with
+// the state of 0x80269770, and the step counter. One pass per tick.
 static void VillageStepCountersPort(CpuContext* ctx) {
     const CpuContext saved = *ctx;
     const uint32_t ticks = GameStep::Ticks();
@@ -152,7 +158,7 @@ static void VillageStepCountersPort(CpuContext* ctx) {
     for (uint32_t i = 0; i < ticks; ++i)
         if (const uint8_t n = Memory::Read8(kVillageCountdown))
             Memory::Write8(kVillageCountdown, n - 1);
-    const bool down = GuestCall{ctx}(0x8021F29C) != 0;
+    const bool down = GuestCall{ctx}(0x80269770) != 0;
     int32_t ramp = int16_t(Memory::Read16(kVillageRamp));
 
     if (down) {
@@ -172,20 +178,20 @@ static void VillageStepCountersPort(CpuContext* ctx) {
     *ctx = saved;
 }
 
-extern "C" void func_80212680(CpuContext* ctx);
+extern "C" void func_8025B058(CpuContext* ctx);
 extern "C" void MH3_VillageStepCounters(CpuContext* ctx) {
-    PortCheck::Call(ctx, "VillageStepCounters", func_80212680, VillageStepCountersPort);
+    PortCheck::Call(ctx, "VillageStepCounters", func_8025B058, VillageStepCountersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80212680, MH3_VillageStepCounters, "VillageStepCounters");
+REGISTER_NATIVE_FUNCTION_AS(0x8025B058, MH3_VillageStepCounters, "VillageStepCounters");
 
-// The village talk step (0x8021DC88) adds 1 to its step counter: here the
+// The village talk step (0x80267FD0) adds 1 to its step counter: here the
 // ticks of this step.
-extern "C" void func_8021DC88(CpuContext* ctx);
+extern "C" void func_80267FD0(CpuContext* ctx);
 extern "C" void MH3_VillageTalkStep(CpuContext* ctx) {
     Memory::Write32(kVillageTalkSteps, Memory::Read32(kVillageTalkSteps) + GameStep::Ticks() - 1);
-    func_8021DC88(ctx);
+    func_80267FD0(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8021DC88, MH3_VillageTalkStep, "VillageTalkStep");
+REGISTER_NATIVE_FUNCTION_AS(0x80267FD0, MH3_VillageTalkStep, "VillageTalkStep");
 
 // AreaStepCounters (0x802E4C88) adds 1 to each of the area's step counters
 // every step: here the ticks of this step, as the step counter itself.
@@ -198,4 +204,6 @@ extern "C" void func_802E4C88(CpuContext* ctx);
 extern "C" void MH3_AreaStepCounters(CpuContext* ctx) {
     PortCheck::Call(ctx, "AreaStepCounters", func_802E4C88, AreaStepCountersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802E4C88, MH3_AreaStepCounters, "AreaStepCounters");
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+// REGISTER_NATIVE_FUNCTION_AS(0x802E4C88, MH3_AreaStepCounters, "AreaStepCounters");

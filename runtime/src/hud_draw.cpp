@@ -153,7 +153,7 @@ extern "C" void func_802E55C0(CpuContext* cpu);
 extern "C" void MH3_FieldHudDraw(CpuContext* cpu) {
     PortCheck::Call(cpu, "FieldHudDraw", func_802E55C0, FieldHudDraw);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802E55C0, MH3_FieldHudDraw, "FieldHudDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802E55C0, MH3_FieldHudDraw, "FieldHudDraw");
 
 #ifdef MH3_DEVELOPMENT
 void MH3PrintHudSplit(unsigned frames) {

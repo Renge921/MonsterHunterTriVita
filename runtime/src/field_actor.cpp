@@ -9,6 +9,7 @@
 // +0x19F 4). Both amounts are taken over this step's length (GameStep::Share);
 // at the stock 1/30 s step these are the originals.
 #include "game_step.h"
+#include "guest_call.h"
 #include "memory.h"
 #include "port_check.h"
 #include "ppc_runtime.h"
@@ -17,10 +18,20 @@
 
 namespace {
 
-constexpr uint32_t kAction = 0x19D, kSub = 0x19F, kHeading = 0x18C, kGoal = 0x1A8;
+constexpr uint32_t kAction = 0x19D, kSub = 0x19F, kPendingSub = 0x1A1, kHeading = 0x18C, kGoal = 0x1A8;
 
 void FaceGoalPort(CpuContext* ctx) {
-    const uint32_t actor = ctx->gpr[3];
+    uint32_t actor = ctx->gpr[3];
+    {
+        GuestFrame frame(ctx, 0x20);
+        GuestCall game{ctx};
+        actor = frame.Arg(3);
+        game.Call<0x803886E0>({actor});
+        if (Memory::Read8(actor + kPendingSub) == 1) {
+            game.Call<0x803886E0>({actor});
+            Memory::Write8(actor + kPendingSub, 0);
+        }
+    }
     const bool slow = MemoryInline::FlatRead8(actor + kAction) == 0 && MemoryInline::FlatRead8(actor + kSub) == 4;
     const int32_t turn = GameStep::Share(slow ? 1820 : 4004);
     const uint32_t heading = MemoryInline::FlatRead32(actor + kHeading);
@@ -39,15 +50,15 @@ void FaceGoalPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_803A4148(CpuContext* ctx);
+extern "C" void func_802DBB88(CpuContext* ctx);
 extern "C" void MH3_ActorTurnToward(CpuContext* ctx) {
     ctx->gpr[5] = uint16_t(GameStep::Share(int32_t(uint16_t(ctx->gpr[5]))));
-    func_803A4148(ctx);
+    func_802DBB88(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A4148, MH3_ActorTurnToward, "ActorTurnToward");
+REGISTER_NATIVE_FUNCTION_AS(0x802DBB88, MH3_ActorTurnToward, "ActorTurnToward");
 
-extern "C" void func_803A41D4(CpuContext* ctx);
+extern "C" void func_803877A4(CpuContext* ctx);
 extern "C" void MH3_ActorFaceGoal(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ActorFaceGoal", func_803A41D4, FaceGoalPort);
+    PortCheck::Call(ctx, "ActorFaceGoal", func_803877A4, FaceGoalPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A41D4, MH3_ActorFaceGoal, "ActorFaceGoal");
+REGISTER_NATIVE_FUNCTION_AS(0x803877A4, MH3_ActorFaceGoal, "ActorFaceGoal");

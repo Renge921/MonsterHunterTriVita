@@ -39,18 +39,28 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
-constexpr uint32_t kSinCosTable = 0x805744A0u;
-constexpr uint32_t kFIdxPeriod = 0x8079F960u; // 65536.0f (r2 - 1536)
-constexpr uint32_t kU16ToFIdx = 0x80798090u;  // 1/256 (r2 - 32464)
-constexpr uint32_t kSqrtZero = 0x8079809Cu;   // 0.0f (r2 - 32452)
-constexpr uint32_t kHalf = 0x8079F954u;       // 0.5f (r2 - 1548)
-constexpr uint32_t kThree = 0x8079F958u;      // 3.0f (r2 - 1544)
+// RMHJ08: the table is at 0x8065AC80 (byte-identical to PAL 0x805744A0). The
+// PAL .sdata2 constants (0x80798xxx / 0x8079Fxxx) fall in the Japanese
+// build's .bss, so their values are kept here instead (bit-exact with PAL).
+constexpr uint32_t kSinCosTable = 0x8065AC80u;
+constexpr float kFIdxPeriod = 65536.0f;     // PAL r2 - 1536
+constexpr float kU16ToFIdx = 1.0f / 256.0f; // PAL r2 - 32464
+constexpr float kSqrtZero = 0.0f;           // PAL r2 - 32452
+constexpr float kHalf = 0.5f;               // PAL r2 - 1548
+constexpr float kThree = 3.0f;              // PAL r2 - 1544
 
 float ReadFloat(uint32_t a) {
     return MemoryInline::FlatReadFloat32(a);
+}
+
+float BitsToFloat(uint32_t bits) {
+    float f;
+    std::memcpy(&f, &bits, 4);
+    return f;
 }
 
 void WriteFloat(uint32_t a, float v) {
@@ -65,7 +75,7 @@ struct TableIndex {
 };
 
 TableIndex Index(float fidx) {
-    const float period = ReadFloat(kFIdxPeriod);
+    const float period = kFIdxPeriod;
     float a = std::fabs(fidx);
 
     while (a > period)
@@ -87,21 +97,21 @@ float CosFIdx(float fidx) {
 }
 
 float SinU16(uint32_t angle) {
-    return SinFIdx(ReadFloat(kU16ToFIdx) * float(angle & 0xFFFF));
+    return SinFIdx(kU16ToFIdx * float(angle & 0xFFFF));
 }
 
 float CosU16(uint32_t angle) {
-    return CosFIdx(ReadFloat(kU16ToFIdx) * float(angle & 0xFFFF));
+    return CosFIdx(kU16ToFIdx * float(angle & 0xFFFF));
 }
 
 float FrSqrt(double x) {
     const double e = PPC_Frsqrte(x);
-    const double refine = PPC_Fnmsubs(PpcFmulsInline(e, e), x, ReadFloat(kThree)); // 3 - e*e*x
-    return float(PpcFmulsInline(refine, PpcFmulsInline(e, ReadFloat(kHalf))));
+    const double refine = PPC_Fnmsubs(PpcFmulsInline(e, e), x, kThree); // 3 - e*e*x
+    return float(PpcFmulsInline(refine, PpcFmulsInline(e, kHalf)));
 }
 
 float FSqrt(double x) {
-    const float zero = ReadFloat(kSqrtZero);
+    const float zero = kSqrtZero;
 
     if (x <= zero)
         return zero;
@@ -161,13 +171,13 @@ void MultVecSR(uint32_t out, uint32_t m, uint32_t v) {
 // units) at `angles`, each to degrees (0x800500A8: c1 * angle / c2) and then
 // to FIdx (* k).
 void RotMatrixXYZ(uint32_t angles, uint32_t m) {
-    const float c1 = ReadFloat(0x80798080u), c2 = ReadFloat(0x80798084u), k = ReadFloat(0x80798094u); // r2 - 32480, - 32476, - 32460
+    const float c1 = BitsToFloat(0x40C90FDBu), c2 = 65536.0f, k = BitsToFloat(0x4222F983u); // 2 pi, 65536, 256 / (2 pi): PAL r2 - 32480, - 32476, - 32460
     float degrees[3];
 
     for (uint32_t i = 0; i < 3; ++i)
         degrees[i] = (c1 * float(MemoryInline::FlatRead32(angles + 4 * i) & 0xFFFF)) / c2;
 
-    G3dNative::MtxRotXYZFIdx(m, k * degrees[0], k * degrees[1], k * degrees[2], 0x8079FF60u);
+    G3dNative::MtxRotXYZFIdx(m, k * degrees[0], k * degrees[1], k * degrees[2], 0x808A93C0u);
 }
 
 void VecNormalize(uint32_t src, uint32_t dst) {
@@ -176,8 +186,8 @@ void VecNormalize(uint32_t src, uint32_t dst) {
     const double zz = PPC_PsFromScalarInline(z);
     const double sq = PPC_PsToScalarInline(PPC_PsSum0Inline(PPC_PsMaddInline(zz, zz, xy), xy, xy));
     const double e = PPC_Frsqrte(sq);
-    const double refine = PPC_Fnmsubs(PpcFmulsInline(e, e), sq, ReadFloat(0x8079F774u)); // 3 - e*e*sq (r2 - 2028)
-    const double scale = PpcFmulsInline(refine, PpcFmulsInline(e, ReadFloat(0x8079F770u))); // 0.5 (r2 - 2032)
+    const double refine = PPC_Fnmsubs(PpcFmulsInline(e, e), sq, 3.0f); // 3 - e*e*sq (PAL r2 - 2028)
+    const double scale = PpcFmulsInline(refine, PpcFmulsInline(e, 0.5f)); // 0.5 (PAL r2 - 2032)
     WriteFloat(dst, float(PpcFmulsInline(x, scale)));
     WriteFloat(dst + 4, float(PpcFmulsInline(y, scale)));
     WriteFloat(dst + 8, float(PpcFmulsInline(z, scale)));
@@ -208,19 +218,19 @@ static void RotVecPort(CpuContext* ctx) {
     MemoryInline::FlatWriteFloat32(v + Second, aSin + bCos);
 }
 
-extern "C" void func_8005101C(CpuContext* ctx);
+extern "C" void func_8028BC54(CpuContext* ctx);
 extern "C" void func_800510C8(CpuContext* ctx);
-extern "C" void func_80051178(CpuContext* ctx);
+extern "C" void func_8028BDB8(CpuContext* ctx);
 
 extern "C" void MH3_RotVecX(CpuContext* ctx) {
-    PortCheck::Call(ctx, "RotVecX", func_8005101C, RotVecPort<4, 8, 1>);
+    PortCheck::Call(ctx, "RotVecX", func_8028BC54, RotVecPort<4, 8, 1>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005101C, MH3_RotVecX, "RotVecX");
+REGISTER_NATIVE_FUNCTION_AS(0x8028BC54, MH3_RotVecX, "RotVecX");
 
 extern "C" void MH3_RotVecZ(CpuContext* ctx) {
-    PortCheck::Call(ctx, "RotVecZ", func_80051178, RotVecPort<0, 4, 1>);
+    PortCheck::Call(ctx, "RotVecZ", func_8028BDB8, RotVecPort<0, 4, 1>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80051178, MH3_RotVecZ, "RotVecZ");
+REGISTER_NATIVE_FUNCTION_AS(0x8028BDB8, MH3_RotVecZ, "RotVecZ");
 
 // The registration is cheat_movement.cpp's, which moves the evade distances
 // first.
@@ -267,7 +277,7 @@ void Nw4rMath::MultVecSR(uint32_t out, uint32_t m, uint32_t v) {
     if (check) [[unlikely]] {                                                                                                                                                                          \
         CpuContext* c = TryGetCpuContext();                                                                                                                                                            \
         c->gpr[1] = r1;                                                                                                                                                                                \
-        c->gpr[2] = 0x8079FF60u;                                                                                                                                                                       \
+        c->gpr[2] = 0x808A93C0u;                                                                                                                                                                       \
         Setup;                                                                                                                                                                                         \
         PortCheck::RunPure(c, #Name, PortCheck::Returns::Fpr1, func_##Addr, Name##Port);                                                                                                               \
         return c->fpr[1].d;                                                                                                                                                                            \
@@ -277,7 +287,7 @@ void Nw4rMath::MultVecSR(uint32_t out, uint32_t m, uint32_t v) {
     if (check) [[unlikely]] {                                                                                                                                                                          \
         CpuContext* c = TryGetCpuContext();                                                                                                                                                            \
         c->gpr[1] = r1;                                                                                                                                                                                \
-        c->gpr[2] = 0x8079FF60u;                                                                                                                                                                       \
+        c->gpr[2] = 0x808A93C0u;                                                                                                                                                                       \
         Setup;                                                                                                                                                                                         \
         PortCheck::RunOutput(c, #Name, func_##Addr, Name##Port, {{Out, Bytes}});                                                                                                                       \
         return;                                                                                                                                                                                        \
@@ -298,33 +308,33 @@ void Nw4rMath::MultVecSR(uint32_t out, uint32_t m, uint32_t v) {
         return Fn(float(f1));                                                                                                                                                                          \
     }
 
-MH3_FLOAT_PORT(805014B4, SinFIdx, SinFIdx)
+MH3_FLOAT_PORT(8053D3D8, SinFIdx, SinFIdx)
 extern "C" void MH3_SinFIdx(CpuContext* ctx) {
     ctx->fpr[1].d = SinFIdxChecked(ctx->gpr[1], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805014B4, MH3_SinFIdx, "SinFIdx");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D3D8, MH3_SinFIdx, "SinFIdx");
 
-MH3_FLOAT_PORT(8050151C, CosFIdx, CosFIdx)
+MH3_FLOAT_PORT(8053D440, CosFIdx, CosFIdx)
 extern "C" void MH3_CosFIdx(CpuContext* ctx) {
     ctx->fpr[1].d = CosFIdxChecked(ctx->gpr[1], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050151C, MH3_CosFIdx, "CosFIdx");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D440, MH3_CosFIdx, "CosFIdx");
 
 // FrSqrt and FSqrt take the full double (frsqrte reads all of f1).
-extern "C" void func_80501490(CpuContext* ctx);
+extern "C" void func_8053D3B4(CpuContext* ctx);
 static void FrSqrtPort(CpuContext* p) {
     p->fpr[1].d = FrSqrt(p->fpr[1].d);
 }
 
 static double FrSqrtChecked(uint32_t r1, double f1) {
-    MH3_FLOAT_CHECK(FrSqrt, 80501490, c->fpr[1].d = f1)
+    MH3_FLOAT_CHECK(FrSqrt, 8053D3B4, c->fpr[1].d = f1)
     return FrSqrt(f1);
 }
 
 extern "C" void MH3_FrSqrt(CpuContext* ctx) {
     ctx->fpr[1].d = FrSqrtChecked(ctx->gpr[1], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80501490, MH3_FrSqrt, "FrSqrt");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D3B4, MH3_FrSqrt, "FrSqrt");
 
 extern "C" void func_80050C24(CpuContext* ctx);
 static void FSqrtPort(CpuContext* p) {
@@ -339,7 +349,7 @@ static double FSqrtChecked(uint32_t r1, double f1) {
 extern "C" void MH3_FSqrt(CpuContext* ctx) {
     ctx->fpr[1].d = FSqrtChecked(ctx->gpr[1], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050C24, MH3_FSqrt, "FSqrt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050C24, MH3_FSqrt, "FSqrt");
 
 // r3 -> f1: the u16 conversions and the u16-angle sine and cosine.
 #define MH3_U16_PORT(Addr, Name, Fn)                                                                                                                                                                   \
@@ -364,25 +374,25 @@ MH3_U16_PORT(80050248, U16ToFloat, U16ToFloat)
 extern "C" void MH3_U16ToFloat(CpuContext* ctx) {
     ctx->fpr[1].d = U16ToFloatChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050248, MH3_U16ToFloat, "U16ToFloat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050248, MH3_U16ToFloat, "U16ToFloat");
 
 MH3_U16_PORT(800502A8, U16ToFloatLoad, U16ToFloatLoad)
 extern "C" void MH3_U16ToFloatLoad(CpuContext* ctx) {
     ctx->fpr[1].d = U16ToFloatLoadChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800502A8, MH3_U16ToFloatLoad, "U16ToFloatLoad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800502A8, MH3_U16ToFloatLoad, "U16ToFloatLoad");
 
 MH3_U16_PORT(800502B0, SinU16, SinU16)
 extern "C" void MH3_SinU16(CpuContext* ctx) {
     ctx->fpr[1].d = SinU16Checked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800502B0, MH3_SinU16, "SinU16");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800502B0, MH3_SinU16, "SinU16");
 
 MH3_U16_PORT(80050218, CosU16, CosU16)
 extern "C" void MH3_CosU16(CpuContext* ctx) {
     ctx->fpr[1].d = CosU16Checked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050218, MH3_CosU16, "CosU16");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050218, MH3_CosU16, "CosU16");
 
 // (r3, r4) ports writing memory, checked with RunOutput.
 #define MH3_STORE_PORT(Addr, Name, Call, Out, Bytes)                                                                                                                                                   \
@@ -400,52 +410,52 @@ MH3_STORE_PORT(80050278, U16ToFloatStore, WriteFloat(r4, U16ToFloatLoad(r3)), r4
 extern "C" void MH3_U16ToFloatStore(CpuContext* ctx) {
     U16ToFloatStoreChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050278, MH3_U16ToFloatStore, "U16ToFloatStore");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050278, MH3_U16ToFloatStore, "U16ToFloatStore");
 
-MH3_STORE_PORT(80050130, RotMatrixX, RotMatrixX(r3, r4), r4, 0x30)
+MH3_STORE_PORT(8028A874, RotMatrixX, RotMatrixX(r3, r4), r4, 0x30)
 extern "C" void MH3_RotMatrixX(CpuContext* ctx) {
     RotMatrixXChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050130, MH3_RotMatrixX, "RotMatrixX");
+REGISTER_NATIVE_FUNCTION_AS(0x8028A874, MH3_RotMatrixX, "RotMatrixX");
 
-MH3_STORE_PORT(800502E0, RotMatrixY, RotMatrixY(r3, r4), r4, 0x30)
+MH3_STORE_PORT(8028A954, RotMatrixY, RotMatrixY(r3, r4), r4, 0x30)
 extern "C" void MH3_RotMatrixY(CpuContext* ctx) {
     RotMatrixYChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800502E0, MH3_RotMatrixY, "RotMatrixY");
+REGISTER_NATIVE_FUNCTION_AS(0x8028A954, MH3_RotMatrixY, "RotMatrixY");
 
-MH3_STORE_PORT(800503C8, RotMatrixZ, RotMatrixZ(r3, r4), r4, 0x30)
+MH3_STORE_PORT(8028AA34, RotMatrixZ, RotMatrixZ(r3, r4), r4, 0x30)
 extern "C" void MH3_RotMatrixZ(CpuContext* ctx) {
     RotMatrixZChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800503C8, MH3_RotMatrixZ, "RotMatrixZ");
+REGISTER_NATIVE_FUNCTION_AS(0x8028AA34, MH3_RotMatrixZ, "RotMatrixZ");
 
-MH3_STORE_PORT(804C71E0, PSVECNormalize, VecNormalize(r3, r4), r4, 12)
+MH3_STORE_PORT(80430258, PSVECNormalize, VecNormalize(r3, r4), r4, 12)
 extern "C" void MH3_PSVECNormalize(CpuContext* ctx) {
     PSVECNormalizeChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C71E0, MH3_PSVECNormalize, "PSVECNormalize");
+REGISTER_NATIVE_FUNCTION_AS(0x80430258, MH3_PSVECNormalize, "PSVECNormalize");
 
 MH3_STORE_PORT(800508B4, VecNormalizeTo, VecNormalize(r4, r3), r3, 12)
 extern "C" void MH3_VecNormalizeTo(CpuContext* ctx) {
     VecNormalizeToChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800508B4, MH3_VecNormalizeTo, "VecNormalizeTo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800508B4, MH3_VecNormalizeTo, "VecNormalizeTo");
 
-MH3_STORE_PORT(800509F4, CpSetRotMatrixZXY, ZXY(r3, r4), r4, 0x30)
+MH3_STORE_PORT(8028B3B8, CpSetRotMatrixZXY, ZXY(r3, r4), r4, 0x30)
 extern "C" void MH3_CpSetRotMatrixZXY(CpuContext* ctx) {
     CpSetRotMatrixZXYChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800509F4, MH3_CpSetRotMatrixZXY, "CpSetRotMatrixZXY");
+REGISTER_NATIVE_FUNCTION_AS(0x8028B3B8, MH3_CpSetRotMatrixZXY, "CpSetRotMatrixZXY");
 
-MH3_STORE_PORT(80050914, CpSetRotMatrix, RotMatrixXYZ(r3, r4), r4, 0x30)
+MH3_STORE_PORT(8028B0C4, CpSetRotMatrix, RotMatrixXYZ(r3, r4), r4, 0x30)
 extern "C" void MH3_CpSetRotMatrix(CpuContext* ctx) {
     CpSetRotMatrixChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050914, MH3_CpSetRotMatrix, "CpSetRotMatrix");
+REGISTER_NATIVE_FUNCTION_AS(0x8028B0C4, MH3_CpSetRotMatrix, "CpSetRotMatrix");
 
 // (out r3, m r4, v r5).
-extern "C" void func_80501C48(CpuContext* ctx);
+extern "C" void func_8053DB6C(CpuContext* ctx);
 static void MultVecSRPort(CpuContext* p) {
     MultVecSR(p->gpr[3], p->gpr[4], p->gpr[5]);
 }
@@ -458,7 +468,7 @@ static void MultVecSRChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t
         c->gpr[3] = r3;
         c->gpr[4] = r4;
         c->gpr[5] = r5;
-        PortCheck::RunOutput(c, "MTX34MultVecSR", func_80501C48, MultVecSRPort, {{r3, 12}});
+        PortCheck::RunOutput(c, "MTX34MultVecSR", func_8053DB6C, MultVecSRPort, {{r3, 12}});
         return;
     }
 #endif
@@ -468,7 +478,7 @@ static void MultVecSRChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t
 extern "C" void MH3_MTX34MultVecSR(CpuContext* ctx) {
     MultVecSRChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80501C48, MH3_MTX34MultVecSR, "MTX34MultVecSR");
+REGISTER_NATIVE_FUNCTION_AS(0x8053DB6C, MH3_MTX34MultVecSR, "MTX34MultVecSR");
 
 // VectorScaleWrapper (r3 out, r4 v, f1 s): the lanes times s, in float.
 extern "C" void func_80051F44(CpuContext* ctx);
@@ -501,4 +511,4 @@ static void VecScaleChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t 
 extern "C" void MH3_VectorScaleWrapper(CpuContext* ctx) {
     VecScaleChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80051F44, MH3_VectorScaleWrapper, "VectorScaleWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80051F44, MH3_VectorScaleWrapper, "VectorScaleWrapper");

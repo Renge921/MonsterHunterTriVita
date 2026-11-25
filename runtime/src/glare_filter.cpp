@@ -5,4 +5,4 @@ extern "C" void MH3_NativeGlareDraw(CpuContext *cpu);
 extern "C" void MH3_GlareFilterDraw(CpuContext *cpu) {
     MH3_NativeGlareDraw(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80056F88, MH3_GlareFilterDraw, "GlareFilter::draw");
+REGISTER_NATIVE_FUNCTION(0x802939A0, MH3_GlareFilterDraw);

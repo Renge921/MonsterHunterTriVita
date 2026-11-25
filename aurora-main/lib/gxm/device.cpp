@@ -2,7 +2,7 @@
 #include <aurora/fatal.hpp>
 #include "raster.hpp"
 #include "shader_bank.hpp"
-#ifdef MH3_DEVELOPMENT
+#if defined(MH3_DEVELOPMENT) || defined(AURORA_GXM_RUNTIME_SHADER_FALLBACK)
 #include "runtime_shader.hpp"
 #endif
 #include "native_capacity.hpp"
@@ -182,7 +182,7 @@ void host_free(void*, void* memory) {
 const SceGxmProgram* find_binary(uint64_t hash, ShaderStage stage) {
   if (const auto* program = shader_bank::find(hash, stage))
     return program;
-#ifdef MH3_DEVELOPMENT
+#if defined(MH3_DEVELOPMENT) || defined(AURORA_GXM_RUNTIME_SHADER_FALLBACK)
   return runtime_shader_binary(hash, stage);
 #else
   char message[96];
@@ -376,7 +376,7 @@ void Device::release() noexcept {
     sceGxmTerminate();
 
   m_initialized = false;
-#ifdef MH3_DEVELOPMENT
+#if defined(MH3_DEVELOPMENT) || defined(AURORA_GXM_RUNTIME_SHADER_FALLBACK)
   clear_runtime_shaders();
 #endif
 }
@@ -541,7 +541,7 @@ void Device::flip() {
 }
 
 void set_common_dialog_active(bool active) noexcept {
-  g_commonDialogActive = active;
+  request_common_dialog(active);
 }
 
 void request_common_dialog(bool active) noexcept {

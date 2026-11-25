@@ -1,5 +1,5 @@
 // Guest OS threads (guest_threads.h). SelectThread and OSExitThread are native
-// ports of the SDK's (RMHP08 0x804D4360, 0x804D4860; decompiled with Ghidra):
+// ports of the SDK's (RMHP08 0x8042AF44, 0x8042B42C; decompiled with Ghidra):
 // they keep the run queues, thread states and switch callback exactly, and
 // replace OSSaveContext/OSLoadContext with a baton between host threads. The
 // thread switched out keeps its registers on its own host thread and waits
@@ -32,18 +32,18 @@ void PumpDevices(CpuContext* cpu); // os_sleep.cpp
 namespace {
 using GuestThreads::Clock;
 
-// OS globals.
+// OS globals (RMHJ08).
 enum : uint32_t {
     kCurrentContext = 0x800000D4,       // OSContext* OS_CURRENT_CONTEXT
     kActiveHead = 0x800000DC,           // OSThread* the active thread list's head
     kActiveTail = 0x800000E0,           // and tail
     kCurrentThread = 0x800000E4,        // OSThread* __OSCurrentThread
-    kRunQueue = 0x8074FE70,             // OSThreadQueue[32]: head, tail per priority
-    kIdleContext = 0x8074FF70,          // the context the idle loop runs on
-    kSwitchThreadCallback = 0x80796480, // void (*)(OSThread* from, OSThread* to)
-    kReschedule = 0x80797850,           // s32: > 0 holds thread switches
-    kRunQueueHint = 0x80797854,         // s32: a switch may be due
-    kRunQueueBits = 0x80797858,         // bit 31 - p: run queue p is not empty
+    kRunQueue = 0x807AC1B0,             // OSThreadQueue[32]: head, tail per priority (0x807B0000 - 15952)
+    kIdleContext = 0x807AC2B0,          // the context the idle loop runs on (0x807B0000 - 15696)
+    kSwitchThreadCallback = 0x8089ECA8, // void (*)(OSThread* from, OSThread* to) (r13 - 23528)
+    kReschedule = 0x808A07E0,           // s32: > 0 holds thread switches (r13 - 16544)
+    kRunQueueHint = 0x808A07E4,         // s32: a switch may be due (r13 - 16540)
+    kRunQueueBits = 0x808A07E8,         // bit 31 - p: run queue p is not empty (r13 - 16536)
 };
 
 // OSThread (its OSContext comes first).
@@ -74,11 +74,11 @@ enum : uint16_t {
 };
 
 enum : uint32_t {
-    OSSetCurrentContext = 0x804CD630,
-    OSClearContext = 0x804CD870,
-    UnlockAllMutex = 0x804D2750, // __OSUnlockAllMutex
-    OSSleepThread = 0x804D50B0,
-    OSWakeupThread = 0x804D51A0,
+    OSSetCurrentContext = 0x80423B28,
+    OSClearContext = 0x80423D74,
+    UnlockAllMutex = 0x80429248, // __OSUnlockAllMutex
+    OSSleepThread = 0x8042BC5C,
+    OSWakeupThread = 0x8042BD48,
 };
 
 // A guest thread that ran on a host thread.
@@ -572,7 +572,7 @@ extern "C" void MH3_SelectThread(CpuContext* cpu) {
 
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804D4360, MH3_SelectThread, "SelectThread");
+REGISTER_NATIVE_FUNCTION_AS(0x8042AF44, MH3_SelectThread, "SelectThread");
 
 // OSExitThread(val).
 extern "C" void MH3_OSExitThread(CpuContext* cpu) {
@@ -619,18 +619,18 @@ extern "C" void MH3_OSExitThread(CpuContext* cpu) {
     Select(cpu, false);
     cpu->msr = msr;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804D4860, MH3_OSExitThread, "OSExitThread");
+REGISTER_NATIVE_FUNCTION_AS(0x8042B42C, MH3_OSExitThread, "OSExitThread");
 
 // OSCreateThread (translated) may reuse an OSThread whose host thread waits
 // for good (a thread that exited itself or was canceled): the new thread gets
 // a host thread of its own.
-extern "C" void func_804D45F0(CpuContext*);
+extern "C" void func_8042B1C0(CpuContext*);
 extern "C" void MH3_OSCreateThread(CpuContext* cpu) {
     const uint32_t thread = cpu->gpr[3];
-    func_804D45F0(cpu);
+    func_8042B1C0(cpu);
 
     if (cpu->gpr[3])
         if (const auto it = records.find(thread); it != records.end() && !it->second->game)
             records.erase(it); // its old host thread is never selected again
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804D45F0, MH3_OSCreateThread, "MH3_OSCreateThread");
+REGISTER_NATIVE_FUNCTION_AS(0x8042B1C0, MH3_OSCreateThread, "MH3_OSCreateThread");

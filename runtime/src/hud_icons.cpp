@@ -91,8 +91,8 @@ void CyclePort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_802ED758(CpuContext* ctx);
+extern "C" void func_80197AF8(CpuContext* ctx);
 extern "C" void MH3_HudIconCycle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "HudIconCycle", func_802ED758, CyclePort);
+    PortCheck::Call(ctx, "HudIconCycle", func_80197AF8, CyclePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802ED758, MH3_HudIconCycle, "HudIconCycle");
+REGISTER_NATIVE_FUNCTION_AS(0x80197AF8, MH3_HudIconCycle, "HudIconCycle");

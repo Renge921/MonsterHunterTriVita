@@ -801,27 +801,27 @@ void NativeModelViewArrays(uint32_t scene, uint32_t arrays[3]) {
 extern "C" void MH3_ModelViewPosition(CpuContext* cpu) {
     cpu->gpr[3] = NativeModelViewArray(cpu->gpr[3], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80080BC0, MH3_ModelViewPosition, "ModelViewPosition");
+REGISTER_NATIVE_FUNCTION_AS(0x80538AB8, MH3_ModelViewPosition, "ModelViewPosition");
 extern "C" void MH3_ModelViewNormal(CpuContext* cpu) {
     cpu->gpr[3] = NativeModelViewArray(cpu->gpr[3], 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80080C0C, MH3_ModelViewNormal, "ModelViewNormal");
+REGISTER_NATIVE_FUNCTION_AS(0x80538ADC, MH3_ModelViewNormal, "ModelViewNormal");
 extern "C" void MH3_ModelViewEnvironment(CpuContext* cpu) {
     cpu->gpr[3] = NativeModelViewArray(cpu->gpr[3], 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80080C68, MH3_ModelViewEnvironment, "ModelViewEnvironment");
+REGISTER_NATIVE_FUNCTION_AS(0x80538B10, MH3_ModelViewEnvironment, "ModelViewEnvironment");
 extern "C" void MH3_ModelViewCount(CpuContext* cpu) {
     uint32_t count = 0;
     Checked(mh3_model_pose_count({GuestRange(cpu->gpr[3], 0x104), 0x104}, &count));
     cpu->gpr[3] = count;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007FD0C, MH3_ModelViewCount, "ModelViewCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007FD0C, MH3_ModelViewCount, "ModelViewCount");
 
 extern "C" void MH3_ModelMainMatrixReset(CpuContext*) {
     mh3_model_matrix_reset(&selectors);
     PublishSelectors();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009B13C, MH3_ModelMainMatrixReset, "ModelMainMatrixReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8009B13C, MH3_ModelMainMatrixReset, "ModelMainMatrixReset");
 extern "C" void MH3_ModelMainMatrixSelect(CpuContext* cpu) {
     uint32_t rows[8];
 
@@ -830,7 +830,7 @@ extern "C" void MH3_ModelMainMatrixSelect(CpuContext* cpu) {
 
     Select(rows);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009B1A4, MH3_ModelMainMatrixSelect, "ModelMainMatrixSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8009B1A4, MH3_ModelMainMatrixSelect, "ModelMainMatrixSelect");
 extern "C" void MH3_ModelCurrentMatrixReset(CpuContext* cpu) {
     if (!Memory::Read8(cpu->gpr[3])) {
         mh3_model_matrix_reset(&selectors);
@@ -838,7 +838,7 @@ extern "C" void MH3_ModelCurrentMatrixReset(CpuContext* cpu) {
         Memory::Write8(cpu->gpr[3], 1);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80087CF0, MH3_ModelCurrentMatrixReset, "ModelCurrentMatrixReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80087CF0, MH3_ModelCurrentMatrixReset, "ModelCurrentMatrixReset");
 extern "C" void MH3_ModelPreTextureMatrices(CpuContext* cpu) {
     if (int32_t(cpu->gpr[4]) < 0)
         return;
@@ -880,7 +880,7 @@ extern "C" void MH3_ModelPreTextureMatrices(CpuContext* cpu) {
     Select(rows);
     Memory::Write8(0x80796db4, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80087D30, MH3_ModelPreTextureMatrices, "ModelPreTextureMatrices");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80087D30, MH3_ModelPreTextureMatrices, "ModelPreTextureMatrices");
 
 void CopyNativePaletteStoreForDraw() {
     matrixPalettes[unsigned(NativeOwner::Draw)] = matrixPalettes[unsigned(NativeOwner::Game)];

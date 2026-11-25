@@ -148,22 +148,22 @@ extern "C" void func_8042AD0C(CpuContext* cpu);
 extern "C" void MH3_NetCtrlJoin(CpuContext* cpu) {
     PortCheck::Call(cpu, "NetCtrlJoin", func_8042AD0C, JoinPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8042AD0C, MH3_NetCtrlJoin, "NetCtrlJoin");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8042AD0C, MH3_NetCtrlJoin, "NetCtrlJoin");
 
 extern "C" void func_8042AE7C(CpuContext* cpu);
 extern "C" void MH3_NetCtrlReady(CpuContext* cpu) {
     PortCheck::Call(cpu, "NetCtrlReady", func_8042AE7C, ReadyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8042AE7C, MH3_NetCtrlReady, "NetCtrlReady");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8042AE7C, MH3_NetCtrlReady, "NetCtrlReady");
 
 extern "C" void func_8042AF5C(CpuContext* cpu);
 extern "C" void MH3_NetCtrlUnready(CpuContext* cpu) {
     PortCheck::Call(cpu, "NetCtrlUnready", func_8042AF5C, UnreadyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8042AF5C, MH3_NetCtrlUnready, "NetCtrlUnready");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8042AF5C, MH3_NetCtrlUnready, "NetCtrlUnready");
 
 extern "C" void func_8042B2FC(CpuContext* cpu);
 extern "C" void MH3_NetCtrlDepart(CpuContext* cpu) {
     PortCheck::Call(cpu, "NetCtrlDepart", func_8042B2FC, DepartPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8042B2FC, MH3_NetCtrlDepart, "NetCtrlDepart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8042B2FC, MH3_NetCtrlDepart, "NetCtrlDepart");

@@ -76,7 +76,7 @@ static uint32_t ResDicAtChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_ResDicLookup(CpuContext* ctx) {
     ctx->gpr[3] = ResDicAtChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800627B4, MH3_ResDicLookup, "ResDicLookup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800627B4, MH3_ResDicLookup, "ResDicLookup");
 
 static uint32_t RefCheckDirect(uint32_t r3, uint32_t) {
     return ResCommonRefCheck(r3);
@@ -94,4 +94,4 @@ static uint32_t RefCheckChecked(uint32_t r1, uint32_t r3) {
 extern "C" void MH3_ResCommonRefCheck(CpuContext* ctx) {
     ctx->gpr[3] = RefCheckChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800628A4, MH3_ResCommonRefCheck, "ResCommonRefCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800628A4, MH3_ResCommonRefCheck, "ResCommonRefCheck");

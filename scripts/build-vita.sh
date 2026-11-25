@@ -7,6 +7,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 task_build_dir=${MH3_VITA_BUILD_DIR:-build/vita}
 task_sdk=${VITASDK:-/usr/local/vitasdk}
+export VITASDK="$task_sdk"
+export DOTNET_BIN="${DOTNET_BIN:-$(which dotnet)}"
 task_args=()
 # MH3_VITA_ELF_CREATE: another vita-elf-create than the SDK's.
 [[ -n ${MH3_VITA_ELF_CREATE:-} ]] && task_args+=("-DVITA_ELF_CREATE:PATH=$MH3_VITA_ELF_CREATE")
@@ -22,8 +24,19 @@ cmake -S runtime -B "$task_build_dir" -G Ninja \
   -DVITASDK="$task_sdk" -DCMAKE_BUILD_TYPE=Release \
   -DMH3_AURORA_ROOT="$PWD/aurora-main" \
   -DMH3_DEVELOPMENT="${MH3_DEVELOPMENT:-OFF}" \
+  -DMH3_PGO_RELEASE_PROFILE="${MH3_PGO_RELEASE_PROFILE:-OFF}" \
   -DAURORA_GXM=ON -DAURORA_ENABLE_CARD=OFF \
   -DAURORA_SDL3_PROVIDER=vendor -DAURORA_SDL3_LINKAGE=static \
   -DBUILD_SHARED_LIBS=OFF "${task_args[@]}" ${MH3_EXTRA_CMAKE_ARGS:-}
-cmake --build "$task_build_dir" --target mh3-vita.vpk --parallel "${BUILD_JOBS:-$(nproc)}"
+cmake --build "$task_build_dir" --target eboot.bin --parallel "${BUILD_JOBS:-$(nproc)}"
+"$task_sdk/bin/vita-mksfoex" -d ATTRIBUTE2=12 -s APP_VER=00.01 -s TITLE_ID=MH3WII001 "Monster Hunter Tri" "$task_build_dir/mh3-vita.vpk_param.sfo"
+"$task_sdk/bin/vita-pack-vpk" \
+  -a "$PWD/runtime/sce_sys/icon0.png=sce_sys/icon0.png" \
+  -a "$PWD/runtime/sce_sys/livearea/contents/bg0.png=sce_sys/livearea/contents/bg0.png" \
+  -a "$PWD/runtime/sce_sys/livearea/contents/startup.png=sce_sys/livearea/contents/startup.png" \
+  -a "$PWD/runtime/sce_sys/livearea/contents/template.xml=sce_sys/livearea/contents/template.xml" \
+  -s "$task_build_dir/mh3-vita.vpk_param.sfo" \
+  -b "$task_build_dir/eboot.bin" \
+  "$task_build_dir/mh3-vita.vpk"
+cp -f "$task_build_dir/mh3-vita.vpk" "$task_build_dir/mh3-vita.vpk.out"
 echo "Built $task_build_dir/mh3-vita.vpk"

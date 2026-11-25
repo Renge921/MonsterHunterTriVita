@@ -27,28 +27,28 @@
 namespace {
 
 enum : uint32_t {
-    MasterCheck = 0x8026FE38,       // Pl_master_ck(PLW*) -> 1 for the local player
-    SkillCheck = 0x80271374,        // Pl_Skill_ck(PLW*, skill) -> 1
-    DamageCondition = 0x80279130,   // Pl_dm_condition_ck(PLW*, condition) -> 1
-    OnWaterSurface = 0x80278878,    // Pl_suimen_ck(PLW*)
-    SetEffect013 = 0x801072B4,      // eft013_set(PLW*, u8)
-    InEventDemo = 0x8027BCAC,       // (1) -> 0 when messages may be shown
-    ShowStatusMessage = 0x802672D4, // (PLW*, kind, message, arg)
-    AreaCondition = 0x80331190,     // (PLW*) -> 1
-    AreaConditionTick = 0x8027D608, // (PLW*, 5)
-    PendingStatus = 0x8027BD44,     // (PLW*) -> u16 status, 0xFFFF none
-    ApplyStatus = 0x80272E18,       // (PLW*, u16 status)
-    ConditionActive = 0x802785DC,   // (PLW*, 1) -> 1
-    ConditionActiveB = 0x80276880,  // (PLW*) -> 1
-    SetConditionState = 0x802768CC, // (PLW*, state)
-    ClimateDamage = 0x80276818,     // (PLW*, amount; -1 = per tick damage)
-    ClimateActive = 0x80276864,     // (PLW*, 0) -> 1
-    ClimateTick = 0x80276514,       // (PLW*, -1, 0)
-    ArmorLevel = 0x8027492C,        // (PLW*) -> u8
-    MapClimate = 0x802B05FC,        // (u8 map) -> 1 hot, 3 cold, 4 ...
-    StatusUpdate = 0x80276E6C,      // (PLW*)
-    CanRecoverHealth = 0x80260ABC,  // (PLW*) -> 1
-    RecoverHealth = 0x802762F0,     // (PLW*, amount)
+    MasterCheck = 0x8033DBA4,       // Pl_master_ck(PLW*) -> 1 for the local player
+    SkillCheck = 0x803400D0,        // Pl_Skill_ck(PLW*, skill) -> 1
+    DamageCondition = 0x80348F34,   // Pl_dm_condition_ck(PLW*, condition) -> 1
+    OnWaterSurface = 0x8034844C,    // Pl_suimen_ck(PLW*)
+    SetEffect013 = 0x80045EF0,      // eft013_set(PLW*, u8)
+    InEventDemo = 0x8034BFFC,       // (1) -> 0 when messages may be shown
+    ShowStatusMessage = 0x80335528, // (PLW*, kind, message, arg)
+    AreaCondition = 0x8035DD64,     // (PLW*) -> 1
+    AreaConditionTick = 0x8034DE10, // (PLW*, 5)
+    PendingStatus = 0x8034C094,     // (PLW*) -> u16 status, 0xFFFF none
+    ApplyStatus = 0x80341EB0,       // (PLW*, u16 status)
+    ConditionActive = 0x803481E0,   // (PLW*, 1) -> 1
+    ConditionActiveB = 0x80346184,  // (PLW*) -> 1
+    SetConditionState = 0x803461D0, // (PLW*, state)
+    ClimateDamage = 0x80346124,     // (PLW*, amount; -1 = per tick damage)
+    ClimateActive = 0x8034616C,     // (PLW*, 0) -> 1
+    ClimateTick = 0x80345DD8,       // (PLW*, -1, 0)
+    ArmorLevel = 0x80343CD8,        // (PLW*) -> u8
+    MapClimate = 0x8037DE18,        // (u8 map) -> 1 hot, 3 cold, 4 ...
+    StatusUpdate = 0x80346960,      // (PLW*)
+    CanRecoverHealth = 0x8032E404,  // (PLW*) -> 1
+    RecoverHealth = 0x80345B58,     // (PLW*, amount)
 };
 
 struct Plw {
@@ -389,10 +389,10 @@ void PlayerStepTimers(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_80260B9C(CpuContext* ctx);
+extern "C" void func_8032E4F8(CpuContext* ctx);
 
 extern "C" void MH3_PlayerStepTimers(CpuContext* ctx) {
     PortCheck::Fuzz(ctx, 'P', ctx->gpr[3]);
-    PortCheck::Call(ctx, "PlayerStepTimers", func_80260B9C, PlayerStepTimers);
+    PortCheck::Call(ctx, "PlayerStepTimers", func_8032E4F8, PlayerStepTimers);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80260B9C, MH3_PlayerStepTimers, "PlayerStepTimers");
+REGISTER_NATIVE_FUNCTION_AS(0x8032E4F8, MH3_PlayerStepTimers, "PlayerStepTimers");

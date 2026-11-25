@@ -14,7 +14,7 @@
 class RomImage {
   public:
     // Opens the image and checks that it is that game's disc.
-    static Status Open(const std::filesystem::path& path, std::unique_ptr<RomImage>& image, const char* game = "RMHP08");
+    static Status Open(const std::filesystem::path& path, std::unique_ptr<RomImage>& image, const char* game = "RMHJ08");
 
     // The disc's game ID, without opening its partition.
     static Status Identify(const std::filesystem::path& path, std::string& game);

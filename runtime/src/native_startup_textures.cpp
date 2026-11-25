@@ -12,8 +12,8 @@
 #include <string>
 
 namespace {
-constexpr uint32_t State = 0x8066B968, Selectors = 0x8066BDB0, Selection = 0x8066BDBA;
-constexpr uint32_t Objects[] = {0x8066B990, 0x8066BA10, 0x8066BA90};
+constexpr uint32_t State = 0x8073D588, Selectors = 0x8073D9D0, Selection = 0x8073D9DA;
+constexpr uint32_t Objects[] = {0x8073D5B0, 0x8073D630, 0x8073D6B0};
 struct Startup {
     GuestCall call;
     uint32_t archives[3];
@@ -27,13 +27,13 @@ mh3_res_status Archive(void *user, uint32_t group, uint32_t *count) {
     if (*count > UINT16_MAX)
         return MH3_RES_RANGE;
 
-    startup.call(0x804E4C30, {startup.archives[group]}); // pure CPU pointer relocation
+    startup.call(0x804C4170, {startup.archives[group]}); // pure CPU pointer relocation
     return MH3_RES_OK;
 }
 
 mh3_res_status Image(void *user, uint32_t group, uint32_t index, mh3_native_texture_binding *out) {
     auto &startup = *static_cast<Startup *>(user);
-    const auto descriptor = startup.call(0x804E4D50, {startup.archives[group], index});
+    const auto descriptor = startup.call(0x804C4284, {startup.archives[group], index});
     const auto header = Memory::Read32(descriptor);
     mh3_ui_texture_header image{};
     const auto status = mh3_ui_texture_header_read({Memory::GetPointer(header, 36), 36}, &image);
@@ -92,9 +92,9 @@ extern "C" void MH3_StartupTextures(CpuContext *cpu) {
         Memory::Write8(Selection + byte, state.selection[byte]);
 
     Memory::Write8(State, state.initialized);
-    startup.call(0x800885F4, {0x7FF});
+    startup.call(0x8052C0C0, {0x7FF});
     auto material = GetNativeMaterialState();
     material.indirect_count = 0;
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80047954, MH3_StartupTextures, "StartupTextures");
+REGISTER_NATIVE_FUNCTION(0x801E2ABC, MH3_StartupTextures);

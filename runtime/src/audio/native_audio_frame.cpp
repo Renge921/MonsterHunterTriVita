@@ -38,7 +38,7 @@ using MemoryInline::FlatWrite32;
 extern "C" void MH3_SoundFrame(CpuContext* cpu);
 
 // The sound engine's frame callback (sound_engine.cpp).
-constexpr uint32_t kSoundFrameCallback = 0x800E86FC;
+constexpr uint32_t kSoundFrameCallback = 0x80367440; // JPN RMHJ08 SoundFrameCallback
 
 namespace NativeAudio {
 namespace {

@@ -56,17 +56,16 @@
 #include "dev_options.h"
 #endif
 
-extern "C" void func_800B2918(CpuContext* ctx);
-extern "C" void func_800B2E5C(CpuContext* ctx);
-extern "C" void func_800B3440(CpuContext* ctx);
-extern "C" void func_800B3A78(CpuContext* ctx);
-extern "C" void func_800B3C08(CpuContext* ctx);
-extern "C" void func_800B36D4(CpuContext* ctx);
-extern "C" void func_800B3EE4(CpuContext* ctx);
-extern "C" void func_800B4724(CpuContext* ctx);
-extern "C" void func_800B48FC(CpuContext* ctx);
-extern "C" void func_800B48A0(CpuContext* ctx);
-extern "C" void func_800B4A78(CpuContext* ctx);
+extern "C" void func_80504394(CpuContext* ctx);
+extern "C" void func_805038AC(CpuContext* ctx);
+extern "C" void func_80503A84(CpuContext* ctx);
+extern "C" void func_80503BB8(CpuContext* ctx);
+extern "C" void func_80503B3C(CpuContext* ctx);
+extern "C" void func_80503C6C(CpuContext* ctx);
+extern "C" void func_80504148(CpuContext* ctx);
+extern "C" void func_8050424C(CpuContext* ctx);
+extern "C" void func_805041E8(CpuContext* ctx);
+extern "C" void func_805042EC(CpuContext* ctx);
 
 namespace {
 
@@ -77,10 +76,10 @@ using MemoryInline::FlatWrite32;
 
 // Guest functions the list changes still call.
 enum : uint32_t {
-    kListAppend = 0x805020E4,        // ut::List_Append(list, object)
-    kListRemove = 0x80502274,        // ut::List_Remove(list, object)
-    kRelocateEffects = 0x800B2960,   // (EffectProject*): entry names, track tables
-    kRelocateTextures = 0x800B32A4,  // (TextureProject*): entry names, data pointers
+    kListAppend = 0x8053E008,        // ut::List_Append(list, object)
+    kListRemove = 0x8053E198,        // ut::List_Remove(list, object)
+    kRelocateEffects = 0x80503748,   // (EffectProject*): entry names, track tables
+    kRelocateTextures = 0x805039F8,  // (TextureProject*): entry names, data pointers
 };
 
 [[noreturn]] void Panic(const char* what, uint32_t value) {
@@ -230,6 +229,7 @@ uint32_t FindEmitter(uint32_t resource, uint32_t name, uint32_t hint) {
     return FindInList(resource, name, hint);
 }
 
+#if 0 // FindTexture is inlined into callers in RMHJ08 (inner loop calls EfFindTextureInProject 0x80503A84).
 uint32_t FindTexture(uint32_t resource, uint32_t name, uint32_t hint) {
     FoldPointer(name);
 
@@ -238,6 +238,7 @@ uint32_t FindTexture(uint32_t resource, uint32_t name, uint32_t hint) {
 
     return FindInList(resource + 0x10, name, hint);
 }
+#endif
 
 // The list changes. `list` is the Resource's effect (+0) or texture (+0x10)
 // list, its count at list + 0xC.
@@ -324,8 +325,8 @@ uint32_t RemoveAllProjects(CpuContext* ctx, uint32_t list) {
     return 1;
 }
 
-void InitializePort(CpuContext* ctx) {
-    Initialize(ctx->gpr[3]);
+void InitializePort([[maybe_unused]] CpuContext* ctx) {
+    Initialize(0x80865E08);
 }
 
 void AddEffectProjectPort(CpuContext* ctx) {
@@ -394,11 +395,10 @@ void FindEmitterInProjectPort(CpuContext* p) {
 }
 
 void FindEmitterPort(CpuContext* p) {
-    p->gpr[3] = FindEmitter(p->gpr[3], p->gpr[4], p->gpr[5]);
-}
-
-void FindTexturePort(CpuContext* p) {
-    p->gpr[3] = FindTexture(p->gpr[3], p->gpr[4], p->gpr[5]);
+    const uint32_t out = p->gpr[3];
+    const uint32_t res = FindEmitter(p->gpr[4], p->gpr[5], p->gpr[6]);
+    FlatWrite32(out, res);
+    p->gpr[3] = res;
 }
 
 // A lookup returning r3, checked with RunPure.
@@ -419,23 +419,13 @@ void FindTexturePort(CpuContext* p) {
 #endif
 
 uint32_t FindEmitterInProjectChecked(uint32_t r1, uint32_t r3, uint32_t r4, [[maybe_unused]] uint32_t r5) {
-    MH3_LOOKUP_CHECK(EfFindEmitterInProject, 800B2E5C, FindEmitterInProjectPort)
+    MH3_LOOKUP_CHECK(EfFindEmitterInProject, 805038AC, FindEmitterInProjectPort)
     return FindInProject(r3, r4);
 }
 
 uint32_t FindTextureInProjectChecked(uint32_t r1, uint32_t r3, uint32_t r4, [[maybe_unused]] uint32_t r5) {
-    MH3_LOOKUP_CHECK(EfFindTextureInProject, 800B3440, FindEmitterInProjectPort)
+    MH3_LOOKUP_CHECK(EfFindTextureInProject, 80503A84, FindEmitterInProjectPort)
     return FindInProject(r3, r4);
-}
-
-uint32_t FindEmitterChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) {
-    MH3_LOOKUP_CHECK(EfFindEmitter, 800B3A78, FindEmitterPort)
-    return FindEmitter(r3, r4, r5);
-}
-
-uint32_t FindTextureChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) {
-    MH3_LOOKUP_CHECK(EfFindTexture, 800B3C08, FindTexturePort)
-    return FindTexture(r3, r4, r5);
 }
 
 } // namespace
@@ -443,18 +433,24 @@ uint32_t FindTextureChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) 
 extern "C" void MH3_EfFindEmitterInProject(CpuContext* ctx) {
     ctx->gpr[3] = FindEmitterInProjectChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B2E5C, MH3_EfFindEmitterInProject, "EfFindEmitterInProject");
+REGISTER_NATIVE_FUNCTION_AS(0x805038AC, MH3_EfFindEmitterInProject, "EfFindEmitterInProject");
 
 extern "C" void MH3_EfFindTextureInProject(CpuContext* ctx) {
     ctx->gpr[3] = FindTextureInProjectChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B3440, MH3_EfFindTextureInProject, "EfFindTextureInProject");
+REGISTER_NATIVE_FUNCTION_AS(0x80503A84, MH3_EfFindTextureInProject, "EfFindTextureInProject");
 
 extern "C" void MH3_EfFindEmitter(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    const uint32_t name = ctx->gpr[4], sp = ctx->gpr[1];
+    const uint32_t name = ctx->gpr[5], sp = ctx->gpr[1];
+    if (PortCheck::Enabled("EfFindEmitter")) [[unlikely]] {
+        PortCheck::RunOutput(ctx, "EfFindEmitter", func_80503BB8, FindEmitterPort, {{ctx->gpr[3], 4}});
+    } else {
+        FindEmitterPort(ctx);
+    }
+#else
+    FindEmitterPort(ctx);
 #endif
-    ctx->gpr[3] = FindEmitterChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 #ifdef MH3_DEVELOPMENT
     // MH3_TRACE=particles: every emitter looked up by name (each effect the
     // game creates), its data (the particle managers' resource) and the
@@ -482,45 +478,42 @@ extern "C" void MH3_EfFindEmitter(CpuContext* ctx) {
     }
 #endif
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B3A78, MH3_EfFindEmitter, "EfFindEmitter");
+REGISTER_NATIVE_FUNCTION_AS(0x80503BB8, MH3_EfFindEmitter, "EfFindEmitter");
 
-extern "C" void MH3_EfFindTexture(CpuContext* ctx) {
-    ctx->gpr[3] = FindTextureChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x800B3C08, MH3_EfFindTexture, "EfFindTexture");
+// Inlined into callers in RMHJ08 (inner loop calls EfFindTextureInProject 0x80503A84).
 
 extern "C" void MH3_EfResourceInitialize(CpuContext* ctx) {
-    ListChange(ctx, func_800B2918, InitializePort);
+    ListChange(ctx, func_80504394, InitializePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B2918, MH3_EfResourceInitialize, "EfResourceInitialize");
+REGISTER_NATIVE_FUNCTION_AS(0x80504394, MH3_EfResourceInitialize, "EfResourceInitialize");
 
 extern "C" void MH3_EfAddEffectProject(CpuContext* ctx) {
-    ListChange(ctx, func_800B36D4, AddEffectProjectPort);
+    ListChange(ctx, func_80503B3C, AddEffectProjectPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B36D4, MH3_EfAddEffectProject, "EfAddEffectProject");
+REGISTER_NATIVE_FUNCTION_AS(0x80503B3C, MH3_EfAddEffectProject, "EfAddEffectProject");
 
 extern "C" void MH3_EfAddTextureProject(CpuContext* ctx) {
-    ListChange(ctx, func_800B3EE4, AddTextureProjectPort);
+    ListChange(ctx, func_80503C6C, AddTextureProjectPort);
     ProduceTextures(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B3EE4, MH3_EfAddTextureProject, "EfAddTextureProject");
+REGISTER_NATIVE_FUNCTION_AS(0x80503C6C, MH3_EfAddTextureProject, "EfAddTextureProject");
 
 extern "C" void MH3_EfRemoveEffectProject(CpuContext* ctx) {
-    ListChange(ctx, func_800B4724, RemoveEffectProjectPort);
+    ListChange(ctx, func_80504148, RemoveEffectProjectPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B4724, MH3_EfRemoveEffectProject, "EfRemoveEffectProject");
+REGISTER_NATIVE_FUNCTION_AS(0x80504148, MH3_EfRemoveEffectProject, "EfRemoveEffectProject");
 
 extern "C" void MH3_EfRemoveTextureProject(CpuContext* ctx) {
-    ListChange(ctx, func_800B48FC, RemoveTextureProjectPort);
+    ListChange(ctx, func_8050424C, RemoveTextureProjectPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B48FC, MH3_EfRemoveTextureProject, "EfRemoveTextureProject");
+REGISTER_NATIVE_FUNCTION_AS(0x8050424C, MH3_EfRemoveTextureProject, "EfRemoveTextureProject");
 
 extern "C" void MH3_EfRemoveAllEffectProjects(CpuContext* ctx) {
-    ListChange(ctx, func_800B48A0, RemoveAllEffectProjectsPort);
+    ListChange(ctx, func_805041E8, RemoveAllEffectProjectsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B48A0, MH3_EfRemoveAllEffectProjects, "EfRemoveAllEffectProjects");
+REGISTER_NATIVE_FUNCTION_AS(0x805041E8, MH3_EfRemoveAllEffectProjects, "EfRemoveAllEffectProjects");
 
 extern "C" void MH3_EfRemoveAllTextureProjects(CpuContext* ctx) {
-    ListChange(ctx, func_800B4A78, RemoveAllTextureProjectsPort);
+    ListChange(ctx, func_805042EC, RemoveAllTextureProjectsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B4A78, MH3_EfRemoveAllTextureProjects, "EfRemoveAllTextureProjects");
+REGISTER_NATIVE_FUNCTION_AS(0x805042EC, MH3_EfRemoveAllTextureProjects, "EfRemoveAllTextureProjects");

@@ -113,7 +113,7 @@ set(CMAKE_EXE_LINKER_FLAGS
 -nostdlib -nostdlib++ -Wl,-z,norelro -Wl,-z,max-page-size=4096 -Wl,--no-eh-frame-hdr -Wl,--no-rosegment -Wl,--pic-veneer \
 ${VITA_SYSROOT}/lib/crt0.o -L${VITA_GCC_LIB_DIR} \
 ${VITA_GCC_LIB_DIR}/crti.o ${VITA_GCC_LIB_DIR}/crtbegin.o ${VITA_GCC_LIB_DIR}/crtend.o ${VITA_GCC_LIB_DIR}/crtn.o \
--T ${CMAKE_CURRENT_LIST_DIR}/../../runtime/vita/ldscript.ld"
+-T \"${CMAKE_CURRENT_LIST_DIR}/../../runtime/vita/ldscript.ld\""
     CACHE STRING "executable linker flags")
 
 # The libraries every executable needs, in CMAKE_<LANG>_STANDARD_LIBRARIES because CMake puts

@@ -398,7 +398,7 @@ void SimpleCalcWorld(CpuContext* ctx) {
     game.VirtualAt(mdlValueMemo, mdl, 0x24, {0x20001, frame[0x1C]});
 
     if (sx == sy && sy == MemoryInline::FlatReadFloat32(mdl + 0xE4))
-        rootFlags = MemoryInline::FlatReadFloat32(0x8079FF60u - 31804) == sx ? rootFlags : rootFlags & 0x3FFFFFFFu;
+        rootFlags = 1.0f == sx ? rootFlags : rootFlags & 0x3FFFFFFFu;
     else
         rootFlags &= 0x0FFFFFFFu;
 
@@ -416,7 +416,7 @@ void SimpleCalcWorld(CpuContext* ctx) {
     }
 
     Write32(frame[0x10], Read32(mdl + kResMdl));
-    game.Call<0x80073830>({Read32(mdl + 0xEC), Read32(mdl + 0xF0), Read32(mdl + 0x108), mdl + 0x3C, frame[0x10], Read32(mdl + 0x124), callback, rootFlags});
+    game.Call<0x8052F918>({Read32(mdl + 0xEC), Read32(mdl + 0xF0), Read32(mdl + 0x108), mdl + 0x3C, frame[0x10], Read32(mdl + 0x124), callback, rootFlags});
 }
 
 // ScnMdl's CalcWorld task (0x8007D4E0): SimpleCalcWorld, the envelope
@@ -471,7 +471,7 @@ void SimpleCalcView(CpuContext* ctx) {
     NativeModelViewArrays(mdl, arrays);
     const uint32_t matrices = MemoryInline::FlatRead16(mdl + 0x102);
     Write32(frame[8], Read32(mdl + kResMdl));
-    game.Call<0x80070884>({arrays[0], arrays[1], Read32(mdl + 0xEC), Read32(mdl + 0xF0), matrices, options, frame[8], arrays[2]});
+    game.Call<0x8052E9E4>({arrays[0], arrays[1], Read32(mdl + 0xEC), Read32(mdl + 0xF0), matrices, options, frame[8], arrays[2]});
     SceneCallback<0x14, 4>(game, mdl, 4, arg, options);
 }
 
@@ -508,7 +508,7 @@ extern "C" void MH3_ScnMdlSimpleCalcWorld(CpuContext* ctx) {
 #endif
     SimpleCalcWorld(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007F480, MH3_ScnMdlSimpleCalcWorld, "ScnMdlSimpleCalcWorld");
+REGISTER_NATIVE_FUNCTION(0x805370D8, MH3_ScnMdlSimpleCalcWorld);
 
 extern "C" void func_8007D4E0(CpuContext* ctx);
 extern "C" void MH3_ScnMdlCalcWorldTask(CpuContext* ctx) {
@@ -520,7 +520,7 @@ extern "C" void MH3_ScnMdlCalcWorldTask(CpuContext* ctx) {
 #endif
     CalcWorldTask(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007D4E0, MH3_ScnMdlCalcWorldTask, "ScnMdlCalcWorldTask");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007D4E0, MH3_ScnMdlCalcWorldTask, "ScnMdlCalcWorldTask");
 
 extern "C" void func_8007FADC(CpuContext* ctx);
 extern "C" void MH3_ScnMdlSimpleCalcView(CpuContext* ctx) {
@@ -532,7 +532,7 @@ extern "C" void MH3_ScnMdlSimpleCalcView(CpuContext* ctx) {
 #endif
     SimpleCalcView(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007FADC, MH3_ScnMdlSimpleCalcView, "ScnMdlSimpleCalcView");
+REGISTER_NATIVE_FUNCTION(0x8053742C, MH3_ScnMdlSimpleCalcView);
 
 extern "C" void func_8007D600(CpuContext* ctx);
 extern "C" void MH3_ScnMdlCalcMat(CpuContext* ctx) {
@@ -544,7 +544,7 @@ extern "C" void MH3_ScnMdlCalcMat(CpuContext* ctx) {
 #endif
     CalcMat(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007D600, MH3_ScnMdlCalcMat, "ScnMdlCalcMat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007D600, MH3_ScnMdlCalcMat, "ScnMdlCalcMat");
 
 extern "C" void func_8007E4FC(CpuContext* ctx);
 extern "C" void MH3_CopiedMatRefresh(CpuContext* ctx) {
@@ -556,22 +556,22 @@ extern "C" void MH3_CopiedMatRefresh(CpuContext* ctx) {
 #endif
     CopiedMatRefresh(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007E4FC, MH3_CopiedMatRefresh, "CopiedMatRefresh");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007E4FC, MH3_CopiedMatRefresh, "CopiedMatRefresh");
 
-extern "C" void func_80081A94(CpuContext* ctx);
+extern "C" void func_805349FC(CpuContext* ctx);
 extern "C" void MH3_ScnObjG3dProc(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("ScnObjG3dProc")) [[unlikely]] {
-        PortCheck::Run(ctx, "ScnObjG3dProc", func_80081A94, ScnObjG3dProc);
+        PortCheck::Run(ctx, "ScnObjG3dProc", func_805349FC, ScnObjG3dProc);
         return;
     }
 #endif
     ScnObjG3dProc(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80081A94, MH3_ScnObjG3dProc, "ScnObjG3dProc");
+REGISTER_NATIVE_FUNCTION_AS(0x805349FC, MH3_ScnObjG3dProc, "ScnObjG3dProc");
 
 // CopiedMatAccess's constructor returns this; checked with RunOutput.
-extern "C" void func_8007BF10(CpuContext* ctx);
+extern "C" void func_805390D4(CpuContext* ctx);
 static void CopiedMatAccessPort(CpuContext* p) {
     CopiedMatAccessCtor(p->gpr[3], p->gpr[4], p->gpr[5]);
 }
@@ -584,7 +584,7 @@ static void CopiedMatAccessChecked([[maybe_unused]] uint32_t r1, uint32_t r3, ui
         c->gpr[3] = r3;
         c->gpr[4] = r4;
         c->gpr[5] = r5;
-        PortCheck::RunOutput(c, "CopiedMatAccess", func_8007BF10, CopiedMatAccessPort, {{r3, 0x34}});
+        PortCheck::RunOutput(c, "CopiedMatAccess", func_805390D4, CopiedMatAccessPort, {{r3, 0x34}});
         return;
     }
 #endif
@@ -594,7 +594,7 @@ static void CopiedMatAccessChecked([[maybe_unused]] uint32_t r1, uint32_t r3, ui
 extern "C" void MH3_CopiedMatAccess(CpuContext* ctx) {
     CopiedMatAccessChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007BF10, MH3_CopiedMatAccess, "CopiedMatAccess");
+REGISTER_NATIVE_FUNCTION_AS(0x805390D4, MH3_CopiedMatAccess, "CopiedMatAccess");
 
 // IsMaterialAnimated (r3 anm, r4 material) -> r3, checked with RunPure.
 #ifdef MH3_DEVELOPMENT
@@ -624,7 +624,7 @@ static uint32_t TexSrtAnimatedChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_AnmTexSrtMatAnimated(CpuContext* ctx) {
     ctx->gpr[3] = TexSrtAnimatedChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80069D58, MH3_AnmTexSrtMatAnimated, "AnmTexSrtMatAnimated");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80069D58, MH3_AnmTexSrtMatAnimated, "AnmTexSrtMatAnimated");
 
 extern "C" void func_80069838(CpuContext* ctx);
 static uint32_t TexPatAnimatedChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
@@ -635,7 +635,7 @@ static uint32_t TexPatAnimatedChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_AnmTexPatMatAnimated(CpuContext* ctx) {
     ctx->gpr[3] = TexPatAnimatedChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80069838, MH3_AnmTexPatMatAnimated, "AnmTexPatMatAnimated");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80069838, MH3_AnmTexPatMatAnimated, "AnmTexPatMatAnimated");
 
 extern "C" void func_80063EC4(CpuContext* ctx);
 static uint32_t MatClrAnimatedChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
@@ -646,4 +646,4 @@ static uint32_t MatClrAnimatedChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_AnmMatClrMatAnimated(CpuContext* ctx) {
     ctx->gpr[3] = MatClrAnimatedChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80063EC4, MH3_AnmMatClrMatAnimated, "AnmMatClrMatAnimated");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80063EC4, MH3_AnmMatClrMatAnimated, "AnmMatClrMatAnimated");

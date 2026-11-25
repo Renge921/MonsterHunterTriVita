@@ -948,6 +948,30 @@ uint32_t NativeEffectTextureSetup(CpuContext *cpu) {
     return changed;
 }
 
+void ComputeEffectViewMatrix(uint32_t info, float view[12]) {
+    ReadVector(info, view, 12);
+    float bias = FlatReadFloat32(info + 0x88);
+
+    if (bias != 0) {
+        if (GetNativeDrawState().perspective) {
+            float anchor[3], v[3];
+            ReadVector(info + 0x8c, anchor, 3);
+
+            for (uint32_t r = 0; r < 3; r++)
+                v[r] = view[4 * r] * anchor[0] + view[4 * r + 1] * anchor[1] + view[4 * r + 2] * anchor[2] + view[4 * r + 3];
+
+            float length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+
+            if (length == 0)
+                view[11] += bias;
+            else
+                for (uint32_t r = 0; r < 3; r++)
+                    view[4 * r + 3] += v[r] * (v[2] < 0 ? -bias : bias) / length;
+        } else
+            view[11] += bias;
+    }
+}
+
 void NativeEffectDrawBillboards(CpuContext *cpu) {
     GuestFrame frame(cpu, 0xa0);
     BillboardContext c{cpu, frame.Arg(3), frame.Arg(4), frame.Arg(5), 0, 0, 0, frame[0x70], frame[0x80]};
@@ -957,10 +981,10 @@ void NativeEffectDrawBillboards(CpuContext *cpu) {
     float identity[12];
     mh3_draw_identity_position(identity);
     SetNativePositionMatrix(identity);
-    game.Call<0x800B7E14>({c.info, frame[0x10]});
-    game.Call<0x800AE3C4>({c.manager, frame[0x40]});
     float view[12], local[12], matrix[12];
-    ReadVector(frame[0x10], view, 12);
+    ComputeEffectViewMatrix(c.info, view);
+    WriteVector(frame[0x10], view, 12);
+    game.Call<0x80503088>({c.manager, frame[0x40]});
     ReadVector(frame[0x40], local, 12);
 
     for (uint32_t r = 0; r < 3; r++)
@@ -974,7 +998,7 @@ void NativeEffectDrawBillboards(CpuContext *cpu) {
     c.next_fn = game.Virtual<0x14>(c.strategy, {order});
     c.Resolve();
     mh3_effect_billboard_source source{&c, First, Next, ReadParticle, Prepare, OrientParticle, SubmitBillboard};
-    mh3_effect_draw_billboards(&draw, FlatReadFloat32(0x80798600), &source);
+    mh3_effect_draw_billboards(&draw, 1.1920928955078125e-07f, &source);
 }
 
 extern "C" void MH3_EffectTextureMaps(CpuContext *c) {
@@ -1067,44 +1091,23 @@ extern "C" void MH3_EffectTransformedQuad(CpuContext *c) {
 extern "C" void MH3_EffectViewMatrix(CpuContext *c) {
     uint32_t info = c->gpr[3], output = c->gpr[4];
     float view[12];
-    ReadVector(info, view, 12);
-    float bias = FlatReadFloat32(info + 0x88);
-
-    if (bias != 0) {
-        if (GetNativeDrawState().perspective) {
-            float anchor[3], v[3];
-            ReadVector(info + 0x8c, anchor, 3);
-
-            for (uint32_t r = 0; r < 3; r++)
-                v[r] = view[4 * r] * anchor[0] + view[4 * r + 1] * anchor[1] + view[4 * r + 2] * anchor[2] + view[4 * r + 3];
-
-            float length = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-
-            if (length == 0)
-                view[11] += bias;
-            else
-                for (uint32_t r = 0; r < 3; r++)
-                    view[4 * r + 3] += v[r] * (v[2] < 0 ? -bias : bias) / length;
-        } else
-            view[11] += bias;
-    }
-
+    ComputeEffectViewMatrix(info, view);
     WriteVector(output, view, 12);
     c->gpr[3] = output;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C6140, MH3_EffectTextureMaps, "EffectTextureMaps");
-REGISTER_NATIVE_FUNCTION_AS(0x800C61BC, MH3_EffectMaterial, "EffectMaterial");
-REGISTER_NATIVE_FUNCTION_AS(0x800C6548, MH3_EffectChannels, "EffectChannels");
-REGISTER_NATIVE_FUNCTION_AS(0x800C60C8, MH3_EffectSetup, "EffectSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800C72D4, MH3_EffectAlpha, "EffectAlpha");
-REGISTER_NATIVE_FUNCTION_AS(0x800C745C, MH3_EffectColors, "EffectColors");
-REGISTER_NATIVE_FUNCTION_AS(0x800C694C, MH3_EffectParticleState, "EffectParticleState");
-REGISTER_NATIVE_FUNCTION_AS(0x800BB7AC, MH3_EffectBillboardSetup, "EffectBillboardSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800BA798, MH3_EffectAxesQuad, "EffectBillboardAxesQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x800BC0F8, MH3_EffectDirectionalAxesQuad, "EffectDirectionalAxesQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x800BBE8C, MH3_EffectTransformedQuad, "EffectDirectionalQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x800BE1B8, MH3_EffectTransformedQuad, "EffectFreeQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x800B7E14, MH3_EffectViewMatrix, "EffectViewMatrix");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800C6140, MH3_EffectTextureMaps, "EffectTextureMaps");
+REGISTER_NATIVE_FUNCTION_AS(0x8050A2F8, MH3_EffectMaterial, "EffectMaterial");
+REGISTER_NATIVE_FUNCTION_AS(0x8050A5E4, MH3_EffectChannels, "EffectChannels");
+REGISTER_NATIVE_FUNCTION_AS(0x8050A218, MH3_EffectSetup, "EffectSetup");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800C72D4, MH3_EffectAlpha, "EffectAlpha");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800C745C, MH3_EffectColors, "EffectColors");
+REGISTER_NATIVE_FUNCTION_AS(0x8050A9AC, MH3_EffectParticleState, "EffectParticleState");
+REGISTER_NATIVE_FUNCTION_AS(0x8050DD78, MH3_EffectBillboardSetup, "EffectBillboardSetup");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800BA798, MH3_EffectAxesQuad, "EffectBillboardAxesQuad");
+REGISTER_NATIVE_FUNCTION_AS(0x8050E59C, MH3_EffectDirectionalAxesQuad, "EffectDirectionalAxesQuad");
+REGISTER_NATIVE_FUNCTION_AS(0x8050E424, MH3_EffectTransformedQuad, "EffectDirectionalQuad");
+REGISTER_NATIVE_FUNCTION_AS(0x80510730, MH3_EffectTransformedQuad, "EffectFreeQuad");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B7E14, MH3_EffectViewMatrix, "EffectViewMatrix");
 
 namespace {
 uint64_t movie_generation = 1;
@@ -1240,7 +1243,7 @@ extern "C" void MH3_NativeMoviePlanes(CpuContext *c) {
     binding.source.height = height;
     binding.source.levels = 1;
     binding.source.mutable_source = 1;
-    binding.source.generation = movie_generation;
+    binding.source.generation = movie_generation ? movie_generation : 1;
     binding.map_id = 0;
 
     if (NativeGraphicsFrameShouldRender())
@@ -1249,7 +1252,7 @@ extern "C" void MH3_NativeMoviePlanes(CpuContext *c) {
     BindNativeTexture(binding);
     mh3_effect_quad q;
     int16_t draw_width = int16_t(c->gpr[10]), draw_height = int16_t(FlatRead32(c->gpr[1] + 8));
-    mh3_effect_movie_quad(int16_t(c->gpr[6]), int16_t(c->gpr[7]), draw_width, draw_height, int16_t(FlatRead32(0x806d6b9c)), &q);
+    mh3_effect_movie_quad(int16_t(c->gpr[6]), int16_t(c->gpr[7]), draw_width, draw_height, int16_t(FlatRead32(0x80799B1C)), &q);
     AuroraNativeMaterialGeometry geometry{};
 
     if (!AllocateNativeMaterialGeometry(4, 6, geometry))
@@ -1281,7 +1284,8 @@ extern "C" void MH3_NativeMoviePlanes(CpuContext *c) {
 
 extern "C" void MH3_NativeMovieTexture(CpuContext *c) {
     uint32_t mode = c->gpr[3], x = c->gpr[4], y = c->gpr[5], w = c->gpr[6], h = c->gpr[7];
-    int32_t result = int32_t(FlatRead32(0x806d6cd8));
+    // RMHJ08 kMovie = 0x80799B00
+    int32_t result = int32_t(FlatRead32(0x80799C58)); // +344: result
 
     if (result < 0) {
         c->gpr[3] = 0xffffffff;
@@ -1292,13 +1296,13 @@ extern "C" void MH3_NativeMovieTexture(CpuContext *c) {
         GuestFrame frame(c, 0x30);
         c->gpr[3] = mode;
         MH3_NativeMovieSetup(c);
-        c->gpr[3] = FlatRead32(0x806d6ccc);
-        c->gpr[4] = FlatRead32(0x806d6cd0);
-        c->gpr[5] = FlatRead32(0x806d6cd4);
+        c->gpr[3] = FlatRead32(0x80799C4C); // +332: Y plane
+        c->gpr[4] = FlatRead32(0x80799C50); // +336: U plane
+        c->gpr[5] = FlatRead32(0x80799C54); // +340: V plane
         c->gpr[6] = x;
         c->gpr[7] = y;
-        c->gpr[8] = FlatRead32(0x806d6c20);
-        c->gpr[9] = FlatRead32(0x806d6c24);
+        c->gpr[8] = FlatRead32(0x80799BA0); // +160: movie width
+        c->gpr[9] = FlatRead32(0x80799BA4); // +164: movie height
         c->gpr[10] = w;
         FlatWrite32(frame[8], h);
         MH3_NativeMoviePlanes(c);
@@ -1334,12 +1338,13 @@ extern "C" void MH3_NativeMovieTexgen(CpuContext *c) {
     c->gpr[8] = 125;
     MH3_EffectTexCoordGenerator(c);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804351C4, MH3_NativeMovieTexture, "NativeMovieTexture");
-REGISTER_NATIVE_FUNCTION_AS(0x804352C8, MH3_NativeMovieRestore, "NativeMovieRestore");
-REGISTER_NATIVE_FUNCTION_AS(0x804353E0, MH3_NativeMovieSetup, "NativeMovieSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x80435894, MH3_NativeMoviePlanes, "NativeMoviePlanes");
-REGISTER_NATIVE_FUNCTION_AS(0x80435888, MH3_NativeMovieTexgen, "NativeMovieTexgen");
-REGISTER_NATIVE_FUNCTION_AS(0x800C86D8, MH3_EffectTexCoordGenerator, "EffectTexgen");
+// JPN RMHJ08 Movie draw texture / planes / setup / restore native registrations
+REGISTER_NATIVE_FUNCTION(0x8040C55C, MH3_NativeMovieTexture);
+REGISTER_NATIVE_FUNCTION(0x8040C658, MH3_NativeMovieRestore);
+REGISTER_NATIVE_FUNCTION(0x8040C770, MH3_NativeMovieSetup);
+REGISTER_NATIVE_FUNCTION(0x8040CC7C, MH3_NativeMoviePlanes);
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80435888, MH3_NativeMovieTexgen, "NativeMovieTexgen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800C86D8, MH3_EffectTexCoordGenerator, "EffectTexgen");
 
 namespace {
 struct FreeContext {
@@ -1400,17 +1405,9 @@ void FreeQuad(void *opaque, uint32_t id, const mh3_effect_particle *values, floa
     auto &c = f.base;
     float matrix[12];
 
-    // Port checks on ParticleRotation run it at its guest address.
-    if (EffectParticle::PortChecked()) [[unlikely]] {
-        GuestCall game{c.cpu};
-        game.Call<0x800BEA64>({f.rotation_matrix, id, f.rotation_kind});
-        game.Call<0x800BE99C>({f.draw_matrix, f.rotation_matrix}, {f.pivot[0], f.pivot[1], width, height});
-        ReadVector(f.draw_matrix, matrix, 12);
-    } else {
-        float rotation[12];
-        FreeRotation(id, f.rotation_kind, rotation);
-        FreeDrawMatrix(rotation, f.pivot, width, height, matrix);
-    }
+    float rotation[12];
+    FreeRotation(id, f.rotation_kind, rotation);
+    FreeDrawMatrix(rotation, f.pivot, width, height, matrix);
 
     for (uint32_t r = 0; r < 3; r++)
         matrix[4 * r + 3] += values->position[r];
@@ -1419,7 +1416,7 @@ void FreeQuad(void *opaque, uint32_t id, const mh3_effect_particle *values, floa
         mh3_effect_quad input, output;
 
         for (uint32_t v = 0; v < 4; v++)
-            ReadVector(0x8056ff90 + 0x30 * plane + 12 * v, input.position[v], 3);
+            ReadVector(0x8065A978 + 0x30 * plane + 12 * v, input.position[v], 3);
 
         mh3_effect_quad_transform(matrix, &input, &output);
         Emit(output, effect.resource.texture_count != 0);
@@ -1434,10 +1431,10 @@ extern "C" void MH3_EffectFreeStrategy(CpuContext *cpu) {
     c.resource = FlatRead32(c.manager + 0x24) + 0x9c;
     GuestCall game{cpu};
     Setup(c.strategy, c.resource, c.info);
-    game.Call<0x800B7E14>({c.info, frame[0x10]});
-    game.Call<0x800AE3C4>({c.manager, frame[0x40]});
     float view[12], local[12], matrix[12];
-    ReadVector(frame[0x10], view, 12);
+    ComputeEffectViewMatrix(c.info, view);
+    WriteVector(frame[0x10], view, 12);
+    game.Call<0x80503088>({c.manager, frame[0x40]});
     ReadVector(frame[0x40], local, 12);
 
     for (uint32_t r = 0; r < 3; r++)
@@ -1453,9 +1450,9 @@ extern "C" void MH3_EffectFreeStrategy(CpuContext *cpu) {
     c.next_fn = game.Virtual<0x14>(c.strategy, {order});
     c.Resolve();
     mh3_effect_billboard_source source{&f, First, Next, ReadParticle, Prepare, nullptr, nullptr};
-    mh3_effect_draw_particles(FlatReadFloat32(0x80798654), &source, FreeQuad);
+    mh3_effect_draw_particles(1.1920928955078125e-07f, &source, FreeQuad);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800BE424, MH3_EffectFreeStrategy, "EffectFreeStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x80510868, MH3_EffectFreeStrategy, "EffectFreeStrategy");
 
 namespace {
 struct SmallParticleContext {
@@ -1468,8 +1465,8 @@ void PrepareSmall(void *, uint32_t, int) {}
 void DrawSmall(void *opaque, uint32_t id, const mh3_effect_particle *p, float width, float height) {
     auto &s = *static_cast<SmallParticleContext *>(opaque);
     auto &c = s.base;
-    uint32_t limit = s.point ? 0x80793810 : 0x80793808;
-    float scale = FlatReadFloat32(s.point ? 0x80798678 : 0x80798668);
+    uint32_t limit = s.point ? 0x8089F4B0 : 0x8089F4A8;
+    float scale = 6.0f;
     uint32_t code = uint32_t(double(scale) * double(width < FlatReadFloat32(limit) ? width : FlatReadFloat32(limit))) & 255;
 
     if (!code)
@@ -1482,10 +1479,9 @@ void DrawSmall(void *opaque, uint32_t id, const mh3_effect_particle *p, float wi
         for (uint32_t i = 0; i < 4; i++)
             std::memcpy(q.position[i], p->position, 12);
     else {
-        GuestCall game{c.cpu};
-        game.Call<0x800A7F64>({id, s.movement_out});
         float movement[3];
-        ReadVector(s.movement_out, movement, 3);
+        for (uint32_t k = 0; k < 3; k++)
+            movement[k] = FlatReadFloat32(id + 0xac + 4 * k) - FlatReadFloat32(id + 0xb8 + 4 * k);
         float length = std::sqrt(movement[0] * movement[0] + movement[1] * movement[1] + movement[2] * movement[2]);
 
         if (length == 0)
@@ -1515,10 +1511,10 @@ void SmallStrategy(CpuContext *cpu, bool point) {
     c.resource = FlatRead32(c.manager + 0x24) + 0x9c;
     GuestCall game{cpu};
     Setup(c.strategy, c.resource, c.info);
-    game.Call<0x800B7E14>({c.info, frame[0x10]});
-    game.Call<0x800AE3C4>({c.manager, frame[0x40]});
     float view[12], local[12], matrix[12];
-    ReadVector(frame[0x10], view, 12);
+    ComputeEffectViewMatrix(c.info, view);
+    WriteVector(frame[0x10], view, 12);
+    game.Call<0x80503088>({c.manager, frame[0x40]});
     ReadVector(frame[0x40], local, 12);
 
     for (uint32_t r = 0; r < 3; r++)
@@ -1531,7 +1527,7 @@ void SmallStrategy(CpuContext *cpu, bool point) {
     c.Resolve();
     mh3_effect_billboard_source source{&s, First, Next, ReadParticle, PrepareSmall, nullptr, nullptr};
     source.width_only = point;
-    mh3_effect_draw_particles(FlatReadFloat32(0x80798600), &source, DrawSmall);
+    mh3_effect_draw_particles(1.1920928955078125e-07f, &source, DrawSmall);
 }
 } // namespace
 
@@ -1542,8 +1538,8 @@ extern "C" void MH3_EffectLineStrategy(CpuContext *c) {
 extern "C" void MH3_EffectPointStrategy(CpuContext *c) {
     SmallStrategy(c, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800BEFFC, MH3_EffectLineStrategy, "EffectLineStrategy");
-REGISTER_NATIVE_FUNCTION_AS(0x800BF87C, MH3_EffectPointStrategy, "EffectPointStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x80511110, MH3_EffectLineStrategy, "EffectLineStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x805116F0, MH3_EffectPointStrategy, "EffectPointStrategy");
 extern "C" void MH3_EffectBillboardQuad(CpuContext *cpu) {
     const float sx = float(cpu->fpr[1].d), sy = float(cpu->fpr[2].d), cosine = float(cpu->fpr[4].d), sine = float(cpu->fpr[5].d), width = float(cpu->fpr[6].d), height = float(cpu->fpr[7].d);
     GuestFrame frame(cpu, 0x40);
@@ -1579,15 +1575,16 @@ extern "C" void MH3_EffectCullPadding(CpuContext *cpu) {
     raster.cull_mode = cpu->gpr[3];
     SetNativeRaster(raster);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800BA244, MH3_EffectBillboardQuad, "EffectBillboardQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x800BDBC4, MH3_EffectStrategySetup, "EffectDirectionalSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800BED90, MH3_EffectStrategySetup, "EffectFreeSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800BF62C, MH3_EffectStrategySetup, "EffectLineSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800BFDE8, MH3_EffectStrategySetup, "EffectPointSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800B8030, MH3_EffectStrategySetup, "EffectStripeSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800C4594, MH3_EffectStrategySetup, "EffectSmoothStripeSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x800B768C, MH3_EffectCullPadding, "EffectStripeCullPadding");
-REGISTER_NATIVE_FUNCTION_AS(0x800C3D5C, MH3_EffectCullPadding, "EffectSmoothStripeCullPadding");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800BA244, MH3_EffectBillboardQuad, "EffectBillboardQuad");
+// Disabled: these are Draw*Strategy constructors (called from func_80509B64), not Setup methods in RMHJ08:
+// REGISTER_NATIVE_FUNCTION_AS(0x8050E3E8, MH3_EffectStrategySetup, "EffectDirectionalSetup");
+// REGISTER_NATIVE_FUNCTION_AS(0x805106F4, MH3_EffectStrategySetup, "EffectFreeSetup");
+// REGISTER_NATIVE_FUNCTION_AS(0x805110D4, MH3_EffectStrategySetup, "EffectLineSetup");
+// REGISTER_NATIVE_FUNCTION_AS(0x805116B4, MH3_EffectStrategySetup, "EffectPointSetup");
+// REGISTER_NATIVE_FUNCTION_AS(0x80511B04, MH3_EffectStrategySetup, "EffectStripeSetup");
+// REGISTER_NATIVE_FUNCTION_AS(0x805150B8, MH3_EffectStrategySetup, "EffectSmoothStripeSetup");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B768C, MH3_EffectCullPadding, "EffectStripeCullPadding");
+// Inlined in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800C3D5C, MH3_EffectCullPadding, "EffectSmoothStripeCullPadding");
 namespace {
 struct DirectionalContext {
     BillboardContext base;
@@ -1607,8 +1604,8 @@ mh3_particle_directional_record CaptureDirectionalParticle(DirectionalContext &d
         sc[1] = 1;
 
     if (d.scene.stretch) {
-        game.Call<0x800A7F64>({id, d.movement_out});
-        ReadVector(d.movement_out, record.movement, 3);
+        for (uint32_t k = 0; k < 3; k++)
+            record.movement[k] = FlatReadFloat32(id + 0xac + 4 * k) - FlatReadFloat32(id + 0xb8 + 4 * k);
     }
 
     float angles[3];
@@ -1645,10 +1642,10 @@ void DirectionalStrategy(CpuContext *cpu, bool screen) {
     c.resource = FlatRead32(c.manager + 0x24) + 0x9c;
     GuestCall game{cpu};
     Setup(c.strategy, c.resource, c.info);
-    game.Call<0x800B7E14>({c.info, frame[0x10]});
-    game.Call<0x800C8F74>({d.context, frame[0x10], c.manager});
     float view[12], local[12];
-    ReadVector(frame[0x10], view, 12);
+    ComputeEffectViewMatrix(c.info, view);
+    WriteVector(frame[0x10], view, 12);
+    game.Call<0x8050C068>({d.context, frame[0x10], c.manager});
     ReadVector(d.context + 0x38, local, 12);
 
     for (uint32_t r = 0; r < 3; r++)
@@ -1658,10 +1655,10 @@ void DirectionalStrategy(CpuContext *cpu, bool screen) {
     float initial[3];
 
     if (screen) {
-        ReadVector(0x806970ac, initial, 3);
-        ReadVector(0x80697088, d.scene.fallback, 3);
+        ReadVector(0x808664DC, initial, 3);
+        ReadVector(0x808664B8, d.scene.fallback, 3);
         float identity[12];
-        ReadVector(0x806970b8, identity, 12);
+        ReadVector(0x808664E8, identity, 12);
         SetNativePositionMatrix(identity);
     } else {
         SetNativePositionMatrix(d.scene.view_local);
@@ -1690,7 +1687,7 @@ void DirectionalStrategy(CpuContext *cpu, bool screen) {
                 v /= n;
     }
 
-    for (uint32_t p = game.Call<0x800B5BA4>({c.manager}); p && FlatReadFloat32(p + 0xcc) > 1; p = game.Call<0x800B5B98>({c.manager, p}))
+    for (uint32_t p = EffectParticle::Last(c.manager); p && FlatReadFloat32(p + 0xcc) > 1; p = EffectParticle::Prev(c.manager, p))
         WriteVector(p + 0xcc, initial, 3);
 
     d.direction_fn = game.Virtual<0x18>(c.strategy, {c.manager});
@@ -1703,15 +1700,15 @@ void DirectionalStrategy(CpuContext *cpu, bool screen) {
     d.scene.rotation_kind = FlatRead8(c.resource + 0xaf);
     d.scene.size_kind = FlatRead8(c.resource + 0xb1);
     d.scene.stretch = FlatRead8(c.resource + 0xb0) != 0;
-    d.scene.movement_scale = FlatReadFloat32(0x8079863c);
+    d.scene.movement_scale = 0.5f;
     d.scene.plane_count = uint8_t(1u + (FlatRead8(c.resource + 0xad) == 1));
 
     if (!screen)
         for (uint32_t plane = 0; plane < d.scene.plane_count; plane++)
             for (uint32_t vertex = 0; vertex < 4; vertex++)
-                ReadVector(0x8056ff30 + 0x30 * plane + 12 * vertex, d.scene.canonical[plane].position[vertex], 3);
+                ReadVector(0x8065A918 + 0x30 * plane + 12 * vertex, d.scene.canonical[plane].position[vertex], 3);
     mh3_effect_billboard_source source{&d, First, Next, ReadParticle, Prepare, nullptr, nullptr};
-    mh3_effect_draw_particles(FlatReadFloat32(0x80798638), &source, DirectionalQuad);
+    mh3_effect_draw_particles(1.1920928955078125e-07f, &source, DirectionalQuad);
 }
 } // namespace
 
@@ -1722,8 +1719,8 @@ extern "C" void MH3_EffectDirectionalStrategy(CpuContext *cpu) {
 extern "C" void MH3_EffectDirectionalBillboardStrategy(CpuContext *cpu) {
     DirectionalStrategy(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800BC48C, MH3_EffectDirectionalStrategy, "EffectDirectionalStrategy");
-REGISTER_NATIVE_FUNCTION_AS(0x800BD298, MH3_EffectDirectionalBillboardStrategy, "EffectDirectionalBillboardStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x8050E83C, MH3_EffectDirectionalStrategy, "EffectDirectionalStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x8050FF58, MH3_EffectDirectionalBillboardStrategy, "EffectDirectionalBillboardStrategy");
 namespace {
 struct RibbonContext {
     CpuContext *cpu;
@@ -1750,20 +1747,88 @@ uint32_t RibbonNext(void *opaque, uint32_t p) {
     return GuestCall{r.cpu}(r.next_fn, {r.manager, p});
 }
 
+bool NormalizeSafeHost(float v[3]) {
+    float len2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+    if (len2 <= 0.0f)
+        return false;
+    float len = std::sqrt(len2);
+    if (len <= 1.1920928955078125e-07f)
+        return false;
+    float inv = 1.0f / len;
+    v[0] *= inv;
+    v[1] *= inv;
+    v[2] *= inv;
+    return true;
+}
+
+void ComputeRibbonOrientation(uint32_t context, uint32_t flags, uint32_t p, const float dir[3], const float pos[3], float out[12]) {
+    float up[3];
+    ReadVector((flags & 8) ? (context + 0xc8) : (p + 0xcc), up, 3);
+    float right[3] = {
+        dir[1] * up[2] - dir[2] * up[1],
+        dir[2] * up[0] - dir[0] * up[2],
+        dir[0] * up[1] - dir[1] * up[0],
+    };
+    if (!NormalizeSafeHost(right))
+        ReadVector(context + 0xbc, right, 3);
+    float new_up[3] = {
+        right[1] * dir[2] - right[2] * dir[1],
+        right[2] * dir[0] - right[0] * dir[2],
+        right[0] * dir[1] - right[1] * dir[0],
+    };
+    NormalizeSafeHost(new_up);
+    WriteVector(p + 0xcc, new_up, 3);
+    out[0] = right[0];
+    out[1] = dir[0];
+    out[2] = new_up[0];
+    out[3] = pos[0];
+    out[4] = right[1];
+    out[5] = dir[1];
+    out[6] = new_up[1];
+    out[7] = pos[1];
+    out[8] = right[2];
+    out[9] = dir[2];
+    out[10] = new_up[2];
+    out[11] = pos[2];
+}
+
+void ComputeRibbonSizeMtx(uint32_t p, float pivot, float out[12]) {
+    float rot[3];
+    EffectParticle::Rotation(p, rot);
+    uint32_t mgr = FlatRead32(p + 0xc8);
+    float scale_x = FlatReadFloat32(p + 0x30) * FlatReadFloat32(p + 0x38) * FlatReadFloat32(mgr + 0x58);
+    float s = 0.0f, c = 1.0f;
+    SinCosRadHost(double(rot[1]), s, c);
+    s *= scale_x;
+    c *= scale_x;
+    out[0] = c;
+    out[1] = 0.0f;
+    out[2] = -s;
+    out[3] = pivot - c * pivot;
+    out[4] = 0.0f;
+    out[5] = 1.0f;
+    out[6] = 0.0f;
+    out[7] = 0.0f;
+    out[8] = s;
+    out[9] = 0.0f;
+    out[10] = c;
+    out[11] = -s * pivot;
+}
+
 void RibbonPair(void *opaque, uint32_t p, int origin, float out[2][3]) {
     auto &r = *static_cast<RibbonContext *>(opaque);
     GuestCall game{r.cpu};
 
     if (!p)
-        p = game.Call<0x800B5AC8>({r.manager});
+        p = EffectParticle::LastAlive(r.manager);
 
     game(r.direction_fn, {r.direction_out, r.context, p});
     uint32_t position = origin ? r.context + 0xa4 : p + 0xac;
-    game.Call<0x800B584C>({r.orientation, r.strategy, r.context, r.flags, p, r.direction_out, position});
-    game.Call<0x800B5334>({r.size_matrix, r.strategy, p}, {r.pivot});
-    float orientation[12], size[12], matrix[12];
-    ReadVector(r.orientation, orientation, 12);
-    ReadVector(r.size_matrix, size, 12);
+    float dir[3], pos[3], orientation[12], size[12], matrix[12];
+    ReadVector(r.direction_out, dir, 3);
+    ReadVector(position, pos, 3);
+    ComputeRibbonOrientation(r.context, r.flags, p, dir, pos, orientation);
+    ComputeRibbonSizeMtx(p, r.pivot, size);
 
     for (uint32_t row = 0; row < 3; row++)
         for (uint32_t col = 0; col < 4; col++)
@@ -1783,16 +1848,16 @@ extern "C" void MH3_EffectRibbonDraw(CpuContext *cpu) {
     GuestFrame frame(cpu, 0xc0);
     RibbonContext r{cpu, frame.Arg(3), frame.Arg(4), frame.Arg(5), 0, 0, 0, FlatRead32(frame.Arg(4)), frame[0x10], frame[0x40], frame[0x70], 0, {}};
     GuestCall game{cpu};
-    uint32_t resource = FlatRead32(r.manager + 0x24) + 0x9c, count = game.Call<0x800B5BB8>({r.strategy, r.manager});
+    uint32_t resource = FlatRead32(r.manager + 0x24) + 0x9c, count = FlatRead16(r.manager + 0x50);
     r.direction_fn = game.Virtual<0x18>(r.strategy, {r.manager});
     uint32_t order = FlatRead16(resource) & 0x800;
     r.first_fn = game.Virtual<0x10>(r.strategy, {order});
     r.next_fn = game.Virtual<0x14>(r.strategy, {order});
-    r.pivot = FlatReadFloat32(0x807985e0) * float(int8_t(FlatRead8(resource + 0xa9)));
+    r.pivot = 0.01f * float(int8_t(FlatRead8(resource + 0xa9)));
     ReadVector(frame.Arg(6), r.axes[0], 3);
     ReadVector(frame.Arg(7), r.axes[1], 3);
     mh3_effect_ribbon_source source{
-        &r, RibbonFirst, RibbonNext, RibbonPair, RibbonSubmit, count, uint8_t(FlatRead8(resource + 0xb2) & 7), uint8_t(order != 0), uint8_t(game.Call<0x800B5BAC>({r.strategy, resource}) == 0x40)};
+        &r, RibbonFirst, RibbonNext, RibbonPair, RibbonSubmit, count, uint8_t(FlatRead8(resource + 0xb2) & 7), uint8_t(order != 0), uint8_t((FlatRead8(resource + 0xb2) & 0xc0) == 0x40)};
     mh3_effect_draw_ribbon(&source);
 }
 
@@ -1824,8 +1889,8 @@ extern "C" void MH3_EffectTubeSegment(CpuContext *cpu) {
         batch.Add(q, uv);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B4C08, MH3_EffectRibbonDraw, "EffectRibbonDraw");
-REGISTER_NATIVE_FUNCTION_AS(0x800B61A8, MH3_EffectTubeSegment, "EffectTubeSegment");
+REGISTER_NATIVE_FUNCTION_AS(0x80511B40, MH3_EffectRibbonDraw, "EffectRibbonDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x80512764, MH3_EffectTubeSegment, "EffectTubeSegment");
 
 namespace {
 void Concat(const float a[12], const float b[12], float out[12]) {
@@ -1838,32 +1903,30 @@ void StripeStrategy(CpuContext *cpu, bool smooth) {
     GuestFrame frame(cpu, 0x280);
     uint32_t strategy = frame.Arg(3), info = frame.Arg(4), manager = frame.Arg(5), resource = FlatRead32(manager + 0x24) + 0x9c;
     GuestCall game{cpu};
-    uint32_t count = game.Call<0x800B5BB8>({strategy, manager});
+    uint32_t count = FlatRead16(manager + 0x50);
 
     if (!count)
         return;
 
-    uint32_t context = frame[0x70], initial = frame[0x150], inverse = frame[0x160], direction = frame[0x1a0], orientation = frame[0x1b0], axis0 = frame[0x1f0], axis1 = frame[0x200];
-    game.Call<0x800B7E14>({info, frame[0x10]});
+    uint32_t context = frame[0x70], initial = frame[0x150], inverse = frame[0x160], direction = frame[0x1a0], axis0 = frame[0x1f0], axis1 = frame[0x200];
+    float view[12], local[12], combined[12];
+    ComputeEffectViewMatrix(info, view);
+    WriteVector(frame[0x10], view, 12);
 
-    if (smooth) {
-        game.Call<0x800C4D50>({context, frame[0x10], manager});
-        game.Call<0x800C474C>({initial, strategy, resource, context});
-    } else {
-        game.Call<0x800B88EC>({context, frame[0x10], manager});
-        game.Call<0x800B81E8>({initial, strategy, resource, context});
-    }
+    game.Call<0x8050C068>({context, frame[0x10], manager});
+    if (smooth)
+        game.Call<0x8051919C>({initial, strategy, resource, context});
+    else
+        game.Call<0x80514518>({initial, strategy, resource, context});
 
     float history[3];
     ReadVector(initial, history, 3);
-    float sentinel = FlatReadFloat32(smooth ? 0x80798684 : 0x807985e4);
+    constexpr float sentinel = 1.0f;
 
-    for (uint32_t p = game.Call<0x800B5BA4>({manager}); p && FlatReadFloat32(p + 0xcc) > sentinel; p = game.Call<0x800B5B98>({manager, p}))
+    for (uint32_t p = EffectParticle::Last(manager); p && FlatReadFloat32(p + 0xcc) > sentinel; p = EffectParticle::Prev(manager, p))
         WriteVector(p + 0xcc, history, 3);
 
     uint32_t order = FlatRead16(resource) & 0x800, flags = (FlatRead8(resource + 0xad) == 2 ? 8 : 0) | (order ? 16 : 0);
-    float view[12], local[12], combined[12];
-    ReadVector(frame[0x10], view, 12);
     ReadVector(context + 0x38, local, 12);
     Concat(view, local, combined);
     WriteVector(frame[0x40], combined, 12);
@@ -1871,7 +1934,7 @@ void StripeStrategy(CpuContext *cpu, bool smooth) {
     if (flags & 8) {
         float camera[3] = {0, 0, 1};
 
-        if (game.Call<0x80088428>({inverse, frame[0x40]}))
+        if (game.Call<0x8042F66C>({inverse, frame[0x40]}))
             for (uint32_t r = 0; r < 3; r++)
                 camera[r] = FlatReadFloat32(inverse + 16 * r + 8);
         WriteVector(context + 0xc8, camera, 3);
@@ -1885,11 +1948,10 @@ void StripeStrategy(CpuContext *cpu, bool smooth) {
 
         for (uint32_t particle = game(first_fn, {manager}); particle; particle = game(next_fn, {manager, particle})) {
             game(direction_fn, {direction, context, particle});
-
-            if (smooth)
-                game.Call<0x800C05D8>({orientation, strategy, context, flags, particle, direction, particle + 0xac});
-            else
-                game.Call<0x800B584C>({orientation, strategy, context, flags, particle, direction, particle + 0xac});
+            float dir[3], pos[3], orient_out[12];
+            ReadVector(direction, dir, 3);
+            ReadVector(particle + 0xac, pos, 3);
+            ComputeRibbonOrientation(context, flags, particle, dir, pos, orient_out);
         }
 
         return;
@@ -1906,7 +1968,7 @@ void StripeStrategy(CpuContext *cpu, bool smooth) {
         subdivisions = 1;
 
     if (smooth) {
-        const uint32_t vectors[4] = {0x80696a38, 0x80696a44, 0x80696a50, 0x80696a5c}, ready[4] = {0x80796de8, 0x80796de9, 0x80796dea, 0x80796deb};
+        const uint32_t vectors[4] = {0x80866518, 0x80866524, 0x80866530, 0x8086653C}, ready[4] = {0x808A1118, 0x808A1119, 0x808A111A, 0x808A111B};
         const float axes[4][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
 
         for (uint32_t i = 0; i < 4; i++)
@@ -1928,19 +1990,24 @@ void StripeStrategy(CpuContext *cpu, bool smooth) {
         }
 
         if (smooth)
-            game.Call<0x800C3908>({strategy, context, subdivisions, flags, padding});
+            game.Call<0x80517FE4>({strategy, context, subdivisions, flags, padding});
         else
-            game.Call<0x800B7254>({strategy, context, flags, padding});
+            game.Call<0x805134D4>({strategy, context, flags, padding});
     } else {
         const float axes[4][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 0, -1}, {0, 0, 1}};
 
         for (uint32_t plane = 0; plane < 1u + (FlatRead8(resource + 0xad) == 1); plane++) {
-            if (smooth)
-                game.Call<0x800C279C>({strategy, context, subdivisions, flags, plane ? 0x80696a50u : 0x80696a38u, plane ? 0x80696a5cu : 0x80696a44u});
-            else {
+            if (smooth) {
+                uint32_t smooth_fn = 0x80516690;
+                if (closure == 1)
+                    smooth_fn = 0x805169F8;
+                else if (closure == 2)
+                    smooth_fn = 0x80516E18;
+                game(smooth_fn, {strategy, context, subdivisions, flags, plane ? 0x80866530u : 0x80866518u, plane ? 0x8086653Cu : 0x80866524u});
+            } else {
                 WriteVector(axis0, axes[2 * plane], 3);
                 WriteVector(axis1, axes[2 * plane + 1], 3);
-                game.Call<0x800B4C08>({strategy, context, flags, axis0, axis1});
+                game.Call<0x80511B40>({strategy, context, flags, axis0, axis1});
             }
         }
     }
@@ -1955,12 +2022,18 @@ void SmoothPair(void *opaque, uint32_t particle, int, float out[2][3]) {
     auto &s = *static_cast<SmoothRibbonContext *>(opaque);
     auto &r = s.ribbon;
     GuestCall game{r.cpu};
-    /* C0038 is a CPU-only orientation/size producer. Its ninth integer input
-     * is the second axis, passed in the original ABI's stack argument slot. */
-    FlatWrite32(r.cpu->gpr[1] + 8, s.axis_addresses[1]);
-    game.Call<0x800C0038>({r.strategy, s.output, r.context, r.flags, particle, r.direction_fn, particle + 0xac, s.axis_addresses[0]}, {r.pivot, 0});
-    ReadVector(s.output, out[0], 3);
-    ReadVector(s.output + 12, out[1], 3);
+    game(r.direction_fn, {r.direction_out, r.context, particle});
+    float dir[3], pos[3], orientation[12], size[12], matrix[12], axes[2][3];
+    ReadVector(r.direction_out, dir, 3);
+    ReadVector(particle + 0xac, pos, 3);
+    ComputeRibbonOrientation(r.context, r.flags, particle, dir, pos, orientation);
+    ComputeRibbonSizeMtx(particle, r.pivot, size);
+    Concat(orientation, size, matrix);
+    ReadVector(s.axis_addresses[0], axes[0], 3);
+    ReadVector(s.axis_addresses[1], axes[1], 3);
+    for (uint32_t side = 0; side < 2; side++)
+        for (uint32_t row = 0; row < 3; row++)
+            out[side][row] = matrix[4 * row] * axes[side][0] + matrix[4 * row + 1] * axes[side][1] + matrix[4 * row + 2] * axes[side][2] + matrix[4 * row + 3];
 }
 
 void SmoothSubmit(void *opaque, const mh3_effect_quad *quad, const float uv[4][2]) {
@@ -1978,7 +2051,7 @@ uint32_t SmoothNext(void *opaque, uint32_t particle) {
 
 void SmoothRibbon(CpuContext *cpu, uint8_t closure) {
     GuestFrame frame(cpu, 0xc0);
-    SmoothRibbonContext s{{cpu, frame.Arg(3), frame.Arg(4), frame.Arg(6), 0, 0, 0, FlatRead32(frame.Arg(4)), 0, 0, 0, 0, {}}, frame[0x20], {frame.Arg(7), frame.Arg(8)}};
+    SmoothRibbonContext s{{cpu, frame.Arg(3), frame.Arg(4), frame.Arg(6), 0, 0, 0, FlatRead32(frame.Arg(4)), 0, 0, frame[0x40], 0, {}}, frame[0x20], {frame.Arg(7), frame.Arg(8)}};
     auto &r = s.ribbon;
     GuestCall game{cpu};
     uint32_t resource = FlatRead32(r.manager + 0x24) + 0x9c;
@@ -1986,14 +2059,14 @@ void SmoothRibbon(CpuContext *cpu, uint8_t closure) {
     uint32_t order = FlatRead16(resource) & 0x800;
     r.first_fn = game.Virtual<0x10>(r.strategy, {order});
     r.next_fn = game.Virtual<0x14>(r.strategy, {order});
-    r.pivot = FlatReadFloat32(0x80798698) * float(int8_t(FlatRead8(resource + 0xa9)));
+    r.pivot = 0.01f * float(int8_t(FlatRead8(resource + 0xa9)));
     mh3_effect_smooth_ribbon_source source{};
     source.ribbon = {
-        &s, SmoothFirst, SmoothNext, SmoothPair, SmoothSubmit, game.Call<0x800B5BB8>({r.strategy, r.manager}), closure, uint8_t(order != 0), uint8_t((FlatRead8(resource + 0xb2) & 0xc0) == 0x40)};
+        &s, SmoothFirst, SmoothNext, SmoothPair, SmoothSubmit, FlatRead16(r.manager + 0x50), closure, uint8_t(order != 0), uint8_t((FlatRead8(resource + 0xb2) & 0xc0) == 0x40)};
     source.subdivisions = frame.Arg(5);
 
     if (closure == 2) {
-        uint32_t youngest = game.Call<0x800B5AC8>({r.manager});
+        uint32_t youngest = EffectParticle::LastAlive(r.manager);
 
         if (!youngest)
             MH3_THROW(std::runtime_error("Smooth stripe origin has no live particle"));
@@ -2073,12 +2146,12 @@ extern "C" void MH3_EffectSmoothTubeSegment(CpuContext *cpu) {
         previous = current;
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B7728, MH3_EffectStripeStrategy, "EffectStripeStrategy");
-REGISTER_NATIVE_FUNCTION_AS(0x800C3DEC, MH3_EffectSmoothStripeStrategy, "EffectSmoothStripeStrategy");
-REGISTER_NATIVE_FUNCTION_AS(0x800C179C, MH3_EffectSmoothOpen, "EffectSmoothOpen");
-REGISTER_NATIVE_FUNCTION_AS(0x800C1C30, MH3_EffectSmoothClosed, "EffectSmoothClosed");
-REGISTER_NATIVE_FUNCTION_AS(0x800C2148, MH3_EffectSmoothOrigin, "EffectSmoothOrigin");
-REGISTER_NATIVE_FUNCTION_AS(0x800C1084, MH3_EffectSmoothTubeSegment, "EffectSmoothTubeSegment");
+REGISTER_NATIVE_FUNCTION_AS(0x80513C8C, MH3_EffectStripeStrategy, "EffectStripeStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x805187B8, MH3_EffectSmoothStripeStrategy, "EffectSmoothStripeStrategy");
+REGISTER_NATIVE_FUNCTION_AS(0x80516690, MH3_EffectSmoothOpen, "EffectSmoothOpen");
+REGISTER_NATIVE_FUNCTION_AS(0x805169F8, MH3_EffectSmoothClosed, "EffectSmoothClosed");
+REGISTER_NATIVE_FUNCTION_AS(0x80516E18, MH3_EffectSmoothOrigin, "EffectSmoothOrigin");
+REGISTER_NATIVE_FUNCTION_AS(0x80515D8C, MH3_EffectSmoothTubeSegment, "EffectSmoothTubeSegment");
 extern "C" void MH3_NativeMovieCleanup(CpuContext *cpu) {
     GuestFrame frame(cpu, 0x20);
     GuestCall game{cpu};
@@ -2096,7 +2169,7 @@ extern "C" void MH3_NativeMovieCleanup(CpuContext *cpu) {
     game.Call<0x804FD9A0>({0});
     game.Call<0x804E7790>({0});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804360B0, MH3_NativeMovieCleanup, "NativeMovieCleanup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x804360B0, MH3_NativeMovieCleanup, "NativeMovieCleanup");
 extern "C" void MH3_EffectLineLeaf(CpuContext *cpu) {
     if (!effect.line_size)
         MH3_THROW(std::runtime_error("Effect line leaf has unresolved width"));
@@ -2122,5 +2195,5 @@ extern "C" void MH3_EffectPointLeaf(CpuContext *cpu) {
     const float uv[4][2] = {};
     Emit(q, cpu->gpr[4] != 0, uv, effect.point_size, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800BF52C, MH3_EffectLineLeaf, "EffectLineLeaf");
-REGISTER_NATIVE_FUNCTION_AS(0x800BFD30, MH3_EffectPointLeaf, "EffectPointLeaf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800BF52C, MH3_EffectLineLeaf, "EffectLineLeaf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800BFD30, MH3_EffectPointLeaf, "EffectPointLeaf");

@@ -264,18 +264,18 @@ bool ReadNativeVertexSource(uint32_t semantic, mh3_native_vertex_source* out) {
 extern "C" void MH3_ModelPositionArray(CpuContext* cpu) {
     Bind(cpu, MH3_VERTEX_POSITION, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80088E88, MH3_ModelPositionArray, "NativeModelPositionArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80088E88, MH3_ModelPositionArray, "NativeModelPositionArray");
 extern "C" void MH3_ModelNormalArray(CpuContext* cpu) {
     Bind(cpu, MH3_VERTEX_NORMAL, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80089000, MH3_ModelNormalArray, "NativeModelNormalArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80089000, MH3_ModelNormalArray, "NativeModelNormalArray");
 extern "C" void MH3_ModelColorArray(CpuContext* cpu) {
     const uint32_t slot = cpu->gpr[4];
 
     if (slot == 11 || slot == 12)
         Bind(cpu, MH3_VERTEX_COLOR, slot - 9);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80089178, MH3_ModelColorArray, "NativeModelColorArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80089178, MH3_ModelColorArray, "NativeModelColorArray");
 extern "C" void MH3_ModelFurPositionArray(CpuContext* cpu) {
     const uint32_t resource = Memory::Read32(cpu->gpr[3]);
 
@@ -298,4 +298,4 @@ extern "C" void MH3_ModelFurPositionArray(CpuContext* cpu) {
 
     StoreNativeVertexSource(0, source);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008961C, MH3_ModelFurPositionArray, "NativeModelFurPositionArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008961C, MH3_ModelFurPositionArray, "NativeModelFurPositionArray");

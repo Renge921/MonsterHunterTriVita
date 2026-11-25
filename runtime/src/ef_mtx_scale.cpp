@@ -151,4 +151,4 @@ static void GetScaleChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t 
 extern "C" void MH3_EfMtxGetScale(CpuContext* ctx) {
     GetScaleChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009C0A4, MH3_EfMtxGetScale, "EfMtxGetScale");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8009C0A4, MH3_EfMtxGetScale, "EfMtxGetScale");

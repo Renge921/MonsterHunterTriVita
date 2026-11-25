@@ -57,6 +57,12 @@ if (AURORA_ENABLE_GX)
         set_property(SOURCE lib/gxm/device.cpp lib/gxm/renderer.cpp lib/gxm/runtime_shader.cpp
           APPEND PROPERTY COMPILE_DEFINITIONS MH3_DEVELOPMENT=1)
         target_link_libraries(aurora_core PUBLIC vitashark SceShaccCgExt SceShaccCg_stub_weak SceKernelModulemgr_stub taihen_stub)
+      else()
+        # Allow runtime vitaShaRK fallback when prebuilt shader_bank misses new shaders.
+        target_sources(aurora_core PRIVATE lib/gxm/runtime_shader.cpp)
+        set_property(SOURCE lib/gxm/device.cpp lib/gxm/renderer.cpp lib/gxm/runtime_shader.cpp
+          APPEND PROPERTY COMPILE_DEFINITIONS AURORA_GXM_RUNTIME_SHADER_FALLBACK=1)
+        target_link_libraries(aurora_core PUBLIC vitashark SceShaccCgExt SceShaccCg_stub_weak SceKernelModulemgr_stub taihen_stub)
       endif()
 
       target_include_directories(aurora_core PRIVATE lib/gxm)

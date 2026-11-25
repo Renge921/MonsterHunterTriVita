@@ -428,34 +428,34 @@ void BoneNextPort(CpuContext* ctx) {
 extern "C" void MH3_BoneCallbackA(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneCallbackA", func_80139538, BoneAPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80139538, MH3_BoneCallbackA, "BoneCallbackA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80139538, MH3_BoneCallbackA, "BoneCallbackA");
 
 extern "C" void MH3_BoneCallbackB(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneCallbackB", func_801398BC, BoneBPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801398BC, MH3_BoneCallbackB, "BoneCallbackB");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801398BC, MH3_BoneCallbackB, "BoneCallbackB");
 
 extern "C" void MH3_BoneCallbackC(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneCallbackC", func_80139BD0, BoneCPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80139BD0, MH3_BoneCallbackC, "BoneCallbackC");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80139BD0, MH3_BoneCallbackC, "BoneCallbackC");
 
 extern "C" void MH3_BoneEntryA(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneEntryA", func_80139684, BoneEntryAPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80139684, MH3_BoneEntryA, "BoneEntryA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80139684, MH3_BoneEntryA, "BoneEntryA");
 
 extern "C" void MH3_BoneEntryB(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneEntryB", func_801399B8, BoneEntryBPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801399B8, MH3_BoneEntryB, "BoneEntryB");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801399B8, MH3_BoneEntryB, "BoneEntryB");
 
 extern "C" void MH3_BoneTable(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneTable", func_8013A724, BoneTablePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013A724, MH3_BoneTable, "BoneTable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013A724, MH3_BoneTable, "BoneTable");
 
 extern "C" void MH3_BoneNext(CpuContext* ctx) {
     PortCheck::Call(ctx, "BoneNext", func_8013A7D4, BoneNextPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013A7D4, MH3_BoneNext, "BoneNext");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013A7D4, MH3_BoneNext, "BoneNext");

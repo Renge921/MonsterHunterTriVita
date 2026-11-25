@@ -786,51 +786,51 @@ enum : uint32_t {
 extern "C" void MH3_NetTcpCloseEntry(CpuContext* cpu) {
     TcpClose(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE0C4, MH3_NetTcpCloseEntry, "NetTcpCloseEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE0C4, MH3_NetTcpCloseEntry, "NetTcpCloseEntry");
 
 extern "C" void MH3_NetTcpMove(CpuContext* cpu) {
     TcpMove(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE0C8, MH3_NetTcpMove, "NetTcpMove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE0C8, MH3_NetTcpMove, "NetTcpMove");
 
 extern "C" void MH3_NetTcpOpen(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(TcpOpen(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE2AC, MH3_NetTcpOpen, "NetTcpOpen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE2AC, MH3_NetTcpOpen, "NetTcpOpen");
 
 extern "C" void MH3_NetTcpPoll(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + tSocket);
     cpu->gpr[3] = socket ? GuestCall{cpu}.Virtual(socket, sPoll, {Arg(cpu, 4), Arg(cpu, 5)}) : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE380, MH3_NetTcpPoll, "NetTcpPoll");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE380, MH3_NetTcpPoll, "NetTcpPoll");
 
 extern "C" void MH3_NetTcpConnected(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + tSocket);
     cpu->gpr[3] = socket ? GuestCall{cpu}.Virtual(socket, sConnected, {}) : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE3A8, MH3_NetTcpConnected, "NetTcpConnected");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE3A8, MH3_NetTcpConnected, "NetTcpConnected");
 
 extern "C" void MH3_NetTcpClose(CpuContext* cpu) {
     TcpClose(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE3D0, MH3_NetTcpClose, "NetTcpClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE3D0, MH3_NetTcpClose, "NetTcpClose");
 
 extern "C" void MH3_NetTcpAdd(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(TcpAdd(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE428, MH3_NetTcpAdd, "NetTcpAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE428, MH3_NetTcpAdd, "NetTcpAdd");
 
 extern "C" void MH3_NetTcpRemove(CpuContext* cpu) {
     TcpRemove(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE4D4, MH3_NetTcpRemove, "NetTcpRemove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE4D4, MH3_NetTcpRemove, "NetTcpRemove");
 
 extern "C" void MH3_NetTcpClear(CpuContext* cpu) {
     const uint32_t tcp = Arg(cpu, 3);
     GuestCall{cpu}.Call<Memset>({tcp + tBuffer, 0, kTcpBuffer});
     Write(tcp + tLength, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE57C, MH3_NetTcpClear, "NetTcpClear");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE57C, MH3_NetTcpClear, "NetTcpClear");
 
 extern "C" void MH3_NetTcpSend(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + tSocket);
@@ -844,131 +844,131 @@ extern "C" void MH3_NetTcpSend(CpuContext* cpu) {
 
     cpu->gpr[3] = GuestCall{cpu}.Virtual(socket, sSend, {data, length, 0});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE5BC, MH3_NetTcpSend, "NetTcpSend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE5BC, MH3_NetTcpSend, "NetTcpSend");
 
 extern "C" void MH3_NetTcpErrorCode(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + tSocket);
     cpu->gpr[3] = socket ? Read(socket + soError) : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE620, MH3_NetTcpErrorCode, "NetTcpErrorCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE620, MH3_NetTcpErrorCode, "NetTcpErrorCode");
 
 extern "C" void MH3_NetTcpErrorValue(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + tSocket);
     cpu->gpr[3] = socket ? Read(socket + soValue) : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE638, MH3_NetTcpErrorValue, "NetTcpErrorValue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE638, MH3_NetTcpErrorValue, "NetTcpErrorValue");
 
 extern "C" void MH3_NetUdpErrorCode(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + uSocket);
     cpu->gpr[3] = socket ? Read(socket + soError) : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEC10, MH3_NetUdpErrorCode, "NetUdpErrorCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEC10, MH3_NetUdpErrorCode, "NetUdpErrorCode");
 
 extern "C" void MH3_NetUdpErrorValue(CpuContext* cpu) {
     const uint32_t socket = Read(Arg(cpu, 3) + uSocket);
     cpu->gpr[3] = socket ? Read(socket + soValue) : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEC28, MH3_NetUdpErrorValue, "NetUdpErrorValue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEC28, MH3_NetUdpErrorValue, "NetUdpErrorValue");
 
 extern "C" void MH3_NetUdpCloseEntry(CpuContext* cpu) {
     UdpClose(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE650, MH3_NetUdpCloseEntry, "NetUdpCloseEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE650, MH3_NetUdpCloseEntry, "NetUdpCloseEntry");
 
 extern "C" void MH3_NetUdpMove(CpuContext* cpu) {
     UdpMove(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE654, MH3_NetUdpMove, "NetUdpMove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE654, MH3_NetUdpMove, "NetUdpMove");
 
 extern "C" void MH3_NetUdpClose(CpuContext* cpu) {
     UdpClose(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE758, MH3_NetUdpClose, "NetUdpClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE758, MH3_NetUdpClose, "NetUdpClose");
 
 extern "C" void MH3_NetUdpRemove(CpuContext* cpu) {
     UdpRemove(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE7B0, MH3_NetUdpRemove, "NetUdpRemove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE7B0, MH3_NetUdpRemove, "NetUdpRemove");
 
 extern "C" void MH3_NetUdpReset(CpuContext* cpu) {
     UdpReset(cpu, Arg(cpu, 3), int32_t(Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE888, MH3_NetUdpReset, "NetUdpReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE888, MH3_NetUdpReset, "NetUdpReset");
 
 extern "C" void MH3_NetUdpSend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(UdpSend(cpu, Arg(cpu, 3), int32_t(Arg(cpu, 4)), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE928, MH3_NetUdpSend, "NetUdpSend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE928, MH3_NetUdpSend, "NetUdpSend");
 
 extern "C" void MH3_NetUdpReceive(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(UdpReceive(cpu, Arg(cpu, 3), int32_t(Arg(cpu, 4)), Arg(cpu, 5), int32_t(Arg(cpu, 6))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CE9E8, MH3_NetUdpReceive, "NetUdpReceive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CE9E8, MH3_NetUdpReceive, "NetUdpReceive");
 
 extern "C" void MH3_NetUdpSocket(CpuContext* cpu) {
     cpu->gpr[3] = Read(Arg(cpu, 3) + uSocket);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEC40, MH3_NetUdpSocket, "NetUdpSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEC40, MH3_NetUdpSocket, "NetUdpSocket");
 
 extern "C" void MH3_NetUdpField0C(CpuContext* cpu) {
     cpu->gpr[3] = Read(Arg(cpu, 3) + 0xC);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEC48, MH3_NetUdpField0C, "NetUdpField0C");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEC48, MH3_NetUdpField0C, "NetUdpField0C");
 
 extern "C" void MH3_NetStreamWriteAddress(CpuContext* cpu) {
     StreamWriteAddress(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEC50, MH3_NetStreamWriteAddress, "NetStreamWriteAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEC50, MH3_NetStreamWriteAddress, "NetStreamWriteAddress");
 
 extern "C" void MH3_NetStreamWriteBlock(CpuContext* cpu) {
     StreamWriteBlock(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CECC0, MH3_NetStreamWriteBlock, "NetStreamWriteBlock");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CECC0, MH3_NetStreamWriteBlock, "NetStreamWriteBlock");
 
 extern "C" void MH3_NetStreamWriteU32(CpuContext* cpu) {
     StreamWriteU32(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CED4C, MH3_NetStreamWriteU32, "NetStreamWriteU32");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CED4C, MH3_NetStreamWriteU32, "NetStreamWriteU32");
 
 extern "C" void MH3_NetStreamWriteU16(CpuContext* cpu) {
     StreamWriteU16(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEDD4, MH3_NetStreamWriteU16, "NetStreamWriteU16");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEDD4, MH3_NetStreamWriteU16, "NetStreamWriteU16");
 
 extern "C" void MH3_NetStreamWriteU8(CpuContext* cpu) {
     StreamWriteU8(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEE5C, MH3_NetStreamWriteU8, "NetStreamWriteU8");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEE5C, MH3_NetStreamWriteU8, "NetStreamWriteU8");
 
 extern "C" void MH3_NetStreamReadAddress(CpuContext* cpu) {
     StreamReadAddress(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEE88, MH3_NetStreamReadAddress, "NetStreamReadAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEE88, MH3_NetStreamReadAddress, "NetStreamReadAddress");
 
 extern "C" void MH3_NetStreamReadBlock(CpuContext* cpu) {
     StreamReadBlock(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEF00, MH3_NetStreamReadBlock, "NetStreamReadBlock");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEF00, MH3_NetStreamReadBlock, "NetStreamReadBlock");
 
 extern "C" void MH3_NetStreamReadU32(CpuContext* cpu) {
     StreamReadU32(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CEFB8, MH3_NetStreamReadU32, "NetStreamReadU32");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CEFB8, MH3_NetStreamReadU32, "NetStreamReadU32");
 
 extern "C" void MH3_NetStreamReadU16(CpuContext* cpu) {
     StreamReadU16(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF044, MH3_NetStreamReadU16, "NetStreamReadU16");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF044, MH3_NetStreamReadU16, "NetStreamReadU16");
 
 extern "C" void MH3_NetStreamReadU8(CpuContext* cpu) {
     StreamReadU8(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF0D0, MH3_NetStreamReadU8, "NetStreamReadU8");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF0D0, MH3_NetStreamReadU8, "NetStreamReadU8");
 
 extern "C" void MH3_NetResolverConstruct(CpuContext* cpu) {
     ResolverConstruct(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF10C, MH3_NetResolverConstruct, "NetResolverConstruct");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF10C, MH3_NetResolverConstruct, "NetResolverConstruct");
 
 extern "C" void MH3_NetResolverDestroy(CpuContext* cpu) {
     const uint32_t resolver = Arg(cpu, 3);
@@ -978,13 +978,13 @@ extern "C" void MH3_NetResolverDestroy(CpuContext* cpu) {
 
     cpu->gpr[3] = resolver;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF16C, MH3_NetResolverDestroy, "NetResolverDestroy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF16C, MH3_NetResolverDestroy, "NetResolverDestroy");
 
 extern "C" void MH3_NetResolverThread(CpuContext* cpu) {
     ResolverLookup(cpu, Arg(cpu, 3));
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF1B0, MH3_NetResolverThread, "NetResolverThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF1B0, MH3_NetResolverThread, "NetResolverThread");
 
 extern "C" void MH3_NetResolverWiiConstruct(CpuContext* cpu) {
     const uint32_t resolver = Arg(cpu, 3);
@@ -994,19 +994,19 @@ extern "C" void MH3_NetResolverWiiConstruct(CpuContext* cpu) {
     Write(resolver + rInfo, 0);
     cpu->gpr[3] = resolver;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF1D4, MH3_NetResolverWiiConstruct, "NetResolverWiiConstruct");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF1D4, MH3_NetResolverWiiConstruct, "NetResolverWiiConstruct");
 
 extern "C" void MH3_NetResolverWiiDestroy(CpuContext* cpu) {
     const uint32_t resolver = Arg(cpu, 3);
     ResolverWiiDestroy(cpu, resolver, int16_t(Arg(cpu, 4)));
     cpu->gpr[3] = resolver;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF220, MH3_NetResolverWiiDestroy, "NetResolverWiiDestroy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF220, MH3_NetResolverWiiDestroy, "NetResolverWiiDestroy");
 
 extern "C" void MH3_NetResolverSetName(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ResolverSetName(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF310, MH3_NetResolverSetName, "NetResolverSetName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF310, MH3_NetResolverSetName, "NetResolverSetName");
 
 extern "C" void MH3_NetResolverCancel(CpuContext* cpu) {
     const uint32_t resolver = Arg(cpu, 3);
@@ -1014,17 +1014,17 @@ extern "C" void MH3_NetResolverCancel(CpuContext* cpu) {
     if (Memory::Read8(resolver + rState) == kStart)
         Memory::Write8(resolver + rState, kIdle);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF3C4, MH3_NetResolverCancel, "NetResolverCancel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF3C4, MH3_NetResolverCancel, "NetResolverCancel");
 
 extern "C" void MH3_NetResolverLookup(CpuContext* cpu) {
     ResolverLookup(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF3DC, MH3_NetResolverLookup, "NetResolverLookup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF3DC, MH3_NetResolverLookup, "NetResolverLookup");
 
 extern "C" void MH3_NetResolverCheck(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ResolverCheck(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF41C, MH3_NetResolverCheck, "NetResolverCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF41C, MH3_NetResolverCheck, "NetResolverCheck");
 
 extern "C" void MH3_NetResolverAddress(CpuContext* cpu) {
     const uint32_t resolver = Arg(cpu, 3), out = Arg(cpu, 5);
@@ -1033,27 +1033,27 @@ extern "C" void MH3_NetResolverAddress(CpuContext* cpu) {
     if (index >= 0 && index < ReadInt(resolver + rCount))
         GuestCall{cpu}.Call<Memcpy>({out, resolver + rAddresses + uint32_t(index) * 4, 4});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF684, MH3_NetResolverAddress, "NetResolverAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF684, MH3_NetResolverAddress, "NetResolverAddress");
 
 extern "C" void MH3_NetMutexUnlock(CpuContext* cpu) {
     GuestCall{cpu}.Call<OSUnlockMutex>({Arg(cpu, 3) + 4});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6B8, MH3_NetMutexUnlock, "NetMutexUnlock");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6B8, MH3_NetMutexUnlock, "NetMutexUnlock");
 
 extern "C" void MH3_NetMutexLock(CpuContext* cpu) {
     GuestCall{cpu}.Call<OSLockMutex>({Arg(cpu, 3) + 4});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6C0, MH3_NetMutexLock, "NetMutexLock");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6C0, MH3_NetMutexLock, "NetMutexLock");
 
 extern "C" void MH3_NetLockedFlag(CpuContext* cpu) {
     cpu->gpr[3] = Memory::Read8(Arg(cpu, 3) + 0x6134);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6C8, MH3_NetLockedFlag, "NetLockedFlag");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6C8, MH3_NetLockedFlag, "NetLockedFlag");
 
 extern "C" void MH3_NetSessionSetFlag(CpuContext* cpu) {
     Write(kSessionFlag, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6D0, MH3_NetSessionSetFlag, "NetSessionSetFlag");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6D0, MH3_NetSessionSetFlag, "NetSessionSetFlag");
 
 extern "C" void MH3_NetSessionBaseConstruct(CpuContext* cpu) {
     const uint32_t session = Arg(cpu, 3);
@@ -1062,7 +1062,7 @@ extern "C" void MH3_NetSessionBaseConstruct(CpuContext* cpu) {
     Write(session + 8, 0);
     Memory::Write8(session + 0xC, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6D8, MH3_NetSessionBaseConstruct, "NetSessionBaseConstruct");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6D8, MH3_NetSessionBaseConstruct, "NetSessionBaseConstruct");
 
 extern "C" void MH3_NetSessionBaseDestroy(CpuContext* cpu) {
     const uint32_t session = Arg(cpu, 3);
@@ -1072,44 +1072,44 @@ extern "C" void MH3_NetSessionBaseDestroy(CpuContext* cpu) {
 
     cpu->gpr[3] = session;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF6F8, MH3_NetSessionBaseDestroy, "NetSessionBaseDestroy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF6F8, MH3_NetSessionBaseDestroy, "NetSessionBaseDestroy");
 
 extern "C" void MH3_NetSessionSetDefaults(CpuContext* cpu) {
     Write(kSessionA, Arg(cpu, 4));
     Write(kSessionB, Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF73C, MH3_NetSessionSetDefaults, "NetSessionSetDefaults");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF73C, MH3_NetSessionSetDefaults, "NetSessionSetDefaults");
 
 extern "C" void MH3_NetSessionSetC(CpuContext* cpu) {
     Memory::Write32(kSessionC, std::bit_cast<uint32_t>(float(cpu->fpr[1].d)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF748, MH3_NetSessionSetC, "NetSessionSetC");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF748, MH3_NetSessionSetC, "NetSessionSetC");
 
 extern "C" void MH3_NetSessionSetD(CpuContext* cpu) {
     Memory::Write32(kSessionD, std::bit_cast<uint32_t>(float(cpu->fpr[1].d)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF750, MH3_NetSessionSetD, "NetSessionSetD");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF750, MH3_NetSessionSetD, "NetSessionSetD");
 
 extern "C" void MH3_NetSessionSetRate(CpuContext* cpu) {
     const int32_t total = int32_t(Arg(cpu, 4)), parts = int32_t(Arg(cpu, 5));
     Write(kSessionQuota, uint32_t(total / parts));
     Memory::Write32(kSessionRate, std::bit_cast<uint32_t>(1.0f / float(double(parts))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF758, MH3_NetSessionSetRate, "NetSessionSetRate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF758, MH3_NetSessionSetRate, "NetSessionSetRate");
 
 extern "C" void MH3_NetSessionRandomId(CpuContext* cpu) {
     cpu->gpr[3] = RandomSessionId(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF794, MH3_NetSessionRandomId, "NetSessionRandomId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF794, MH3_NetSessionRandomId, "NetSessionRandomId");
 
 extern "C" void MH3_NetSessionIdValid(CpuContext* cpu) {
     const uint32_t id = Arg(cpu, 3);
     cpu->gpr[3] = id != 0 && id != 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF80C, MH3_NetSessionIdValid, "NetSessionIdValid");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF80C, MH3_NetSessionIdValid, "NetSessionIdValid");
 
 extern "C" void MH3_NetSessionForward(CpuContext* cpu) {
     const uint32_t a = Arg(cpu, 3), b = Arg(cpu, 4), c = Arg(cpu, 5), d = Arg(cpu, 6), e = Arg(cpu, 7), f = Arg(cpu, 8);
     cpu->gpr[3] = GuestCall{cpu}.Call<SessionForward>({f, a, uint32_t(int32_t(int8_t(b))), c, d, e});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803CF830, MH3_NetSessionForward, "NetSessionForward");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803CF830, MH3_NetSessionForward, "NetSessionForward");

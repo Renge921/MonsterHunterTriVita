@@ -39,7 +39,7 @@
 
 namespace {
 
-constexpr uint32_t kSystem = 0x8065AA60; // game system flags
+constexpr uint32_t kSystem = 0x80768AA8; // game system flags
 enum : uint32_t {
     kRunning = 0x21,      // u8
     kOnlineOnly = 0x86F,  // u8: draw only in online mode 1
@@ -48,27 +48,26 @@ enum : uint32_t {
 };
 
 enum : int32_t {
-    kRoot = -0x44AC,               // r13: the scene root (_pRoot)
-    kBackgroundCallback = -0x45A8, // r13: _bg_tex_disp_func
+    kRoot = -0x43B4,               // r13: the scene root (_pRoot)
+    kBackgroundCallback = -0x4398, // r13: _bg_tex_disp_func
 };
 
 enum : uint32_t {
-    GetOnlineMode = 0x800CF26C,
-    DrawGrabbedScreen = 0x80058C34, // (1 background, 0 only)
-    BeginFrameDraw = 0x80047DD0,
-    DrawUISprites = 0x800489C8, // (0 behind, 1 in front)
-    TwoPlayers = 0x800470BC,
-    PreviewCamera = 0x800D0788,
-    DrawLayers = 0x8004925C, // (first, end)
-    DrawSplitScene = 0x80049594,
-    DrawSceneOnly = 0x80049498,
-    PreviewCameraSetup = 0x802BBCB4,
-    PreviewCameraReset = 0x802BBE88,
-    CalcRootView = 0x80082D40,
-    EndFrameDraw = 0x80048828,
+    GetOnlineMode = 0x802BC6BC,
+    DrawGrabbedScreen = 0x80291E5C, // (1 background, 0 only)
+    BeginFrameDraw = 0x801E2F04,
+    DrawUISprites = 0x800347F8, // (0 behind, 1 in front)
+    TwoPlayers = 0x802AF4A0,
+    PreviewCamera = 0x802BDB2C,
+    DrawSplitScene = 0x802C0374,
+    DrawSceneOnly = 0x802C027C,
+    PreviewCameraSetup = 0x80373CFC,
+    PreviewCameraReset = 0x80373EB4,
+    CalcRootView = 0x80535BCC,
+    EndFrameDraw = 0x801E37EC,
 };
 
-constexpr uint32_t kLayerLists = 0x8066C3B8;
+constexpr uint32_t kLayerLists = 0x807680C0;
 enum : uint32_t {
     kEntryActive = 0x04, // u8: 1 when drawn
     kEntryArgument = 0x05, // u8
@@ -76,7 +75,7 @@ enum : uint32_t {
     kEntryNext = 0x28,
 };
 
-constexpr uint32_t FontFlush = 0x8005CA08;
+constexpr uint32_t FontFlush = 0x80296338;
 #ifdef MH3_DEVELOPMENT
 // Per entry function: its time and calls (MH3 layer split line).
 struct LayerTime {
@@ -131,7 +130,18 @@ void DrawLayersPort(CpuContext* cpu) {
 
 void Layers(GuestCall& call, uint32_t first, uint32_t end) {
     MH3_SPLIT_SCOPE(MH3_SPLIT_LAYERS);
-    call(DrawLayers, {first, end});
+    GuestFrame frame(call.cpu, 0x20);
+    for (int32_t layer = int32_t(first); layer < int32_t(end); ++layer) {
+        uint32_t entry = Memory::Read32(kLayerLists + 4 * uint32_t(layer));
+
+        if (uint32_t(layer - 8) <= 1)
+            Timed(call, FontFlush, {});
+
+        for (; entry; entry = Memory::Read32(entry + kEntryNext)) {
+            if (Memory::Read8(entry + kEntryActive) == 1)
+                Timed(call, Memory::Read32(entry), {Memory::Read8(entry + kEntryArgument), entry + kEntryData});
+        }
+    }
 }
 
 // The preview camera (an equipment preview, Ghidra): camera 5 of the local
@@ -379,29 +389,29 @@ bool RunDeferredScene(CpuContext* cpu) {
 }
 } // namespace FrameDraw
 
-extern "C" void func_80049308(CpuContext* cpu);
+extern "C" void func_802BFEEC(CpuContext* cpu);
 extern "C" void MH3_DrawFrame(CpuContext* cpu) {
-    PortCheck::Call(cpu, "DrawFrame", func_80049308, DrawFrame);
+    PortCheck::Call(cpu, "DrawFrame", func_802BFEEC, DrawFrame);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049308, MH3_DrawFrame, "DrawFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x802BFEEC, MH3_DrawFrame, "DrawFrame");
 
 extern "C" void func_802BBCB4(CpuContext* cpu);
 extern "C" void MH3_PreviewCameraSetup(CpuContext* cpu) {
     PortCheck::Call(cpu, "PreviewCameraSetup", func_802BBCB4, PreviewCameraSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BBCB4, MH3_PreviewCameraSetup, "PreviewCameraSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802BBCB4, MH3_PreviewCameraSetup, "PreviewCameraSetup");
 
 extern "C" void func_802BBE88(CpuContext* cpu);
 extern "C" void MH3_PreviewCameraReset(CpuContext* cpu) {
     PortCheck::Call(cpu, "PreviewCameraReset", func_802BBE88, PreviewCameraResetPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BBE88, MH3_PreviewCameraReset, "PreviewCameraReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802BBE88, MH3_PreviewCameraReset, "PreviewCameraReset");
 
 extern "C" void func_8004925C(CpuContext* cpu);
 extern "C" void MH3_DrawLayers(CpuContext* cpu) {
     PortCheck::Call(cpu, "DrawLayers", func_8004925C, DrawLayersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8004925C, MH3_DrawLayers, "DrawLayers");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004925C, MH3_DrawLayers, "DrawLayers");
 
 #ifdef MH3_DEVELOPMENT
 void MH3PrintLayerSplit(unsigned frames) {

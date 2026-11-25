@@ -43,7 +43,7 @@
 
 namespace {
 
-constexpr uint32_t kSystem = 0x8065AA60;
+constexpr uint32_t kSystem = 0x80768AA8;
 enum : uint32_t {
     kSceneFlag = 0x20,          // u8: setSoftresetFlag's (0 for Village, 1 for City)
     kGameMode = 0x24,           // u8: 2 village
@@ -58,7 +58,7 @@ enum : uint32_t {
     kSelectedFile = 0x89C,      // u8 [2]
     kSelectedCharacter = 0x89E, // u8 [2]
     kMode = 0x8C2,              // u8: the mode menu's choice, 0 Village, 1 City
-    kSystemSaveBuffer = 0x950,  // u32: the save manager's buffer
+    kSystemSaveBuffer = 0x934,  // u32: the save manager's buffer
 };
 
 enum : uint8_t {
@@ -69,21 +69,20 @@ enum : uint8_t {
 
 // The options (controls, camera, sound): the file's at +0x28, the game's
 // copy option_w, 0x1F bytes.
-constexpr uint32_t kOptions = 0x8065B510;
+constexpr uint32_t kOptions = 0x8076944C;
 constexpr size_t kFileOptions = 0x28, kOptionBytes = 0x1F;
 
-constexpr uint32_t kTitleWork = 0x809D3568; // u32: the title's work, while demo_data.rso is loaded
+constexpr uint32_t kTitleWork = 0x80B56EE8; // u32: the title's work, while demo_data.rso is loaded
 constexpr uint8_t kTitleIntro = 1;          // its state (+0) while the intro plays
 enum : uint32_t {
-    SaveReadRequest = 0x80441AD8,
-    SaveFileLoaded = 0x80441B9C, // after a read: the sum check, the file's name and in-use byte
-    LoadCharacter = 0x80442088,
-    ApplyOptions = 0x803BE89C, // set_option_mode: volumes and brightness from option_w
-    RunExitHook = 0x800408B8,
-    StartGameModeTask = 0x800419DC,
-    SceneReset = 0x800CF000,
-    SceneExit0 = 0x8004D1E0,
-    SceneExit1 = 0x8004D1F4,
+    SaveReadRequest = 0x80416558,
+    SaveFileLoaded = 0x80416614, // after a read: the sum check, the file's name and in-use byte
+    LoadCharacter = 0x80416B50,
+    ApplyOptions = 0x802CA79C, // set_option_mode: volumes and brightness from option_w
+    StartGameModeTask = 0x802A5F1C,
+    SceneReset = 0x802BC3F0,
+    SceneExit0 = 0x802C5810,
+    SceneExit1 = 0x802C5824,
 };
 
 enum class State {
@@ -117,7 +116,7 @@ void StartVillageBoot(unsigned fileIndex, unsigned character, bool city) {
         MH3_THROW(std::runtime_error("Invalid save selection"));
 
     const char* override = std::getenv("MH3_USER_DIR");
-    const auto directory = std::filesystem::path(override ? override : "saves") / "nand/title/00010000/524d4850/data/nocopy";
+    const auto directory = std::filesystem::path(override ? override : "saves") / "nand/title/00010000/524d484a/data/nocopy";
 
     for (unsigned i = 0; i < files.size(); ++i) {
         std::ifstream input(directory / ("data0" + std::to_string(i)), std::ios::binary | std::ios::ate);
@@ -194,9 +193,8 @@ void StepVillageBoot(CpuContext* ctx) {
     Memory::Write8(kSystem + kSelectedFile, selectedFile);
     Memory::Write8(kSystem + kSelectedCharacter, selectedCharacter);
 
-    // The mode menu's Village (0x80982E30) or City.
+    // The mode menu's Village or City.
     Memory::Write8(kSystem + kOnlineMenu, Memory::Read8(kSystem + kOnlineCapable) == 1);
-    game.Call<RunExitHook>();
     Memory::Write8(kSystem + kMode, toCity);
     Memory::Write8(kSystem + kModeFlag0, 0);
     Memory::Write8(kSystem + kModeFlag1, 0);

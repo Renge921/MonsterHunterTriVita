@@ -60,33 +60,28 @@ void Write32(uint32_t address, uint32_t value) {
 }
 
 enum : uint32_t {
-    ItemBoxSlots = 0x8004AED4,
-    ItemBoxRoom = 0x8004B814, // (item, box, slots): how many more fit, at most 999
-    ItemBoxAdd = 0x8004BF08,  // (item, count, out)
-    TalismanToBox = 0x8004C620, // its native is in cheat_items.cpp
-    EquipBoxAdd = 0x8004C578,
-    SeRequest = 0x800DBC94,    // sysSE_req (sound)
-    ResultSe = 0x800DBDF4,     // (sound): one of the result screen's own
-    MenuGrid = 0x802A8F24,     // (cursor, count, buttons, back, forward, scroll): the cursor
-    MenuCursor = 0x802A8F60,   // (cursor, count, buttons, back, forward): the cursor
-    MenuPrompt = 0x802A8FB4,   // (prompt, buttons, 4, 8, 0xFFFF): 1 yes, 2 no
-    PulseStep = 0x802D9F08,    // the shared blink (PulseUpdate, pulse.cpp)
-    ResultListKind = 0x80396C7C, // 1 when the first list is kind 2 (0x803B5094(0) == 1)
-    ResultNextRow = 0x80396D10,
-    ResultRowSe = 0x8039739C,  // a row's sound and its delay (+0x306C = 90)
-    RewardsAny = 0x803982B8,   // (work, list): whether it holds anything
-    RewardsPrompt = 0x803985D0, // (work, list): the "leave the rest" prompt
-    RewardsSell = 0x803986F0,  // (work, list): sells what is left, equipment to +0x304
-    RewardsCursor = 0x80398834, // (work, pad, list): moves the cursor
-    RewardsSelected = 0x80398930, // (work, list): the item and count under the cursor
-    RewardsEquipItem = 0x80398B58, // (work, entry): an equipment item to +0x304
-    RewardsRecordAt = 0x80398BF8, // (work, 3): the record under the cursor
-    RewardsPouchSlot = 0x80398C90, // (work): the pouch slot under the cursor
-    RewardMarkTaken = 0x80398E04,
-    RewardsTakenFlash = 0x80398F88, // (work, entry, x, y)
-    PouchTake = 0x8039CE18,   // (item, count, out taken): 0 all, 2 some, 3 full, else none
-    PouchTaken = 0x8039CF38,  // (item, count): logs what went to the pouch
-    PouchSet = 0x8039D0CC,    // (item, count, slot)
+    ItemBoxSlots = 0x802C2500,
+    ItemBoxRoom = 0x802C34EC,    // (item, box, slots): how many more fit, at most 999
+    ItemBoxAdd = 0x802C3EA0,     // (item, count, out)
+    TalismanToBox = 0x802C4848,  // its native is in cheat_items.cpp
+    EquipBoxAdd = 0x802C46B4,
+    EquipBoxFreeSlots = 0x802C43E0, // free slots in the equipment box (cap - used)
+    SeRequest = 0x802B4C8C,      // sysSE_req (sound)
+    ResultSe = 0x802B5138,       // (sound): one of the result screen's own
+    ResultRowSePlay = 0x802B524C,// row sound helper (called with wRowSe = 90)
+    MenuGrid = 0x801E0F48,       // (cursor, count, buttons, back, forward, scroll): the cursor
+    MenuCursor = 0x801E0F60,     // (cursor, count, buttons, back, forward): the cursor
+    MenuPrompt = 0x801E0FA0,     // (prompt, buttons, 4, 8, 0xFFFF): 1 yes, 2 no
+    PulseStep = 0x80186BD4,      // the shared blink wrapper (branches to PulseUpdate 0x80186BE4)
+    IsOnlineLobby = 0x80201230,  // inline ResultListKind checks IsOnlineLobby(0) == 1
+    ResultNextRow = 0x801EC56C,
+    RewardsAny = 0x801EDA5C,     // (work, list): whether it holds anything
+    RewardsPrompt = 0x801EDD70,  // (work, list): the "leave the rest" value
+    RewardsSell = 0x801EDE8C,    // (work, list): sells what is left, equipment to +0x304
+    RewardsEquipItem = 0x801EE068, // (work, entry): an equipment item to +0x304
+    PouchTake = 0x801F3610,      // (item, count, out taken): 0 all, 2 some, 3 full, else none
+    PouchTaken = 0x801F376C,     // (item, count): logs what went to the pouch
+    PouchSet = 0x801F3908,       // (item, count, slot)
 };
 
 constexpr uint32_t kRandom = 1; // the reward equipment's ran_suu stream
@@ -95,26 +90,26 @@ constexpr uint32_t kRandom = 1; // the reward equipment's ran_suu stream
 // a weight (s8; the table ends at one of 0 or less), the rarity - 1, the
 // slot mode, the first skill's group + 1 and points (s8), the second's, a
 // pad byte.
-constexpr uint32_t kTalismanTables = 0x805C6E08;
+constexpr uint32_t kTalismanTables = 0x806C7CD0;
 
 // Skill groups 0..2: u16 skill trees ending at 0xFFFF.
-constexpr uint32_t kSkillGroups = 0x805C6B88;
+constexpr uint32_t kSkillGroups = 0x806C7A50;
 
 // Shard tables 0..1 (Rustshard, Ancient Shard): rows of 4 bytes, a weight
 // (s8; ends at 0 or less), the equipment kind and the u16 id.
-constexpr uint32_t kShardTables = 0x80794618;
+constexpr uint32_t kShardTables = 0x8089E608;
 
-constexpr uint32_t kResultWork = 0x8066C668; // get_qResult_work
+constexpr uint32_t kResultWork = 0x80768370; // 0x802C57D4
 constexpr uint32_t kResultEquip = kResultWork + 0x304;
-constexpr uint32_t kUserData = 0x8065B3BC;      // system_w+0x95C: the user data
-constexpr uint32_t kUserDataCache = 0x80796D40; // r13-0x45A0: get_userdata's copy
-constexpr uint32_t kItemTable = 0x806AED38;     // GetItemData's table: 20 bytes an item
+constexpr uint32_t kUserData = 0x807693E8;      // *(0x80768AA8 + 0x940): the user data
+constexpr uint32_t kUserDataCache = 0x808A04F0; // r13-0x4390: 0x802C57B4's copy
+constexpr uint32_t kItemTable = 0x8073C7D0;     // 0x801B354C's table: 20 bytes an item
 constexpr uint32_t kItems = 747;
 
 // The pad: the buttons pressed this step (u16 +4) and the held ones that
 // repeat (+0x14). 0x10 confirms, 0x20 cancels, 3 left and right, 0xC up and
-// down.
-constexpr uint32_t kPad = 0x8065BA90;
+// down. (RMHJ08: Psw 0x80754428 + 0x2C0)
+constexpr uint32_t kPad = 0x807546E8;
 
 // The result screen's work.
 enum : uint32_t {
@@ -128,6 +123,8 @@ enum : uint32_t {
     wFadeIn = 0x3026,     // u8: 0..7
     wColumn = 0x3028,     // u8
     wRow = 0x3029,        // u8
+    wTakenColumn = 0x302A,// u8
+    wTakenRow = 0x302B,   // u8
     wRows = 0x302C,       // u8
     wPouchRow = 0x302D,   // u8
     wPouchRows = 0x302E,  // u8
@@ -139,11 +136,18 @@ enum : uint32_t {
     wFlash = 0x3036,      // u16: 0..12, 0xFFFF off
     wTaken = 0x3038,      // u16 bits: the records taken
     wPrompt = 0x3040,     // u32
+    wTakenItem = 0x3044,  // u16
+    wTakenCount = 0x3046, // u16
+    wPouchMain = 0x3048,  // u32: pouch main 24 slots ptr
+    wPouchField = 0x304C, // u32: pouch field 8 slots ptr
     wPromptText = 0x3050, // u32
     wPointsBefore = 0x305C, // u16
     wPointsWait = 0x305E, // u16: 0..40
     wRowShown = 0x3061,   // u8 a row: 0..8
+    wRowSeTimer = 0x306C, // s16: row se delay (90)
     wNextRow = 0x306F,    // u8
+    wList0 = 0x3070,      // 48 item slots
+    wList1 = 0x3130,      // 48 item slots
     wRecords = 0x31F0,    // 40 records
 };
 
@@ -293,8 +297,8 @@ void Build(uint32_t work) {
     Write8(work + wBuilt, 1);
 }
 
-// TalismanSkills (0x803191DC): a talisman's skills and points; how many.
-uint32_t Skills(uint32_t record, uint32_t skills, uint32_t points) {
+// TalismanSkills (inlined in RMHJ08): a talisman's skills and points; how many.
+[[maybe_unused]] uint32_t Skills(uint32_t record, uint32_t skills, uint32_t points) {
     const uint32_t packed = Read16(record + 4);
     uint32_t count = 0;
     uint32_t at = Read8(record + 1);
@@ -328,7 +332,34 @@ uint32_t UserData() {
     return user;
 }
 
-// RewardEquipToBox (0x80398EAC): the records taken to the box, each cleared
+// Inlined in RMHJ08: toggle or claim a slot bit in wTaken if the equipment box has room.
+uint32_t MarkTaken(GuestCall& game, uint32_t work, uint32_t index) {
+    const uint32_t slot = work + wTaken + 2 * (index >> 4);
+    const uint16_t mask = uint16_t(1u << (index & 15));
+    const uint16_t bits = uint16_t(Read16(slot));
+    if (bits & mask) {
+        Write16(slot, uint16_t(bits ^ mask));
+        return 1;
+    }
+
+    int32_t count = 0;
+    for (uint32_t w = 0; w < 3; ++w) {
+        const uint32_t word = Read16(work + wTaken + 2 * w);
+        for (uint32_t b = 0; b < 16; ++b) {
+            if (word & (1u << b))
+                count = int16_t(count + 1);
+        }
+    }
+
+    const int32_t freeSlots = int32_t(game.Call<EquipBoxFreeSlots>() & 0xFFFF);
+    if (freeSlots - count <= 0)
+        return 0;
+
+    Write16(slot, uint16_t(bits ^ mask));
+    return 1;
+}
+
+// RewardEquipToBox (0x801EE100): the records taken to the box, each cleared
 // and marked; whether any went.
 uint32_t TakenToBox(CpuContext* cpu, uint32_t work) {
     GuestCall game{cpu};
@@ -351,7 +382,7 @@ uint32_t TakenToBox(CpuContext* cpu, uint32_t work) {
         }
 
         Clear(record);
-        game.Call<RewardMarkTaken>({work, i});
+        MarkTaken(game, work, i);
     }
 
     return added;
@@ -363,6 +394,52 @@ uint32_t Trigger() {
 
 uint32_t Buttons() {
     return (Read16(kPad + 4) | Read16(kPad + 0x14)) & 0xFFFF;
+}
+
+uint32_t ListKind(GuestCall& game) {
+    return game.Call<IsOnlineLobby>({0}) == 1 ? 1u : 0u;
+}
+
+uint32_t SelectedSlot(uint32_t work, uint32_t list) {
+    const uint32_t base = (list == 0 || list == 2) ? work + wList0 : list == 1 ? work + wList1 : 0;
+    if (!base)
+        return 0;
+    const uint32_t index = (Read8(work + wColumn) + Read8(work + wRow) * 8) & 0xFFFF;
+    return base + 4 * index;
+}
+
+uint32_t RecordAt(uint32_t work, uint32_t list) {
+    if (list != 3)
+        return 0;
+    const uint32_t index = (Read8(work + wColumn) + Read8(work + wRow) * 8) & 0xFFFF;
+    return work + wRecords + 12 * index;
+}
+
+uint32_t PouchSlotPtr(uint32_t work) {
+    const uint32_t slot = (Read8(work + wPouchColumn) + Read8(work + wPouchRow) * 8) & 0xFFFF;
+    return slot < 24 ? Read32(work + wPouchMain) + 4 * slot : Read32(work + wPouchField) + 4 * (slot - 24);
+}
+
+void TakenFlash(uint32_t work, uint32_t entry, uint32_t column, uint32_t row) {
+    Write16(work + wFlash, 0);
+    Write16(work + wTakenItem, uint16_t(Read16(entry)));
+    Write16(work + wTakenCount, uint16_t(Read16(entry + 2)));
+    Write8(work + wTakenColumn, uint8_t(column));
+    Write8(work + wTakenRow, uint8_t(row));
+}
+
+void MoveRewardsCursor(GuestCall& game, uint32_t work, uint32_t list) {
+    const uint32_t buttons = Buttons();
+    const uint32_t row = game.Call<MenuCursor>({Read8(work + wRow), Read8(work + wRows), buttons, 1, 2}) & 0xFF;
+    Write8(work + wRow, uint8_t(row));
+    if (list == 3 && int32_t(row) >= int32_t(Read8(work + wRows)) - 1)
+        return;
+    Write8(work + wColumn, uint8_t(game.Call<MenuCursor>({Read8(work + wColumn), 8, buttons, 4, 8})));
+}
+
+void PlayRowSe(GuestCall& game, uint32_t work) {
+    Write16(work + wRowSeTimer, 90);
+    game.Call<ResultRowSePlay>();
 }
 
 // GetItemData (0x8029F740, inlined by the translator).
@@ -408,7 +485,7 @@ void Se(GuestCall& game, uint32_t sound) {
 // what fits. A full pouch asks for a slot to swap (step 3).
 void TakeItem(CpuContext* cpu, uint32_t work, uint32_t list) {
     GuestCall game{cpu};
-    const uint32_t entry = game.Call<RewardsSelected>({work, list});
+    const uint32_t entry = SelectedSlot(work, list);
     const uint32_t item = Read16(entry);
 
     if (!item) {
@@ -420,7 +497,7 @@ void TakeItem(CpuContext* cpu, uint32_t work, uint32_t list) {
     const uint32_t row = Read8(work + wRow);
 
     if (Read8(ItemData(item) + 2) & 0x10) {
-        game.Call<RewardsTakenFlash>({work, entry, column, row});
+        TakenFlash(work, entry, column, row);
         game.Call<RewardsEquipItem>({work, entry});
         Write16(entry, 0);
         Write16(entry + 2, 0);
@@ -435,13 +512,13 @@ void TakeItem(CpuContext* cpu, uint32_t work, uint32_t list) {
         const uint32_t result = game.Call<PouchTake>({item, uint32_t(int16_t(Read16(entry + 2))), taken}) & 0xFF;
 
         if (result == 0) {
-            game.Call<RewardsTakenFlash>({work, entry, column, row});
+            TakenFlash(work, entry, column, row);
             game.Call<PouchTaken>({Read16(entry), uint32_t(int16_t(Read16(entry + 2)))});
             Write16(entry, 0);
             Write16(entry + 2, 0);
             Se(game, 8);
         } else if (result == 2) {
-            game.Call<RewardsTakenFlash>({work, entry, column, row});
+            TakenFlash(work, entry, column, row);
             const int32_t some = int16_t(Read16(taken));
 
             game.Call<PouchTaken>({Read16(entry), uint32_t(some)});
@@ -472,7 +549,7 @@ void TakeItem(CpuContext* cpu, uint32_t work, uint32_t list) {
     }
 
     room = std::min<int32_t>(room, int16_t(Read16(entry + 2)));
-    game.Call<RewardsTakenFlash>({work, entry, column, row});
+    TakenFlash(work, entry, column, row);
     game.Call<ItemBoxAdd>({Read16(entry), uint32_t(room), frame[0x8]});
     Write16(entry + 2, uint16_t(int16_t(Read16(entry + 2)) - int16_t(room)));
 
@@ -485,7 +562,7 @@ void TakeItem(CpuContext* cpu, uint32_t work, uint32_t list) {
 // A full pouch: the list's item swaps with the pouch slot picked (the first
 // 24, or any for an item of kind 1).
 void SwapPouch(GuestCall& game, uint32_t work, uint32_t list) {
-    const uint32_t entry = game.Call<RewardsSelected>({work, list});
+    const uint32_t entry = SelectedSlot(work, list);
     const uint32_t data = ItemData(Read16(entry));
     const int32_t slot = int16_t((Read8(work + wPouchColumn) + Read8(work + wPouchRow) * 8) & 0xFFFF);
 
@@ -494,7 +571,7 @@ void SwapPouch(GuestCall& game, uint32_t work, uint32_t list) {
 
     const uint32_t item = Read16(entry);
     const int32_t count = int16_t(Read16(entry + 2));
-    const uint32_t pouch = game.Call<RewardsPouchSlot>({work});
+    const uint32_t pouch = PouchSlotPtr(work);
 
     Write16(entry, uint16_t(Read16(pouch)));
     Write16(entry + 2, uint16_t(Read16(pouch + 2)));
@@ -536,7 +613,7 @@ uint32_t ListPage(CpuContext* cpu, uint32_t work, uint32_t page, uint32_t ticks)
 
     game.Call<PulseStep>();
 
-    const uint32_t list = page == 2 ? 1 : game.Call<ResultListKind>({work}) == 1 ? 2 : 0;
+    const uint32_t list = page == 2 ? 1 : ListKind(game) == 1 ? 2 : 0;
 
     Animate(work, ticks);
     FadeIn(game, work, ticks);
@@ -604,7 +681,7 @@ uint32_t ListPage(CpuContext* cpu, uint32_t work, uint32_t page, uint32_t ticks)
             return 0;
         }
 
-        game.Call<RewardsCursor>({work, kPad, list});
+        MoveRewardsCursor(game, work, list);
         return 0;
 
     case 2:
@@ -728,7 +805,7 @@ uint32_t EquipPage(CpuContext* cpu, uint32_t work, uint32_t ticks) {
                 return 0;
             }
 
-            const uint32_t record = game.Call<RewardsRecordAt>({work, 3});
+            const uint32_t record = RecordAt(work, 3);
 
             if (!record || !Read8(record)) {
                 Se(game, 2);
@@ -736,7 +813,7 @@ uint32_t EquipPage(CpuContext* cpu, uint32_t work, uint32_t ticks) {
             }
 
             const uint32_t index = (Read8(work + wColumn) + Read8(work + wRow) * 8) & 0xFFFF;
-            Se(game, game.Call<RewardMarkTaken>({work, index}) == 1 ? 0 : 2);
+            Se(game, MarkTaken(game, work, index) == 1 ? 0 : 2);
             return 0;
         }
 
@@ -746,7 +823,7 @@ uint32_t EquipPage(CpuContext* cpu, uint32_t work, uint32_t ticks) {
             return 0;
         }
 
-        game.Call<RewardsCursor>({work, kPad, 3});
+        MoveRewardsCursor(game, work, 3);
         return 0;
     }
 
@@ -772,7 +849,7 @@ uint32_t RewardPages(CpuContext* cpu, uint32_t work) {
     // records built first if they were not yet).
     if (left < 1) {
         if (page == 1) {
-            game.Call<RewardsSell>({work, game.Call<ResultListKind>({work}) == 1 ? 2u : 0u});
+            game.Call<RewardsSell>({work, ListKind(game) == 1 ? 2u : 0u});
             return 1;
         }
 
@@ -813,7 +890,7 @@ uint32_t RewardPages(CpuContext* cpu, uint32_t work) {
         for (uint32_t tick = 0; tick < ticks && Read16(work + wPointsWait) < 40; ++tick) {
             if (!Read16(work + wPointsWait) && Read16(user + kPointsTotal) > Read16(work + wPointsBefore)) {
                 game.Call<ResultSe>({4});
-                game.Call<ResultRowSe>({work});
+                PlayRowSe(game, work);
             }
 
             Write16(work + wPointsWait, uint16_t(Read16(work + wPointsWait) + 1));
@@ -835,7 +912,7 @@ uint32_t RewardPages(CpuContext* cpu, uint32_t work) {
 
             if (at < 7) {
                 if (flagged && !at)
-                    game.Call<ResultRowSe>({work});
+                    PlayRowSe(game, work);
 
                 Write8(shown, uint8_t(at + 1));
             } else if (flagged && at == 7) {
@@ -868,7 +945,7 @@ uint32_t RewardPages(CpuContext* cpu, uint32_t work) {
             return 1;
 
         Write16(work + wDelay, 10);
-        game.Call<ResultRowSe>({work});
+        PlayRowSe(game, work);
         Write8(work + wNextRow, uint8_t(game.Call<ResultNextRow>({work})));
         return 0;
     }
@@ -924,84 +1001,57 @@ void RewardPagesPort(CpuContext* cpu) {
 } // namespace
 
 // Precise natives: translated callers call them directly.
-extern "C" void func_8027F6D8(CpuContext* ctx);
+extern "C" void func_802E4574(CpuContext* ctx);
 extern "C" void MH3_TalismanSkillPick(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("TalismanSkillPick", ctx->gpr[1], func_8027F6D8, PickSkillPort)) [[unlikely]]
+    if (PortCheck::RunPrecise("TalismanSkillPick", ctx->gpr[1], func_802E4574, PickSkillPort)) [[unlikely]]
         return;
 #endif
     ctx->gpr[3] = PickSkill(ctx->gpr[3], int16_t(ctx->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027F6D8, MH3_TalismanSkillPick, "TalismanSkillPick");
+REGISTER_NATIVE_FUNCTION_AS(0x802E4574, MH3_TalismanSkillPick, "TalismanSkillPick");
 
-extern "C" void func_8027F7DC(CpuContext* ctx);
+extern "C" void func_802E4670(CpuContext* ctx);
 extern "C" void MH3_TalismanGenerate(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("TalismanGenerate", ctx->gpr[1], func_8027F7DC, GenerateTalismanPort)) [[unlikely]]
+    if (PortCheck::RunPrecise("TalismanGenerate", ctx->gpr[1], func_802E4670, GenerateTalismanPort)) [[unlikely]]
         return;
 #endif
     GenerateTalisman(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027F7DC, MH3_TalismanGenerate, "TalismanGenerate");
+REGISTER_NATIVE_FUNCTION_AS(0x802E4670, MH3_TalismanGenerate, "TalismanGenerate");
 
-extern "C" void func_8027FA5C(CpuContext* ctx);
-extern "C" void MH3_RewardEquipPick(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("RewardEquipPick", ctx->gpr[1], func_8027FA5C, PickShardEquipPort)) [[unlikely]]
-        return;
-#endif
-    PickShardEquip(ctx->gpr[3], ctx->gpr[4]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8027FA5C, MH3_RewardEquipPick, "RewardEquipPick");
-
-extern "C" void func_8027FB28(CpuContext* ctx);
+extern "C" void func_802E48C0(CpuContext* ctx);
 extern "C" void MH3_RewardEquipGenerate(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("RewardEquipGenerate", ctx->gpr[1], func_8027FB28, GenerateEquipPort)) [[unlikely]]
+    if (PortCheck::RunPrecise("RewardEquipGenerate", ctx->gpr[1], func_802E48C0, GenerateEquipPort)) [[unlikely]]
         return;
 #endif
     GenerateEquip(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027FB28, MH3_RewardEquipGenerate, "RewardEquipGenerate");
+REGISTER_NATIVE_FUNCTION_AS(0x802E48C0, MH3_RewardEquipGenerate, "RewardEquipGenerate");
 
-extern "C" void func_8039899C(CpuContext* ctx);
+extern "C" void func_801EDFC4(CpuContext* ctx);
 extern "C" void MH3_RewardEquipBuild(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("RewardEquipBuild", ctx->gpr[1], func_8039899C, BuildPort)) [[unlikely]]
+    if (PortCheck::RunPrecise("RewardEquipBuild", ctx->gpr[1], func_801EDFC4, BuildPort)) [[unlikely]]
         return;
 #endif
     Build(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039899C, MH3_RewardEquipBuild, "RewardEquipBuild");
+REGISTER_NATIVE_FUNCTION_AS(0x801EDFC4, MH3_RewardEquipBuild, "RewardEquipBuild");
 
-extern "C" void func_803191DC(CpuContext* ctx);
-extern "C" void MH3_TalismanSkills(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("TalismanSkills", ctx->gpr[1], func_803191DC, SkillsPort)) [[unlikely]]
-        return;
-#endif
-    ctx->gpr[3] = Skills(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x803191DC, MH3_TalismanSkills, "TalismanSkills");
-
-extern "C" void func_80398EAC(CpuContext* ctx);
+extern "C" void func_801EE100(CpuContext* ctx);
 extern "C" void MH3_RewardEquipToBox(CpuContext* ctx) {
-    PortCheck::Call(ctx, "RewardEquipToBox", func_80398EAC, TakenToBoxPort);
+    PortCheck::Call(ctx, "RewardEquipToBox", func_801EE100, TakenToBoxPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80398EAC, MH3_RewardEquipToBox, "RewardEquipToBox");
+REGISTER_NATIVE_FUNCTION_AS(0x801EE100, MH3_RewardEquipToBox, "RewardEquipToBox");
 
-extern "C" void func_80398264(CpuContext* ctx);
-extern "C" void MH3_RewardsAnimate(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("RewardsAnimate", ctx->gpr[1], func_80398264, AnimatePort)) [[unlikely]]
-        return;
-#endif
-    Animate(ctx->gpr[3], GameStep::Ticks());
-}
-REGISTER_NATIVE_FUNCTION_AS(0x80398264, MH3_RewardsAnimate, "RewardsAnimate");
-
-extern "C" void func_80398FE0(CpuContext* ctx);
+extern "C" void func_801EE2DC(CpuContext* ctx);
 extern "C" void MH3_RewardPages(CpuContext* ctx) {
-    PortCheck::Call(ctx, "RewardPages", func_80398FE0, RewardPagesPort);
+    PortCheck::Call(ctx, "RewardPages", func_801EE2DC, RewardPagesPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80398FE0, MH3_RewardPages, "RewardPages");
+REGISTER_NATIVE_FUNCTION_AS(0x801EE2DC, MH3_RewardPages, "RewardPages");
+
+// Disabled for RMHJ08: RewardEquipPick (inlined in 0x802E48C0), TalismanSkills (inlined in UI callers),
+// and RewardsAnimate (inlined in 0x801EE2DC) are inlined in the RMHJ08 DOL.

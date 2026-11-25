@@ -110,7 +110,7 @@ void RunGxPanicSelfTests(CpuContext* cpu) {
         ++checked;
     };
 
-    expect("direct SDK", "GXInit", [&] { InvokeDirectCpu<0x804B3D10>(cpu); });
+    expect("direct SDK", "GXInit", [&] { InvokeDirectCpu<0x8044F4B8>(cpu); });
     expect("indirect SDK", "GXInvalidateTexAll", [&] { InvokeIndirectCpu(0x804B8FA0, cpu); });
     expect("unnamed SDK", "func_804B4AE0", [&] { InvokeIndirectCpu(0x804B4AE0, cpu); });
     expect("scalar FIFO", "GX FIFO write", [] { GX_HLE_FIFO_Write32(0x61000000); });

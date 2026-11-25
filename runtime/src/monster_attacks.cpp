@@ -60,38 +60,77 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    RoarVoice = 0x801293A0,      // (work, channel, voice, length)
-    RoarVoice0 = 0x801296CC,     // (work, channel, voice): RoarVoice with length 0
-    SetMotionSpeed = 0x8012F92C, // (work; f1)
-    SetChannelMotion = 0x8012F7B0, // (work, channel, motion, flags, blend)
-    Adjust8A0 = 0x80130D40,      // (work, s16 delta): 0x80130BD0 against +0x8A0
-    TurnToward = 0x80133D2C,     // (work, 0x180, 0x280)
-    TurnWhile = 0x80133EA0,      // (work, 0x8000; f1, f2 frames)
-    TurnSetUp = 0x80134068,      // (work, 0; f1)
-    TurnStep = 0x80134178,       // (work, 0, 0x40)
-    Em001Prepare = 0x80154CD8,   // (work)
-    Em016Prepare = 0x80182DA8,   // (work, s32)
-    KeyData = 0x80052364,        // getKeyData (keys; f1 frame) -> f1
-    Sound = 0x801039C4,          // (work, id)
-    SoundAt = 0x80103A14,        // (work, id, u16, u16)
-    Discharge = 0x8010A838,      // (work, kind): 0/7 and 1 start an effect, others nothing
-    Spark = 0x80306AFC,          // (work, kind)
-    SparkEffect = 0x8011D814,    // (kind, VEC3* at, angles*, u8 area, u8 enemy kind; f1 scale)
-    ChestBurst = 0x80117EBC,     // (work, 2, VEC3*, 3; f1 scale)
-    JointPosition = 0x8013599C,  // get_joint_wpos_em (work, joint, VEC3* out)
-    ChangeScale = 0x801359B4,    // get_em_chg_scale (work) -> f1
-    ShellParams = 0x801497EC,    // (params*): the shell parameters' constructor
-    Em001ShellAim = 0x8015461C,  // (params*, 0, u16 angle, u16 angle2)
-    Em016ShellAim = 0x8019216C,  // (params*, 0, u16 angle, u16 angle2)
-    ActionDone = 0x80127FAC,     // (work): back to the AI
-    ActionDone94 = 0x80128094,
+    RoarVoice = 0x8016177C,      // (work, channel, voice, length)
+    RoarVoice0 = 0x80161A54,     // (work, channel, voice): RoarVoice with length 0
+    SetMotionSpeed = 0x80169A70, // (work; f1)
+    SetChannelMotion = 0x8016952C, // (work, channel, motion, flags, blend)
+    Adjust8A0 = 0x8016B06C,      // (work, s16 delta): 0x80130BD0 against +0x8A0
+    TurnToward = 0x8016EB00,     // (work, 0x180, 0x280)
+    TurnWhile = 0x8016EC7C,      // (work, 0x8000; f1, f2 frames)
+    TurnSetUp = 0x8016EE30,      // (work, 0; f1)
+    TurnStep = 0x8016EF18,       // (work, 0, 0x40)
+    Em001Prepare = 0x800858C8,   // (work)
+    KeyData = 0x8028D250,        // getKeyData (keys; f1 frame) -> f1
+    Sound = 0x800422F0,          // (work, id)
+    SoundAt = 0x80042344,        // (work, id, u16, u16)
+    Discharge = 0x8004953C,      // (work, kind): 0/7 and 1 start an effect, others nothing
+    Spark = 0x80069B48,          // (work, kind)
+    SparkEffect = 0x8005DD50,    // (kind, VEC3* at, angles*, u8 area, u8 enemy kind; f1 scale)
+    ChestBurst = 0x80057540,     // (work, 2, VEC3*, 3; f1 scale)
+    JointPosition = 0x801717A0,  // get_joint_wpos_em (work, joint, VEC3* out)
+    ChangeScale = 0x801717B8,    // get_em_chg_scale (work) -> f1
+    ShellParams = 0x803A195C,    // (params*): the shell parameters' constructor
+    Em001ShellAim = 0x8008520C,  // (params*, 0, u16 angle, u16 angle2)
+    Em016ShellAim = 0x800EFF88,  // (params*, 0, u16 angle, u16 angle2)
+    ActionDone = 0x8015FDDC,     // (work): back to the AI
+    ActionDone94 = 0x8015FEC0,
 };
 
-constexpr uint32_t kShellTable = 0x80797020; // shell_set_func_ptr: the shell functions' table
+constexpr uint32_t kShellTable = 0x808A0540; // shell_set_func_ptr: the shell functions' table
 constexpr uint32_t kShellThrow = 0x3C;       // (work, params*, kind)
 
 void Throw(GuestCall& game, uint32_t work, uint32_t params, uint32_t kind) {
     game(Memory::Read32(Memory::Read32(kShellTable) + kShellThrow), {work, params, kind});
+}
+
+inline void Vec3Copy(uint32_t dst, uint32_t src) {
+    for (uint32_t i = 0; i < 3; ++i)
+        Memory::WriteFloat32(dst + i * 4, Memory::ReadFloat32(src + i * 4));
+}
+
+inline void Vec3Add(uint32_t dst, uint32_t a, uint32_t b) {
+    for (uint32_t i = 0; i < 3; ++i)
+        Memory::WriteFloat32(dst + i * 4, Memory::ReadFloat32(a + i * 4) + Memory::ReadFloat32(b + i * 4));
+}
+
+inline void Vec3Sub(uint32_t dst, uint32_t a, uint32_t b) {
+    for (uint32_t i = 0; i < 3; ++i)
+        Memory::WriteFloat32(dst + i * 4, Memory::ReadFloat32(a + i * 4) - Memory::ReadFloat32(b + i * 4));
+}
+
+inline void Vec3Scale(uint32_t dst, uint32_t src, float s) {
+    for (uint32_t i = 0; i < 3; ++i)
+        Memory::WriteFloat32(dst + i * 4, Memory::ReadFloat32(src + i * 4) * s);
+}
+
+inline void Mtx34AddPos(uint32_t mtx, uint32_t off) {
+    for (uint32_t i = 0; i < 3; ++i)
+        Memory::WriteFloat32(mtx + 0x0C + i * 0x10, Memory::ReadFloat32(mtx + 0x0C + i * 0x10) + Memory::ReadFloat32(off + i * 4));
+}
+
+inline void Em019Finish(GuestCall& game, uint32_t work) {
+    game.Call<0x8016A47C>({work});
+    game.Call<0x8016A878>({work});
+    game.Call<0x8016091C>({work, 3, 0});
+    game.Call<0x8016E9E0>({work});
+}
+
+inline void Em019SetPartMask(uint32_t work, uint8_t mask) {
+    Memory::Write8(work + 0x1E4, uint8_t(Memory::Read8(work + 0x1E4) | mask));
+    for (uint32_t i = 0; i < 4; ++i) {
+        if (mask & (3u << (i * 2)))
+            Memory::Write16(work + 0x330 + i * 2, 0);
+    }
 }
 
 // The sound/effect at the spit's angles (the parameters' u16s +0x12, +0x14).
@@ -143,7 +182,7 @@ void Em001SpitPort(CpuContext* ctx) {
         return;
 
     if (kind == 3)
-        Em001SpeedFromKeys(game, work, 0x805A2838);
+        Em001SpeedFromKeys(game, work, 0x80684F68);
 
     Em001Hiss(em, game);
 
@@ -190,7 +229,7 @@ void Em001Spit3Port(CpuContext* ctx) {
         return;
 
     if (kind == 1)
-        Em001SpeedFromKeys(game, work, 0x805A2860);
+        Em001SpeedFromKeys(game, work, 0x80684F90);
 
     Em001Hiss(em, game);
 
@@ -398,7 +437,8 @@ void LudrothSpitPort(CpuContext* ctx) {
         const uint32_t second = kind == 1 || kind == 2 ? 0x55 : 99;
         em.SetMotion(first, 10, 0);
         game.Call<SetChannelMotion>({work, 1, second, 10, 0});
-        game.Call<Em016Prepare>({work, uint32_t(-15)});
+        if (Memory::Read8(work + kKind) == 0x10)
+            game.Call<Adjust8A0>({work, uint32_t(-15)});
         em.Count(0);
         break;
     }
@@ -478,23 +518,23 @@ void Em001DivePort(CpuContext* ctx) {
     case 0:
         em.State(1);
         Memory::Write8(work + 6, 0);
-        game.Call<0x801302AC>({work}); // f1: the carried scale, for SetScale
-        game.Call<0x80130628>({work});
+        game.Call<0x8016A47C>({work}); // f1: the carried scale, for SetScale
+        game.Call<0x8016A878>({work});
         game.Call<Em001Prepare>({work});
         em.SetMotion(0xDB, 6, 0);
         game.Call<RoarVoice0>({work, 0, 0x1F});
-        game.Call<0x80041EA4>({work + 0x1B0, work + 0x188}); // the start
+        Vec3Copy(work + 0x1B0, work + 0x188); // the start
         Memory::Write16(work + 0x32C, uint16_t(Memory::Read32(work + kAngles + 4)));
-        game.Call<0x8013545C>({work});
-        game.Call<0x8012F948>({work});
+        game.Call<0x80170F64>({work});
+        game.Call<0x80169A88>({work});
         em.Count(int16_t(int32_t(40.0f / game.F1())));
         break;
     case 1:
-        game.Call<0x8012CF84>({work});
-        game.Call<0x80128C5C>({work, 0});
+        game.Call<0x80165D0C>({work});
+        game.Call<0x80160A28>({work, 0});
 
         if (em.At(110.0f, 2))
-            game.Call<0x80133CB4>({work, 0x300});
+            game.Call<0x8016EA8C>({work, 0x300});
 
         if (em.At(60.0f, 3, 100.0f)) {
             if (em.Count() > 0) {
@@ -502,23 +542,23 @@ void Em001DivePort(CpuContext* ctx) {
                 Memory::WriteFloat32(work + 0x310, 0.0f);
                 game.Call<ChangeScale>({work});
                 const float size = game.F1();
-                game.Call<0x801302AC>({work});
+                game.Call<0x8016A47C>({work});
                 const float height = (game.F1() - 100.0f) * size;
                 const float sink = (Memory::ReadFloat32(work + 0x370) - Memory::ReadFloat32(work + 0x18C) + height) / count;
                 Memory::WriteFloat32(work + 0x314, sink > 0.0f ? 0.0f : sink);
-                const uint32_t angle = game.Call<0x80050AF4>({work + 0x188, work + 0x36C}) & 0xFFFF;
+                const uint32_t angle = game.Call<0x8028B678>({work + 0x188, work + 0x36C}) & 0xFFFF;
 
                 if (((angle - Memory::Read32(work + kAngles + 4) + 0x4000) & 0xFFFF) < 0x8000) {
                     game.Call<ChangeScale>({work});
                     const float near = 100.0f * game.F1();
-                    game.Call<0x80050FE4>({work + 0x36C, work + 0x188});
+                    game.Call<0x8028BC04>({work + 0x36C, work + 0x188});
                     const float forward = (game.F1() - near) / count;
                     Memory::WriteFloat32(work + 0x318, forward <= 30.0f ? 30.0f : forward);
                 } else
                     Memory::WriteFloat32(work + 0x318, 30.0f);
 
-                game.Call<0x801302AC>({work}); // f1 passes on
-                game.Call<0x801355E8>({work, work + kAngles});
+                game.Call<0x8016A47C>({work}); // f1 passes on
+                game.Call<0x801711B8>({work, work + kAngles});
             }
 
             countDown();
@@ -526,29 +566,29 @@ void Em001DivePort(CpuContext* ctx) {
 
         if (em.At(150.0f, 1)) {
             em.NextState();
-            game.Call<0x8012F948>({work});
+            game.Call<0x80169A88>({work});
             const float rate = game.F1();
-            game.Call<0x8012F950>({work});
+            game.Call<0x80169A90>({work});
             em.Count(int16_t(int32_t((200.0f - game.F1()) / rate)));
         }
 
         break;
     case 2: {
-        const uint32_t yaw = game.Call<0x80133E14>({Memory::Read16(work + 0x32C), Memory::Read32(work + kAngles + 4) & 0xFFFF, 0x300});
+        const uint32_t yaw = game.Call<0x8016EBF4>({Memory::Read16(work + 0x32C), Memory::Read32(work + kAngles + 4) & 0xFFFF, 0x300});
         Memory::Write32(work + kAngles + 4, yaw & 0xFFFF);
-        game.Call<0x80135448>({work});
+        game.Call<0x80170F50>({work});
 
         if (const int32_t count = em.Count(); count > 0) {
-            game.Call<0x80050D04>({diff, work + 0x1B0, work + 0x188});
-            game.Call<0x800ADA24>({step, diff}, {double(float(count))});
-            game.Call<0x80041EA4>({work + 0x310, step});
-            game.Call<0x8013547C>({work});
+            Vec3Sub(diff, work + 0x1B0, work + 0x188);
+            Vec3Scale(step, diff, 1.0f / float(count));
+            Vec3Copy(work + 0x310, step);
+            game.Call<0x80170F84>({work});
         }
 
         countDown();
 
         if (em.Ended())
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
 
         break;
     }
@@ -574,41 +614,40 @@ void Em001FlyChargePort(CpuContext* ctx) {
     const uint32_t work = em.work, landing = uint8_t(frame.Arg(4)), climb = uint8_t(frame.Arg(5));
     const uint32_t angles = work + kAngles, pitch = frame[0x0C], roll = frame[0x08], toTarget = frame[0x10], vector = frame[0x1C];
     const int32_t ticks = int32_t(GameStep::Ticks());
-    const auto hover = [&](float value) { game.Call<0x80130450>({work}, {double(value)}); };
+    const auto hover = [&](float value) { game.Call<0x8016A668>({work}, {double(value)}); };
     const auto fly = [&] {
-        game.Call<0x801302AC>({work});
-        return game.Call<0x80135664>({work, angles}, {double(game.F1() - 200.0f)});
+        game.Call<0x8016A47C>({work});
+        return game.Call<0x801713B8>({work, angles}, {double(game.F1() - 200.0f)});
     };
 
-    game.Call<0x80043F0C>({vector});
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work}); // f1: the carried scale, for SetScale
-        game.Call<0x80130628>({work});
+        game.Call<0x8016A47C>({work}); // f1: the carried scale, for SetScale
+        game.Call<0x8016A878>({work});
         game.Call<Em001Prepare>({work});
         em.SetMotion(0x45, 6, 0);
         Memory::Write8(work + 6, 0);
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         Memory::WriteFloat32(work + 0x314, -2.0f);
         Memory::WriteFloat32(work + 0x318, 50.0f);
         break;
     case 1: {
-        game.Call<0x80133CA0>({work});
-        game.Call<0x80136DB0>({work}, {5.0});
+        game.Call<0x8016EA78>({work});
+        game.Call<0x80172CFC>({work}, {5.0});
         uint32_t goal = climb == 0 ? 0x2800 : climb == 1 ? 0x2000 : 0x1800;
 
         if (climb > 2) {
-            game.Call<0x80050D04>({toTarget, work + 0x36C, work + 0x188});
-            game.Call<0x80041EA4>({vector, toTarget});
-            game.Call<0x80050D7C>({vector, pitch, roll}); // calcVecAngXY
+            Vec3Sub(toTarget, work + 0x36C, work + 0x188);
+            Vec3Copy(vector, toTarget);
+            game.Call<0x8028B944>({vector, pitch, roll}); // calcVecAngXY
             goal = std::min<uint32_t>(Memory::Read32(pitch), 0x3000);
         }
 
-        Memory::Write32(angles, game.Call<0x80133E14>({goal & 0xFFFF, Memory::Read32(angles) & 0xFFFF, 0x180}) & 0xFFFF);
-        game.Call<0x80133CB4>({work, 0x280});
+        Memory::Write32(angles, game.Call<0x8016EBF4>({goal & 0xFFFF, Memory::Read32(angles) & 0xFFFF, 0x180}) & 0xFFFF);
+        game.Call<0x8016EA8C>({work, 0x280});
         fly();
 
         if (Memory::ReadFloat32(work + 0x318) > 120.0f)
@@ -625,7 +664,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
         break;
     }
     case 2:
-        game.Call<0x80133CA0>({work});
+        game.Call<0x8016EA78>({work});
         em.Count(em.Count() + ticks);
 
         if (fly() == 1) {
@@ -634,7 +673,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
             em.SetMotion(0x3F, 6, 0);
             hover(-200.0f);
         } else if (em.Count() > 0x96 && Memory::Read8(work + 0x1F5) == 1)
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
 
         if (Memory::ReadFloat32(work + 0x318) > 110.0f)
             Memory::WriteFloat32(work + 0x318, 110.0f);
@@ -642,7 +681,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
         break;
     case 3:
         hover(-200.0f);
-        game.Call<0x80135558>({work, angles});
+        game.Call<0x80171104>({work, angles});
 
         if (em.Ended()) {
             em.NextState();
@@ -653,7 +692,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
         break;
     case 4:
         hover(-200.0f);
-        game.Call<0x80135558>({work, angles});
+        game.Call<0x80171104>({work, angles});
         em.Count(em.Count() + ticks);
 
         if (em.Count() > 6) {
@@ -683,7 +722,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
                 }
             } else if (Memory::Read8(work + 6) == 1) {
                 if (em.At(30.0f))
-                    game.Call<0x80129788>({work, 0});
+                    game.Call<0x80161B38>({work, 0});
 
                 if (em.Ended())
                     game.Call<ActionDone>({work});
@@ -697,7 +736,7 @@ void Em001FlyChargePort(CpuContext* ctx) {
 
                 if (em.Ended()) {
                     Memory::Write8(work + 6, 1);
-                    game.Call<0x80129788>({work, 0});
+                    game.Call<0x80161B38>({work, 0});
                     game.Call<Em::SetUp>({work, 0});
                     em.SetMotion(0x3C, 0, 0);
                 }
@@ -710,15 +749,15 @@ void Em001FlyChargePort(CpuContext* ctx) {
             }
 
             if (em.At(30.0f))
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
 
-            game.Call<0x8013562C>({work, angles});
+            game.Call<0x801712E4>({work, angles});
 
             if (Memory::ReadFloat32(work + 0x318) < 0.0f)
                 Memory::WriteFloat32(work + 0x318, 0.0f);
 
             if (em.Ended())
-                game.Call<0x80128110>({work});
+                game.Call<0x8015FF38>({work});
         }
 
         break;
@@ -751,7 +790,7 @@ void Em009RollPort(CpuContext* ctx) {
     const uint32_t route = uint32_t(roll) - 10; // rolls 10-22: 0-12
     const float s = float(GameStep::Scale());
     const int32_t ticks = int32_t(GameStep::Ticks());
-    constexpr uint32_t kRouteTable = 0x805F04A4, kRate = 0x80, kAcc = 0x328, kYaw = kAngles + 4;
+    constexpr uint32_t kRouteTable = 0x8068FA10, kRate = 0x80, kAcc = 0x328, kYaw = kAngles + 4;
     float limit = 95.0f;
     bool done = false;
 
@@ -777,20 +816,20 @@ void Em009RollPort(CpuContext* ctx) {
     };
 
     const auto toNode = [&](uint8_t node) {
-        game.Call<0x801262DC>({work, uint32_t((Memory::Read8(work + 0x1E1) & 0xF) << 8 | node) & 0xFFFF, work + 0x36C});
-        game.Call<0x80134068>({work, 0x10}, {0.0});
+        game.Call<0x8015DABC>({work, uint32_t((Memory::Read8(work + 0x1E1) & 0xF) << 8 | node) & 0xFFFF, work + 0x36C});
+        game.Call<0x8016EE30>({work, 0x10}, {0.0});
         Memory::Write8(work + 6, uint8_t(Memory::Read8(work + 6) + 1));
     };
 
     const auto magma = [&](uint32_t joint, uint32_t effect, uint32_t spawn, float z) {
-        if (game.Call<0x80130180>({work}) == 1) { // em_magma_check
+        if (game.Call<0x8016A350>({work}) == 1) { // em_magma_check
             if (joint)
                 game.Call<JointPosition>({work, joint, at});
             else
-                game.Call<0x80041EA4>({at, work + 0x188});
+                Vec3Copy(at, work + 0x188);
 
             Memory::WriteFloat32(at + 4, Memory::ReadFloat32(work + 0x214));
-            game.Call<0x801049B0>({effect, at, work + kAngles, Memory::Read8(work + 0x1E1)}, {1.0}); // eft009_set_pos
+            game.Call<0x80043478>({effect, at, work + kAngles, Memory::Read8(work + 0x1E1)}, {1.0}); // eft009_set_pos
         } else {
             game.Call<Em::Vec3Set>({at}, {0.0, 0.0, double(z)});
             game.Call<Em::Spawn>({work, spawn, joint ? joint : 1, at}, {1.0});
@@ -800,11 +839,10 @@ void Em009RollPort(CpuContext* ctx) {
         }
     };
 
-    game.Call<0x80043F0C>({at});
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     if (route <= 0xC)
-        game.Call<0x80131ED8>({work});
+        game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0: {
@@ -815,9 +853,9 @@ void Em009RollPort(CpuContext* ctx) {
         em.SetMotion(0x17, 6, 0);
         game.Call<SetMotionSpeed>({work}, {1.3f});
         game.Call<RoarVoice>({work, 0, 0x15, 8});
-        game.Call<0x80130D40>({work, uint32_t(-20)});
+        game.Call<0x8016B06C>({work, uint32_t(-20)});
         const float extra = ending == 1 ? -1500.0f : 0.0f;
-        const auto way = [&](float distance) { game.Call<0x80134068>({work, 0x10}, {double(distance)}); };
+        const auto way = [&](float distance) { game.Call<0x8016EE30>({work, 0x10}, {double(distance)}); };
 
         if (roll < 10) {
             if (roll >= 8)
@@ -833,8 +871,8 @@ void Em009RollPort(CpuContext* ctx) {
         else if (roll > 23)
             way(-500.0f + extra);
         else {
-            game.Call<0x80131DE8>({work});
-            game.Call<0x80131E58>({work});
+            game.Call<0x8016C438>({work});
+            game.Call<0x8016C4A8>({work});
             Memory::Write16(work + 0x338, 0);
             toNode(nextNode());
         }
@@ -869,8 +907,8 @@ void Em009RollPort(CpuContext* ctx) {
             break;
         default:
             if (route <= 0xC) {
-                game.Call<0x80131DE8>({work});
-                game.Call<0x80131E58>({work});
+                game.Call<0x8016C438>({work});
+                game.Call<0x8016C4A8>({work});
                 game.Call<TurnStep>({work, 0, em.At(90.0f, 1) ? 0x200u : 0u});
             } else
                 game.Call<TurnStep>({work, 0, em.At(90.0f, 1) ? 0x100u : 0u});
@@ -901,7 +939,7 @@ void Em009RollPort(CpuContext* ctx) {
         else if (roll - 6u <= 3)
             limit = 95.0f;
 
-        game.Call<0x8013562C>({work, work + kAngles});
+        game.Call<0x801712E4>({work, work + kAngles});
 
         if (Memory::ReadFloat32(work + 0x318) > limit)
             Memory::WriteFloat32(work + 0x318, limit);
@@ -915,7 +953,7 @@ void Em009RollPort(CpuContext* ctx) {
 
         switch (roll) {
         case 0:
-            game.Call<0x80133CB4>({work, 0x100});
+            game.Call<0x8016EA8C>({work, 0x100});
             game.Call<TurnStep>({work, 0, 0});
             break;
         case 2:
@@ -984,8 +1022,8 @@ void Em009RollPort(CpuContext* ctx) {
         }
         default:
             if (route <= 0xC) {
-                game.Call<0x80131DE8>({work});
-                game.Call<0x80131E58>({work});
+                game.Call<0x8016C438>({work});
+                game.Call<0x8016C4A8>({work});
 
                 if (game.Call<TurnStep>({work, 0, 0x400}) == 1) {
                     if (const uint8_t node = nextNode(); node == 0xFF)
@@ -1028,7 +1066,7 @@ void Em009RollPort(CpuContext* ctx) {
         if (em.At(24.0f))
             game.Call<RoarVoice>({work, 0, 0x12, 0x10});
 
-        game.Call<0x8013562C>({work, work + kAngles});
+        game.Call<0x801712E4>({work, work + kAngles});
 
         if (Memory::ReadFloat32(work + 0x318) < 0.0f)
             Memory::WriteFloat32(work + 0x318, 0.0f);
@@ -1039,9 +1077,9 @@ void Em009RollPort(CpuContext* ctx) {
         break;
     case 4:
         if (em.At(108.0f))
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
 
-        game.Call<0x8013562C>({work, work + kAngles});
+        game.Call<0x801712E4>({work, work + kAngles});
 
         if (Memory::ReadFloat32(work + 0x318) < 0.0f)
             Memory::WriteFloat32(work + 0x318, 0.0f);
@@ -1078,29 +1116,28 @@ void Em015StormPort(CpuContext* ctx) {
     const uint8_t how = uint8_t(frame.Arg(4));
     const uint32_t ticks = GameStep::Ticks();
 
-    const auto glow = [&](uint32_t kind, double scale) { game.Call<0x8010A930>({work, kind}, {scale}); };
+    const auto glow = [&](uint32_t kind, double scale) { game.Call<0x80049624>({work, kind}, {scale}); };
 
     const auto burst = [&](double scale) {
         game.Call<Em::Vec3Set>({at}, {0.0, 210.0, -30.0});
-        game.Call<0x80135994>({work, 3, joint}); // get_joint_wmat_em
-        game.Call<0x800514A4>({at, joint});      // mulVecMat
+        game.Call<0x80171798>({work, 3, joint}); // get_joint_wmat_em
+        game.Call<0x8028C3A8>({at, joint});      // mulVecMat
 
         for (uint32_t i = 0; i < 3; ++i)
             Memory::WriteFloat32(at + 4 * i, Memory::ReadFloat32(at + 4 * i) + Memory::ReadFloat32(joint + 0x10 * i + 0xC));
 
-        game.Call<0x80105690>({work, 10, 3, at}, {scale});
+        game.Call<0x80044190>({work, 10, 3, at}, {scale});
     };
 
     const auto shell = [&](uint32_t side) { game(Memory::Read32(Memory::Read32(kShellTable) + 0x50), {work, side, 0x1E}); };
 
-    game.Call<0x80050570>({joint});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 2});
         game.Call<Adjust8A0>({work, uint32_t(-10)});
-        game.Call<0x8012F568>({work, 0xD0, 0x14, 0, 1});
+        game.Call<0x80168E80>({work, 0xD0, 0x14, 0, 1});
         Memory::Write8(work + Em::kSubState, 0);
         em.Count(0);
         break;
@@ -1150,7 +1187,7 @@ void Em015StormPort(CpuContext* ctx) {
             }
         } else if (Memory::Read8(work + Em::kSubState) == 1 && em.At(400.0f)) {
             Memory::Write8(work + Em::kSubState, 2);
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
         }
 
         if (em.Ended())
@@ -1179,7 +1216,7 @@ void Em024ChargeUpPort(CpuContext* ctx) {
     const bool effects = uint8_t(frame.Arg(4)) == 0;
     const uint32_t how = frame.Arg(5);
 
-    const auto inArea = [&] { return (game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + kArea); };
+    const auto inArea = [&] { return (game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + kArea); };
 
     const auto spawn = [&](float scale, uint32_t kind, uint32_t bone, bool offset, float y = 0.0f, float z = 0.0f) {
         if (offset)
@@ -1190,16 +1227,16 @@ void Em024ChargeUpPort(CpuContext* ctx) {
 
     const auto sound = [&](uint32_t bone, uint32_t id) {
         game.Call<JointPosition>({work, bone, joint});
-        game.Call<0x800D9F0C>({Memory::Read32(work + 0xB14), id, 2, joint}); // se_req_pos_ps
+        game.Call<0x802B1E60>({Memory::Read32(work + 0xB14), id, 2, joint}); // se_req_pos_ps
     };
 
     // The sound at the offset (`at`) in joint 0x15's frame.
     const auto soundInJoint = [&] {
-        game.Call<0x80135994>({work, 0x15, mtx}); // get_joint_wmat_em
-        game.Call<0x800514A4>({at, mtx});         // mulVecMat
-        game.Call<0x8010148C>({mtx, at});
-        game.Call<0x80101470>({mtx, joint});
-        game.Call<0x800D9F0C>({Memory::Read32(work + 0xB14), 0x94, 2, joint});
+        game.Call<0x80171798>({work, 0x15, mtx}); // get_joint_wmat_em
+        game.Call<0x8028C3A8>({at, mtx});         // mulVecMat
+        Mtx34AddPos(mtx, at);
+        game.Call<0x805047EC>({mtx, joint});
+        game.Call<0x802B1E60>({Memory::Read32(work + 0xB14), 0x94, 2, joint});
     };
 
     // The glow and the spark of the charge: every `glowEvery` steps, every
@@ -1215,7 +1252,7 @@ void Em024ChargeUpPort(CpuContext* ctx) {
 
         if (inArea()) {
             game.Call<JointPosition>({work, 3, joint});
-            game.Call<0x800DE360>({Memory::Read32(work + 0xB14), joint, 0x1C, Memory::Read16(work + 0x1A)}); // shell_se_req
+            game.Call<0x802B8708>({Memory::Read32(work + 0xB14), joint, 0x1C, Memory::Read16(work + 0x1A)}); // shell_se_req
         }
     };
 
@@ -1231,14 +1268,14 @@ void Em024ChargeUpPort(CpuContext* ctx) {
 
     // Broken off (1.4), or turned: 0x14 to its end. True when either.
     const auto turnOrBreak = [&](uint32_t max) {
-        if (game.Call<0x8034F2AC>({work}) == 1) {
-            game.Call<0x80129788>({work, 0});
-            game.Call<0x80128A78>({work, 1, 4});
+        if (game.Call<0x80118584>({work}) == 1) {
+            game.Call<0x80161B38>({work, 0});
+            game.Call<0x80160800>({work, 1, 4});
             return true;
         }
 
         if (game.Call<TurnStep>({work, 0, max}) == 1) {
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
             em.State(3);
             em.SetMotion(0x14, 2, 0);
             game.Call<RoarVoice>({work, 1, 0x17, 0x10});
@@ -1249,7 +1286,6 @@ void Em024ChargeUpPort(CpuContext* ctx) {
         return false;
     };
 
-    game.Call<0x80050570>({mtx});
 
     switch (em.State()) {
     case 0:
@@ -1262,7 +1298,7 @@ void Em024ChargeUpPort(CpuContext* ctx) {
         if (how - 2 < 4 && 2500.0f < Memory::ReadFloat32(work + 0x378))
             Memory::WriteFloat32(work + 0x378, 2500.0f);
 
-        game.Call<0x80358854>({work, uint32_t(-20)});
+        game.Call<0x80121B2C>({work, uint32_t(-20)});
         em.Count(0);
         break;
     case 1: {
@@ -1410,9 +1446,9 @@ void Em040RockPort(CpuContext* ctx) {
 
     // +0x1A0: the offset plus the way from the position to the start.
     const auto place = [&] {
-        game.Call<0x80050D04>({way, work + kStart, work + 0x188}); // VectorSubtractWrapper
-        game.Call<0x800513DC>({sum, work + kOffset, way});
-        game.Call<0x80041EA4>({work + 0x1A0, sum}); // Vec3Copy
+        Vec3Sub(way, work + kStart, work + 0x188);
+        Vec3Add(sum, work + kOffset, way);
+        Vec3Copy(work + 0x1A0, sum);
     };
 
     // The velocity that covers `to` - `from` in `ticks` ticks under the gravity.
@@ -1435,16 +1471,16 @@ void Em040RockPort(CpuContext* ctx) {
         }
     };
 
-    const auto ownerHears = [&] { return (game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + kArea) && owner && Memory::Read8(owner) && Memory::Read8(owner + 3) == 9; };
+    const auto ownerHears = [&] { return (game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + kArea) && owner && Memory::Read8(owner) && Memory::Read8(owner + 3) == 9; };
 
     const auto sound = [&](uint32_t id, bool shell) {
-        game.Call<0x800513DC>({sum, work + 0x188, work + 0x1A0});
-        game.Call<0x80041EA4>({heard, sum});
+        Vec3Add(sum, work + 0x188, work + 0x1A0);
+        Vec3Copy(heard, sum);
 
         if (shell)
-            game.Call<0x800DE360>({Memory::Read32(owner + 0xB14), heard, id, Memory::Read16(work + 0x1A)}); // shell_se_req
+            game.Call<0x802B8708>({Memory::Read32(owner + 0xB14), heard, id, Memory::Read16(work + 0x1A)}); // shell_se_req
         else
-            game.Call<0x800D9F0C>({Memory::Read32(owner + 0xB14), id, 2, heard}); // se_req_pos_ps
+            game.Call<0x802B1E60>({Memory::Read32(owner + 0xB14), id, 2, heard}); // se_req_pos_ps
     };
 
     const auto rolling = [&] { return Memory::Read8(work + 0x32F) == 0 ? 0x22u : 0x23u; };
@@ -1465,19 +1501,19 @@ void Em040RockPort(CpuContext* ctx) {
         return em.Count() < 0;
     };
 
-    game.Call<0x80133CA0>({work});
+    game.Call<0x8016EA78>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
-        game.Call<0x80130628>({work});
+        game.Call<0x8016A47C>({work});
+        game.Call<0x8016A878>({work});
         place();
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         aim(kBounce, kStart, true, longThrow ? 0x18 : 10, longThrow ? 0xBE99999A : 0xBE19999A);
         game.Call<RoarVoice>({work, 0, 2, 0x202});
-        game.Call<0x8012CF84>({work});
-        game.Call<0x80131E18>({work});
+        game.Call<0x80165D0C>({work});
+        game.Call<0x8016C468>({work});
 
         if (ownerHears())
             sound(rolling(), true);
@@ -1486,10 +1522,10 @@ void Em040RockPort(CpuContext* ctx) {
     case 1:
         if (fly(0x1555)) {
             em.NextState();
-            game.Call<0x80050D04>({sum, work + kBounce, work + kStart});
-            game.Call<0x80041EA4>({work + kOffset, sum});
+            Vec3Sub(sum, work + kBounce, work + kStart);
+            Vec3Copy(work + kOffset, sum);
             place();
-            game.Call<0x8013545C>({work});
+            game.Call<0x80170F64>({work});
             aim(kStart, kBounce, false, longThrow ? 0x15 : 0x21, longThrow ? 0xC0000000 : 0xBF666666);
             const float n = float(em.Count());
             const float turns = 65536.0f * 15.0f * n;
@@ -1501,23 +1537,24 @@ void Em040RockPort(CpuContext* ctx) {
         } else if (ownerHears())
             sound(rolling(), true);
 
-        game.Call<0x8012CF84>({work});
-        game.Call<0x80131E18>({work});
+        game.Call<0x80165D0C>({work});
+        game.Call<0x8016C468>({work});
         break;
     case 2:
         if (fly(0xAAB)) {
-            game.Call<0x80041EA4>({work + 0x188, work + kStart});
+            Vec3Copy(work + 0x188, work + kStart);
             game.Call<Em::Vec3Set>({work + kOffset}, {0.0, 0.0, 0.0});
             place();
-            game.Call<0x801297A8>({work});
+            ClearVoice(work, 0);
+            ClearVoice(work, 1);
 
             if (ownerHears())
                 sound(0x28, false);
 
-            game.Call<0x80128A78>({work, Memory::Read8(work + 0x329) == 1 ? 0xBu : 1u, Memory::Read8(work + 0x329) == 1 ? 0x38u : 0u});
+            game.Call<0x80160800>({work, Memory::Read8(work + 0x329) == 1 ? 0xBu : 1u, Memory::Read8(work + 0x329) == 1 ? 0x38u : 0u});
         } else {
-            game.Call<0x8012CF84>({work});
-            game.Call<0x80131E18>({work});
+            game.Call<0x80165D0C>({work});
+            game.Call<0x8016C468>({work});
         }
 
         break;
@@ -1530,7 +1567,7 @@ void Em040RockPort(CpuContext* ctx) {
 // whole units, over the step's advance (rate * s) where the originals took
 // the rate: a call's turn was a tick's.
 int32_t Em019TurnUnits(GuestCall& game, uint32_t work, float degrees) {
-    game.Call<0x8012F948>({work}); // the motion's rate
+    game.Call<0x80169A88>({work}); // the motion's rate
     const float advance = float(game.F1() * GameStep::Scale());
     const float turn = degrees * advance;
     const float units = 65536.0f * turn / 360.0f;
@@ -1550,9 +1587,9 @@ void Em019TurnPort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, aside = frame[0x10];
     const uint8_t how = uint8_t(frame.Arg(4));
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
-    game.Call<0x803790E8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
+    Memory::Write8(work + 0x358, 1);
 
     switch (em.State()) {
     case 0:
@@ -1560,34 +1597,34 @@ void Em019TurnPort(CpuContext* ctx) {
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(0xD3, 0, 0);
         game.Call<SetMotionSpeed>({work}, {1.25});
-        game.Call<0x80130450>({work}, {0.0});
+        game.Call<0x8016A668>({work}, {0.0});
 
         if (how - 1u < 10u)
             game.Call<TurnSetUp>({work, 0}, {1200.0});
         else if (how == 11 || how == 12) {
-            const uint32_t angle = game.Call<0x80050AF4>({work + 0x188, work + 0x36C}); // calcVecAng2
-            game.Call<0x8012F948>({work});                                              // the motion's rate
+            const uint32_t angle = game.Call<0x8028B678>({work + 0x188, work + 0x36C}); // calcVecAng2
+            game.Call<0x80169A88>({work});                                              // the motion's rate
             const float perRate = 2.0f / game.F1();
-            game.Call<0x8013570C>({work}, {3.0, double(0.3f), 2000.0});
+            game.Call<0x80171548>({work}, {3.0, double(0.3f), 2000.0});
             const float reach = 1650.0f * game.F1();
             game.Call<Em::Vec3Set>({aside}, {0.0, 0.0, double(reach * perRate)});
-            game.Call<0x800510C8>({aside, angle + (how == 11 ? 0x4000u : uint32_t(-0x4000))}); // rotVecY
-            game.Call<0x80073FCC>({work + 0x36C, aside});                                      // VecAddInPlace
+            game.Call<0x8028BD04>({aside, angle + (how == 11 ? 0x4000u : uint32_t(-0x4000))}); // rotVecY
+            Vec3Add(work + 0x36C, work + 0x36C, aside);
             game.Call<TurnSetUp>({work, 0}, {200.0});
         } else
             game.Call<TurnSetUp>({work, 0}, {1000.0});
 
-        game.Call<0x80379000>({work, 0xFF});
+        Em019SetPartMask(work, 0xFF);
         game.Call<RoarVoice>({work, 0, 0x14, 8});
         game.Call<RoarVoice>({work, 1, 0x19, 0x18});
-        game.Call<0x80136D78>({work});
+        game.Call<0x80172CC4>({work});
         break;
     case 1: {
         if (em.At(120.0f))
             game.Call<RoarVoice>({work, 0, 0x10, 0x13});
 
         if (em.At(30.0f, 2))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         static constexpr float kDegrees[5]{0.26666668f, 0.6f, 0.23333333f, 0.36666667f, 0.6666667f};
         uint32_t max = 0x100, turn = 0;
@@ -1613,13 +1650,13 @@ void Em019TurnPort(CpuContext* ctx) {
     }
     case 2:
         if (em.At(18.0f))
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
 
         if (em.At(60.0f, 1))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.Ended())
-            game.Call<0x80128158>({work});
+            game.Call<0x8015FF80>({work});
 
         break;
     default:
@@ -1638,11 +1675,11 @@ void Em019DivePort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x10];
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
-    game.Call<0x803790E8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
+    Memory::Write8(work + 0x358, 1);
 
-    const auto glow = [&](uint32_t kind) { game.Call<0x80104918>({work, 0x19, kind, 0}, {1.0}); }; // the joint effect
+    const auto glow = [&](uint32_t kind) { game.Call<0x800433E0>({work, 0x19, kind, 0}, {1.0}); }; // the joint effect
 
     const auto spawn = [&](uint32_t kind, uint32_t joint) {
         game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 0.0});
@@ -1656,16 +1693,16 @@ void Em019DivePort(CpuContext* ctx) {
         game.Call<Adjust8A0>({work, uint32_t(-15)});
         em.SetMotion(0xCD, 0, 0);
         game.Call<SetMotionSpeed>({work}, {1.25});
-        game.Call<0x80130450>({work}, {0.0});
-        game.Call<0x80379000>({work, 0xFF});
-        game.Call<0x80136D78>({work});
+        game.Call<0x8016A668>({work}, {0.0});
+        Em019SetPartMask(work, 0xFF);
+        game.Call<0x80172CC4>({work});
         break;
     case 1:
         if (em.At(70.0f, 1))
             game.Call<SetMotionSpeed>({work}, {1.0});
 
         if (em.At(94.0f, 2))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.At(24.0f))
             game.Call<RoarVoice>({work, 0, 0x21, 2});
@@ -1684,12 +1721,12 @@ void Em019DivePort(CpuContext* ctx) {
 
         if (em.Ended()) {
             em.NextState();
-            game.Call<0x801306A0>({work, Memory::Read32(work + 0x204)});
+            game.Call<0x8016A8F4>({work, Memory::Read32(work + 0x204)});
             em.SetMotion(0xD5, 0, 0);
-            game.Call<0x8013545C>({work});
-            game.Call<0x801359B4>({work}); // get_em_chg_scale
+            game.Call<0x80170F64>({work});
+            game.Call<0x801717B8>({work}); // get_em_chg_scale
             const float scale = game.F1();
-            game.Call<0x8012F948>({work}); // the motion's rate
+            game.Call<0x80169A88>({work}); // the motion's rate
             const float speed = 50.0f * game.F1();
             Memory::WriteFloat32(work + 0x314, speed * scale);
         }
@@ -1698,21 +1735,21 @@ void Em019DivePort(CpuContext* ctx) {
     case 2: {
         const uint32_t turn = uint32_t(Em019TurnUnits(game, work, 10.0f));
         Memory::Write32(work + kAngles + 4, Memory::Read32(work + kAngles + 4) + turn);
-        game.Call<0x8013547C>({work}); // EnemyAddVelocity
+        game.Call<0x80170F84>({work}); // EnemyAddVelocity
 
         if (em.At(2.0f, 3, 62.0f) && StepCounter::Every(12))
             spawn(0x85, 3);
 
         if (Memory::Read8(work + 0x23C) || Memory::ReadFloat32(work + 0x18C) < 4000.0f + Memory::ReadFloat32(work + 0x20C)) {
-            if (game.Call<0x8012FF18>({work}, {700.0}) == 1) {
+            if (game.Call<0x80169FB8>({work}, {700.0}) == 1) {
                 em.NextState();
-                game.Call<0x80136E58>({work});
+                game.Call<0x80172D44>({work});
                 em.SetMotion(0xCE, 0, 0);
                 spawn(100, 0x19);
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
             }
         } else
-            game.Call<0x80379510>({work});
+            Em019Finish(game, work);
 
         break;
     }
@@ -1721,7 +1758,7 @@ void Em019DivePort(CpuContext* ctx) {
             spawn(99, 0x19);
 
         if (em.Ended())
-            game.Call<0x80379510>({work});
+            Em019Finish(game, work);
 
         break;
     default:
@@ -1763,17 +1800,15 @@ void Em018SpinPort(CpuContext* ctx) {
         return true;
     };
 
-    game.Call<0x800FA484>({hit});
-    game.Call<0x800FA41C>({capsule});
-    game.Call<0x80136D78>({work});
+    game.Call<0x80172CC4>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(0xD4, 0, 0);
-        game.Call<0x80130450>({work}, {0.0});
-        game.Call<0x801923BC>({work, 8});
+        game.Call<0x8016A668>({work}, {0.0});
+        Memory::Write8(work + 0x35D, uint8_t(Memory::Read8(work + 0x35D) & ~8u));
         game.Call<Adjust8A0>({work, uint32_t(-12)});
         break;
     case 1:
@@ -1783,14 +1818,14 @@ void Em018SpinPort(CpuContext* ctx) {
         em.NextState();
         Memory::Write8(work + kSub, 0);
         Memory::Write8(work + kHold, 0);
-        game.Call<0x8012F874>({work});
+        game.Call<0x801699B8>({work});
         em.SetMotion(0xD5, 0, 0);
         game.Call<SetChannelMotion>({work, 1, 0xD7, 0, 0});
         game.Call<RoarVoice>({work, 0, secondVoice ? 0x19u : 0xEu, 2});
         em.Count(0);
         game.Call<Em::Vec3Set>({burstAt}, {0.0, -80.0, 0.0});
         game.Call<ChestBurst>({work, 3, burstAt, 0xF}, {1.0});
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         Memory::WriteFloat32(work + kSpinSound, 0.0f);
         break;
     case 2: {
@@ -1805,23 +1840,23 @@ void Em018SpinPort(CpuContext* ctx) {
             if (degrees >= 360)
                 degrees = int16_t(degrees % 360);
 
-            game.Call<0x804644D0>({}, {(6.2831855f * float(degrees)) / 360.0f}); // cosf
+            game.Call<0x804655DC>({}, {(6.2831855f * float(degrees)) / 360.0f}); // cosf
             const float c = game.F1();
             weight = 0.5f * (1.0f + c);
             turn(GameStep::Share(int32_t(224.0f * c)));
         }
 
         weight = std::clamp(weight, 0.0f, 1.0f);
-        game.Call<0x800E2718>({work + 0x24, 0}, {weight});
-        game.Call<0x800E2718>({work + 0x24, 1}, {1.0f - weight});
+        game.Call<0x802A4878>({work + 0x24, 0}, {weight});
+        game.Call<0x802A4878>({work + 0x24, 1}, {1.0f - weight});
 
         if (Memory::Read8(work + kSub) <= 1) {
             if (Memory::ReadFloat32(work + kSpinSound) == 0.0f && em.At(50.0f))
                 Memory::WriteFloat32(work + kSpinSound, 1.0f);
 
-            if (Memory::ReadFloat32(work + kSpinSound) > 0.0f && game.Call<0x8029E35C>({work + 0xA08, capsule, hit, 0}) == 1 &&
-                (game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + kArea)) // get_now_areano
-                game.Call<0x800DE078>({Memory::Read32(work + 0xB14), capsule, 7, Memory::Read16(work + 0x1A)}); // shell_se_req2
+            if (Memory::ReadFloat32(work + kSpinSound) > 0.0f && game.Call<0x801B10B4>({work + 0xA08, capsule, hit, 0}) == 1 &&
+                (game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + kArea)) // get_now_areano
+                game.Call<0x802B80EC>({Memory::Read32(work + 0xB14), capsule, 7, Memory::Read16(work + 0x1A)}); // shell_se_req2
         }
 
         switch (Memory::Read8(work + kSub)) {
@@ -1833,13 +1868,13 @@ void Em018SpinPort(CpuContext* ctx) {
                 break;
             }
 
-            const uint32_t hunters = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max
-            uint32_t hunter = game.Call<0x800CFAF4>({2});                 // get_move_work_adrs
+            const uint32_t hunters = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max
+            uint32_t hunter = game.Call<0x802BCF94>({2});                 // get_move_work_adrs
 
             for (uint32_t i = 0; i < hunters; ++i, hunter += 0xB20) {
-                if (Memory::Read8(hunter) && game.Call<0x8012D20C>({Memory::Read8(hunter + 8)}) == 0 &&
-                    game.Call<0x8012D118>({work, hunter}) != 0 &&     // EnemySensesPlayer
-                    game.Call<0x8026FECC>({hunter, 6, 0x29}) != 0 && // Pl_act_ck
+                if (Memory::Read8(hunter) && game.Call<0x80165F70>({Memory::Read8(hunter + 8)}) == 0 &&
+                    game.Call<0x80165E80>({work, hunter}) != 0 &&     // EnemySensesPlayer
+                    game.Call<0x8033DC3C>({hunter, 6, 0x29}) != 0 && // Pl_act_ck
                     Memory::Read8(hunter + 0x3B6) == Memory::Read16(work + 0x1A)) {
                     Memory::Write8(work + kSub, 1);
                     Memory::Write8(work + kHold, 0);
@@ -1857,12 +1892,12 @@ void Em018SpinPort(CpuContext* ctx) {
             if (Memory::Read8(work + kSub) == 2) {
                 Memory::Write8(work + kSub, 3);
                 Memory::Write8(work + kHold, 0);
-                game.Call<0x80129788>({work, 0});
-                game.Call<0x801923AC>({work, 8});
+                game.Call<0x80161B38>({work, 0});
+                Memory::Write8(work + 0x35D, uint8_t(Memory::Read8(work + 0x35D) | 8u));
             }
 
             if (!hold(30))
-                game.Call<0x80128A78>({work, 7, 0x18});
+                game.Call<0x80160800>({work, 7, 0x18});
 
             break;
         }
@@ -1876,86 +1911,86 @@ void Em018SpinPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8014BBA4(CpuContext* ctx);
+extern "C" void func_8007C274(CpuContext* ctx);
 extern "C" void MH3_Em004Spit(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Spit", func_8014BBA4, Em001SpitPort);
+    PortCheck::Call(ctx, "Em001Spit", func_8007C274, Em001SpitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014BBA4, MH3_Em004Spit, "Em001Spit");
+REGISTER_NATIVE_FUNCTION_AS(0x8007C274, MH3_Em004Spit, "Em001Spit");
 
-extern "C" void func_8014C4C8(CpuContext* ctx);
+extern "C" void func_8007CB5C(CpuContext* ctx);
 extern "C" void MH3_Em004Spit3(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Spit3", func_8014C4C8, Em001Spit3Port);
+    PortCheck::Call(ctx, "Em001Spit3", func_8007CB5C, Em001Spit3Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014C4C8, MH3_Em004Spit3, "Em001Spit3");
+REGISTER_NATIVE_FUNCTION_AS(0x8007CB5C, MH3_Em004Spit3, "Em001Spit3");
 
-extern "C" void func_8017B7AC(CpuContext* ctx);
+extern "C" void func_800D902C(CpuContext* ctx);
 extern "C" void MH3_Em015Discharge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Discharge", func_8017B7AC, Em015DischargePort);
+    PortCheck::Call(ctx, "Em015Discharge", func_800D902C, Em015DischargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017B7AC, MH3_Em015Discharge, "Em015Discharge");
+REGISTER_NATIVE_FUNCTION_AS(0x800D902C, MH3_Em015Discharge, "Em015Discharge");
 
-extern "C" void func_8017C6F4(CpuContext* ctx);
+extern "C" void func_800D9C04(CpuContext* ctx);
 extern "C" void MH3_Em015Charge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Charge", func_8017C6F4, Em015ChargePort);
+    PortCheck::Call(ctx, "Em015Charge", func_800D9C04, Em015ChargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017C6F4, MH3_Em015Charge, "Em015Charge");
+REGISTER_NATIVE_FUNCTION_AS(0x800D9C04, MH3_Em015Charge, "Em015Charge");
 
-extern "C" void func_80188548(CpuContext* ctx);
+extern "C" void func_800E5B28(CpuContext* ctx);
 extern "C" void MH3_LudrothSpit(CpuContext* ctx) {
-    PortCheck::Call(ctx, "LudrothSpit", func_80188548, LudrothSpitPort);
+    PortCheck::Call(ctx, "LudrothSpit", func_800E5B28, LudrothSpitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80188548, MH3_LudrothSpit, "LudrothSpit");
+REGISTER_NATIVE_FUNCTION_AS(0x800E5B28, MH3_LudrothSpit, "LudrothSpit");
 
-extern "C" void func_8014DE50(CpuContext* ctx);
+extern "C" void func_8007E4F0(CpuContext* ctx);
 extern "C" void MH3_Em001Dive(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Dive", func_8014DE50, Em001DivePort);
+    PortCheck::Call(ctx, "Em001Dive", func_8007E4F0, Em001DivePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014DE50, MH3_Em001Dive, "Em001Dive");
+REGISTER_NATIVE_FUNCTION_AS(0x8007E4F0, MH3_Em001Dive, "Em001Dive");
 
-extern "C" void func_8014CF5C(CpuContext* ctx);
+extern "C" void func_8007D5D8(CpuContext* ctx);
 extern "C" void MH3_Em001FlyCharge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001FlyCharge", func_8014CF5C, Em001FlyChargePort);
+    PortCheck::Call(ctx, "Em001FlyCharge", func_8007D5D8, Em001FlyChargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014CF5C, MH3_Em001FlyCharge, "Em001FlyCharge");
+REGISTER_NATIVE_FUNCTION_AS(0x8007D5D8, MH3_Em001FlyCharge, "Em001FlyCharge");
 
-extern "C" void func_8038A81C(CpuContext* ctx);
+extern "C" void func_800BFD2C(CpuContext* ctx);
 extern "C" void MH3_Em009Roll(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em009Roll", func_8038A81C, Em009RollPort);
+    PortCheck::Call(ctx, "Em009Roll", func_800BFD2C, Em009RollPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8038A81C, MH3_Em009Roll, "Em009Roll");
+REGISTER_NATIVE_FUNCTION_AS(0x800BFD2C, MH3_Em009Roll, "Em009Roll");
 
-extern "C" void func_801981B4(CpuContext* ctx);
+extern "C" void func_800F5ACC(CpuContext* ctx);
 extern "C" void MH3_Em018Spin(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Spin", func_801981B4, Em018SpinPort);
+    PortCheck::Call(ctx, "Em018Spin", func_800F5ACC, Em018SpinPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801981B4, MH3_Em018Spin, "Em018Spin");
+REGISTER_NATIVE_FUNCTION_AS(0x800F5ACC, MH3_Em018Spin, "Em018Spin");
 
-extern "C" void func_8017AD0C(CpuContext* ctx);
+extern "C" void func_800D85B4(CpuContext* ctx);
 extern "C" void MH3_Em015Storm(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Storm", func_8017AD0C, Em015StormPort);
+    PortCheck::Call(ctx, "Em015Storm", func_800D85B4, Em015StormPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017AD0C, MH3_Em015Storm, "Em015Storm");
+REGISTER_NATIVE_FUNCTION_AS(0x800D85B4, MH3_Em015Storm, "Em015Storm");
 
-extern "C" void func_80350DD8(CpuContext* ctx);
+extern "C" void func_801199FC(CpuContext* ctx);
 extern "C" void MH3_Em024ChargeUp(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em024ChargeUp", func_80350DD8, Em024ChargeUpPort);
+    PortCheck::Call(ctx, "Em024ChargeUp", func_801199FC, Em024ChargeUpPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80350DD8, MH3_Em024ChargeUp, "Em024ChargeUp");
+REGISTER_NATIVE_FUNCTION_AS(0x801199FC, MH3_Em024ChargeUp, "Em024ChargeUp");
 
-extern "C" void func_801BA438(CpuContext* ctx);
+extern "C" void func_8014CA88(CpuContext* ctx);
 extern "C" void MH3_Em040Rock(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em040Rock", func_801BA438, Em040RockPort);
+    PortCheck::Call(ctx, "Em040Rock", func_8014CA88, Em040RockPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BA438, MH3_Em040Rock, "Em040Rock");
+REGISTER_NATIVE_FUNCTION_AS(0x8014CA88, MH3_Em040Rock, "Em040Rock");
 
-extern "C" void func_8037C73C(CpuContext* ctx);
+extern "C" void func_800FF698(CpuContext* ctx);
 extern "C" void MH3_Em019Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Turn", func_8037C73C, Em019TurnPort);
+    PortCheck::Call(ctx, "Em019Turn", func_800FF698, Em019TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8037C73C, MH3_Em019Turn, "Em019Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x800FF698, MH3_Em019Turn, "Em019Turn");
 
-extern "C" void func_8037CD94(CpuContext* ctx);
+extern "C" void func_800FFD28(CpuContext* ctx);
 extern "C" void MH3_Em019Dive(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Dive", func_8037CD94, Em019DivePort);
+    PortCheck::Call(ctx, "Em019Dive", func_800FFD28, Em019DivePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8037CD94, MH3_Em019Dive, "Em019Dive");
+REGISTER_NATIVE_FUNCTION_AS(0x800FFD28, MH3_Em019Dive, "Em019Dive");

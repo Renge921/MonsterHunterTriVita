@@ -21,8 +21,8 @@
 
 namespace {
 
-constexpr uint32_t kResetting = 0x8065AA65; // u8: soft reset in progress (reset_fade.cpp)
-constexpr uint32_t kFades = 0x8066D108;
+constexpr uint32_t kResetting = 0x80768AAD; // u8: soft reset in progress (reset_fade.cpp)
+constexpr uint32_t kFades = 0x80753F68;
 constexpr uint32_t kFadeCount = 4;
 enum : uint32_t {
     kLevel = 0,
@@ -75,8 +75,8 @@ void TickFadesPort(CpuContext*) {
 
 } // namespace
 
-extern "C" void func_800581A4(CpuContext* ctx);
+extern "C" void func_80294A80(CpuContext* ctx);
 extern "C" void MH3_TickFades(CpuContext* ctx) {
-    PortCheck::Call(ctx, "TickFades", func_800581A4, TickFadesPort);
+    PortCheck::Call(ctx, "TickFades", func_80294A80, TickFadesPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800581A4, MH3_TickFades, "TickFades");
+REGISTER_NATIVE_FUNCTION_AS(0x80294A80, MH3_TickFades, "TickFades");

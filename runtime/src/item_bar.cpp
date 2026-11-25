@@ -56,4 +56,4 @@ extern "C" void MH3_ItemBarStep(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8025E12C, MH3_ItemBarStep, "ItemBarStep");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8025E12C, MH3_ItemBarStep, "ItemBarStep");

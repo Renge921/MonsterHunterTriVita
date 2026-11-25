@@ -36,13 +36,13 @@ enum : uint32_t {
     kState = 0x60,         // group, u8 per slot
     kSpeed = 0x6E,         // group, u16 per speed index
     kMemberZ = 0x0C,       // member, f32
-    kTargets = 0x805EE670, // Vec per target
+    kTargets = 0x806846E8, // Vec per target (RMHJ08)
 };
 
 enum : uint32_t {
-    Rand = 0x800CEF20,
-    VecToMhVec3 = 0x8005001C,
-    DistanceXZ = 0x80050FE4,
+    Rand = 0x802BC314,
+    VecToMhVec3 = 0x8028A804,
+    DistanceXZ = 0x8028BC04,
 };
 
 constexpr float kBaseSpeed = 20.0f, kCruiseDistance = 500.0f, kAccel = 0.5f;
@@ -160,9 +160,9 @@ static void GroupShuttle(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-extern "C" void func_80368DCC(CpuContext* ctx);
+extern "C" void func_80075418(CpuContext* ctx);
 
 extern "C" void MH3_GroupShuttle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "GroupShuttle", func_80368DCC, GroupShuttle);
+    PortCheck::Call(ctx, "GroupShuttle", func_80075418, GroupShuttle);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80368DCC, MH3_GroupShuttle, "GroupShuttle");
+REGISTER_NATIVE_FUNCTION_AS(0x80075418, MH3_GroupShuttle, "GroupShuttle");

@@ -45,9 +45,7 @@
 namespace {
 
 enum : uint32_t {
-    Callback = 0x8007B5C8,    // (object, timing, argument, information)
-    WorldMatrix = 0x8007B5A8, // (object, 1): the object's world matrix
-    RootPrepare = 0x80083180, // (root)
+    RootPrepare = 0x80535DEC, // (root)
 };
 
 enum : uint32_t {
@@ -62,9 +60,9 @@ enum : uint32_t {
 
 // CalcWorld callback classes (vtables).
 enum : uint32_t {
-    kArmorCallback = 0x805BB334,   // the hunter's armor parts
-    kWeaponCallback = 0x805BB318,  // the hunter's weapon parts
-    kMonsterCallback = 0x805A1B28, // a monster's own bones
+    kArmorCallback = 0x806C8318,   // the hunter's armor parts
+    kWeaponCallback = 0x806C82FC,  // the hunter's weapon parts
+    kMonsterCallback = 0x80687500, // a monster's own bones
 };
 
 constexpr uint32_t kTaskCalcWorld = 1;
@@ -298,16 +296,22 @@ void SplitChildren(CpuContext* cpu, uint32_t group, uint32_t argument, uint32_t 
 #endif
 }
 
+void RunCalcWorldCallback(GuestCall& call, uint32_t group, uint32_t timing, uint32_t argument, uint32_t information) {
+    const uint32_t callback = Memory::Read32(group + 0xD4);
+    if (callback && (Memory::Read16(group + 0xDA) & 1) && (Memory::Read8(group + 0xD8) & timing))
+        call.Virtual(callback, 0x0C, {timing, group, argument, information});
+}
+
 void GroupCalcWorld(CpuContext* cpu) {
-    const uint32_t group = cpu->gpr[3], argument = cpu->gpr[4], information = cpu->gpr[5];
+    const uint32_t group = cpu->gpr[3], argument = cpu->gpr[5], information = cpu->gpr[6];
     GuestFrame frame(cpu, 0x30);
     GuestCall call{cpu};
     const uint32_t local = frame[0x08];
     Memory::Write32(local, argument);
-    call.Call<Callback>({group, 1, argument, information});
+    RunCalcWorldCallback(call, group, 1, argument, information);
     call.Virtual(group, kCalcWorld, {information, local});
-    call.Call<Callback>({group, 2, Memory::Read32(local), information});
-    const uint32_t matrix = call.Call<WorldMatrix>({group, 1});
+    RunCalcWorldCallback(call, group, 2, Memory::Read32(local), information);
+    const uint32_t matrix = group + 0x3C;
 
     if (group == worldRoot && Memory::Read32(group + kChildCount) <= kMaxChildren && SplitAllowed()) {
         SplitChildren(cpu, group, Memory::Read32(local), matrix);
@@ -317,7 +321,7 @@ void GroupCalcWorld(CpuContext* cpu) {
             call.Virtual(Memory::Read32(Memory::Read32(group + kChildren) + i * 4), kG3dProc, {kTaskCalcWorld, Memory::Read32(local), matrix});
     }
 
-    call.Call<Callback>({group, 4, Memory::Read32(local), information});
+    RunCalcWorldCallback(call, group, 4, Memory::Read32(local), information);
 }
 
 void RootCalcWorld(CpuContext* cpu) {
@@ -332,22 +336,26 @@ void RootCalcWorld(CpuContext* cpu) {
 
 } // namespace
 
-extern "C" void func_80081E50(CpuContext* cpu);
+extern "C" void func_80534F90(CpuContext* cpu);
 extern "C" void MH3_ScnGroupCalcWorld(CpuContext* cpu) {
+    if (cpu->gpr[4] != kTaskCalcWorld) {
+        func_80534F90(cpu);
+        return;
+    }
     // Only the root's pass is checked: the groups below it may run on the
     // worker, and a check saves and restores all of RAM.
     if (cpu->gpr[3] == worldRoot)
-        PortCheck::Call(cpu, "ScnGroupCalcWorld", func_80081E50, GroupCalcWorld);
+        PortCheck::Call(cpu, "ScnGroupCalcWorld", func_80534F90, GroupCalcWorld);
     else
         GroupCalcWorld(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80081E50, MH3_ScnGroupCalcWorld, "ScnGroupCalcWorld");
+REGISTER_NATIVE_FUNCTION_AS(0x80534F90, MH3_ScnGroupCalcWorld, "ScnGroupCalcWorld");
 
-extern "C" void func_800832F4(CpuContext* cpu);
+extern "C" void func_80535F74(CpuContext* cpu);
 extern "C" void MH3_ScnRootCalcWorld(CpuContext* cpu) {
-    PortCheck::Call(cpu, "ScnRootCalcWorld", func_800832F4, RootCalcWorld);
+    PortCheck::Call(cpu, "ScnRootCalcWorld", func_80535F74, RootCalcWorld);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800832F4, MH3_ScnRootCalcWorld, "ScnRootCalcWorld");
+REGISTER_NATIVE_FUNCTION_AS(0x80535F74, MH3_ScnRootCalcWorld, "ScnRootCalcWorld");
 
 #ifdef MH3_DEVELOPMENT
 void MH3PrintWorldSplit(unsigned frames) {

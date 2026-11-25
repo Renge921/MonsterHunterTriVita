@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-inline constexpr uint32_t kAnmObjChrResVtable = 0x8058C468u;
+inline constexpr uint32_t kAnmObjChrResVtable = 0x80719D40u;
 
 // Model node `index`'s result of AnmObjChrRes `anim` at `frame`, as setting
 // that frame and calling GetResult would give, without changing the object's

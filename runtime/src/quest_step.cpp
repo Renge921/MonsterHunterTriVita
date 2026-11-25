@@ -1394,64 +1394,64 @@ extern "C" void func_803B0E28(CpuContext* ctx);
 extern "C" void MH3_QuestTimedSpawn(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestTimedSpawn", func_803B0E28, QuestTimedSpawnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B0E28, MH3_QuestTimedSpawn, "QuestTimedSpawn");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B0E28, MH3_QuestTimedSpawn, "QuestTimedSpawn");
 
 extern "C" void func_803B0FFC(CpuContext* ctx);
 extern "C" void MH3_QuestExtraSpawn(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestExtraSpawn", func_803B0FFC, QuestExtraSpawnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B0FFC, MH3_QuestExtraSpawn, "QuestExtraSpawn");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B0FFC, MH3_QuestExtraSpawn, "QuestExtraSpawn");
 
 extern "C" void func_803B17E0(CpuContext* ctx);
 extern "C" void MH3_QuestMarathonSpawn(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestMarathonSpawn", func_803B17E0, QuestMarathonSpawnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B17E0, MH3_QuestMarathonSpawn, "QuestMarathonSpawn");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B17E0, MH3_QuestMarathonSpawn, "QuestMarathonSpawn");
 
 extern "C" void func_803A9728(CpuContext* ctx);
 extern "C" void MH3_QuestMonsterDown(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestMonsterDown", func_803A9728, QuestMonsterDownPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A9728, MH3_QuestMonsterDown, "QuestMonsterDown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A9728, MH3_QuestMonsterDown, "QuestMonsterDown");
 
 extern "C" void func_803A9BE0(CpuContext* ctx);
 extern "C" void MH3_MemberMonsterDown(CpuContext* ctx) {
     PortCheck::Call(ctx, "MemberMonsterDown", func_803A9BE0, MemberMonsterDownPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A9BE0, MH3_MemberMonsterDown, "MemberMonsterDown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A9BE0, MH3_MemberMonsterDown, "MemberMonsterDown");
 
 extern "C" void func_803A9F8C(CpuContext* ctx);
 extern "C" void MH3_ObjectiveMet(CpuContext* ctx) {
     PortCheck::Call(ctx, "ObjectiveMet", func_803A9F8C, ObjectiveMetPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A9F8C, MH3_ObjectiveMet, "ObjectiveMet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A9F8C, MH3_ObjectiveMet, "ObjectiveMet");
 
 extern "C" void func_803B6558(CpuContext* ctx);
 extern "C" void MH3_ObjectiveCount(CpuContext* ctx) {
     PortCheck::Call(ctx, "ObjectiveCount", PortCheck::Returns::Gpr3, func_803B6558, ObjectiveCountPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B6558, MH3_ObjectiveCount, "ObjectiveCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B6558, MH3_ObjectiveCount, "ObjectiveCount");
 
 extern "C" void func_803B3C18(CpuContext* ctx);
 extern "C" void MH3_TargetText(CpuContext* ctx) {
     PortCheck::Call(ctx, "TargetText", PortCheck::Returns::Gpr3, func_803B3C18, TargetTextPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B3C18, MH3_TargetText, "TargetText");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B3C18, MH3_TargetText, "TargetText");
 
 extern "C" void func_80339AEC(CpuContext* ctx);
 extern "C" void MH3_SpawnStateDone(CpuContext* ctx) {
     PortCheck::Call(ctx, "SpawnStateDone", func_80339AEC, SpawnStateDonePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80339AEC, MH3_SpawnStateDone, "SpawnStateDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80339AEC, MH3_SpawnStateDone, "SpawnStateDone");
 
 extern "C" void func_80339AAC(CpuContext* ctx);
 extern "C" void MH3_NetSummoned(CpuContext* ctx) {
     PortCheck::Call(ctx, "NetSummoned", func_80339AAC, NetSummonedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80339AAC, MH3_NetSummoned, "NetSummoned");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80339AAC, MH3_NetSummoned, "NetSummoned");
 
 extern "C" void func_80337BD0(CpuContext* ctx);
 extern "C" void MH3_NetSpawn(CpuContext* ctx) {
     PortCheck::Call(ctx, "NetSpawn", func_80337BD0, NetSpawnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80337BD0, MH3_NetSpawn, "NetSpawn");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80337BD0, MH3_NetSpawn, "NetSpawn");

@@ -355,34 +355,34 @@ extern "C" void func_80128624(CpuContext* ctx);
 extern "C" void MH3_EnemySetAction(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemySetAction", func_80128624, SetActionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80128624, MH3_EnemySetAction, "EnemySetAction");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80128624, MH3_EnemySetAction, "EnemySetAction");
 
 extern "C" void func_80126520(CpuContext* ctx);
 extern "C" void MH3_EnemyHandler(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyHandler", func_80126520, HandlerPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80126520, MH3_EnemyHandler, "EnemyHandler");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80126520, MH3_EnemyHandler, "EnemyHandler");
 
 extern "C" void func_80128B10(CpuContext* ctx);
 extern "C" void MH3_EnemyBackTo(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyBackTo", func_80128B10, BackToPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80128B10, MH3_EnemyBackTo, "EnemyBackTo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80128B10, MH3_EnemyBackTo, "EnemyBackTo");
 
 extern "C" void func_80127FAC(CpuContext* ctx);
 extern "C" void MH3_EnemyActionDone(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyActionDone", func_80127FAC, ActionDonePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80127FAC, MH3_EnemyActionDone, "EnemyActionDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80127FAC, MH3_EnemyActionDone, "EnemyActionDone");
 
 extern "C" void func_8013C4BC(CpuContext* ctx);
 extern "C" void MH3_EnemyAiPick(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyAiPick", func_8013C4BC, AiPickPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013C4BC, MH3_EnemyAiPick, "EnemyAiPick");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013C4BC, MH3_EnemyAiPick, "EnemyAiPick");
 
 extern "C" void func_801D8F00(CpuContext* ctx);
 extern "C" void MH3_Em007TailSpin(CpuContext* ctx) {
     PortCheck::Call(ctx, "Em007TailSpin", func_801D8F00, TailSpinPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D8F00, MH3_Em007TailSpin, "Em007TailSpin");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801D8F00, MH3_Em007TailSpin, "Em007TailSpin");

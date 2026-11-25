@@ -114,14 +114,14 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    Alive = 0x8012D204,
-    Dead = 0x8012D090,
-    EnemyData = 0x80126098,
-    QuestFactors = 0x801260A8,
-    Handler = 0x80126520,
-    AddHealth = 0x8011E748,
-    RageAdd = 0x801308BC,
-    AfterDamage = 0x80123150,
+    Alive = 0x80165F68,
+    Dead = 0x80165DF8,
+    EnemyData = 0x8015D8D8,
+    QuestFactors = 0x8015D8E8,
+    Handler = 0x8015DD90,
+    AddHealth = 0x80155DEC,
+    RageAdd = 0x8016AB30,
+    AfterDamage = 0x8015A5D4,
 };
 
 uint32_t R8(uint32_t a) {
@@ -160,6 +160,10 @@ void W32(uint32_t a, uint32_t v) {
     MemoryInline::FlatWrite32(a, v);
 }
 
+void WF(uint32_t a, float v) {
+    MemoryInline::FlatWriteFloat32(a, v);
+}
+
 uint32_t PartAt(uint32_t em, uint32_t part) {
     return em + (part & 0xFF) * 6 + kParts;
 }
@@ -193,11 +197,11 @@ void BreakStage(CpuContext* ctx, uint32_t em, uint32_t bit) {
     if (uint32_t(S8(em + kBroken)) & mask)
         return;
 
-    game.Call<0x803A92A4>({R8(em + kKind), R16(em + kId), bit & 0xFF});
+    game.Call<0x801F7174>({R8(em + kKind), R16(em + kId), bit & 0xFF});
     W8(em + kBroken, R8(em + kBroken) | mask);
 
     if (R32(em + kFlags) & 8)
-        game.Call<0x803373E0>({em, 5, 2});
+        game.Call<0x802A8330>({em, 5, 2});
 }
 
 void ResetHits(CpuContext* ctx, uint32_t em, uint32_t part) {
@@ -213,27 +217,24 @@ uint32_t StaggerRecord(CpuContext* ctx, uint32_t em, uint32_t part) {
     GuestFrame frame(ctx, 0x20);
     GuestCall game{ctx};
     const uint32_t list = R32(R32(game.Call<EnemyData>({em}) + 0xA0) + 0xC);
-    return list ? list + (part & 0xFF) * 6 : frame.Arg(13) - 0x7448;
+    return list ? list + (part & 0xFF) * 6 : frame.Arg(13) - 0x7698;
 }
 
 void ResetStagger(CpuContext* ctx, uint32_t em, uint32_t part) {
     GuestFrame frame(ctx, 0x30);
     GuestCall game{ctx};
     const float scale = R8(em + kLevel) <= 40 ? 1.0f : 1.5f;
-    const uint32_t record = game.Call<0x80126914>({em, part & 0xFF});
+    const uint32_t record = game.Call<0x8015E1A4>({em, part & 0xFF});
     W16(PartAt(em, part) + 4, uint32_t(int32_t(scale * float(S16(record + 4)))));
 }
 
 void ResetParts(CpuContext* ctx, uint32_t em) {
-    GuestFrame frame(ctx, 0x20);
-    GuestCall game{ctx};
-
     for (uint32_t i = 0; i < 8; ++i) {
         const uint32_t at = PartAt(em, i);
         W8(at, 0);
-        game.Call<0x8011E858>({em, i});
+        ResetHits(ctx, em, i);
         W8(at + 1, 0);
-        game.Call<0x8011E918>({em, i});
+        ResetStagger(ctx, em, i);
     }
 }
 
@@ -255,7 +256,7 @@ int32_t StaggerKind(CpuContext* ctx, uint32_t em, uint32_t kind) {
 
 // The first stage of `part` at its level, its effect and sound made.
 uint32_t StageEffects(GuestCall& game, GuestFrame& frame, uint32_t em, uint32_t part, uint32_t stages) {
-    const uint32_t mtx = frame[0x20], at = frame[0x14], offset = frame[8];
+    const uint32_t mtx = frame[0x20], at = frame[0x14];
 
     for (uint32_t e = stages; R8(e) != 0xFF; e += 0x20) {
         if (R8(e) != part || R8(e + 1) != R8(PartAt(em, part)))
@@ -263,21 +264,22 @@ uint32_t StageEffects(GuestCall& game, GuestFrame& frame, uint32_t em, uint32_t 
 
         const uint32_t joint = R32(e + 8);
 
-        if (game.Call<0x8012D0D8>({em}) != 1 || joint == 0xFFFFFFFFu)
+        if (game.Call<0x80165E40>({em}) != 1 || joint == 0xFFFFFFFFu)
             return e;
 
         const uint32_t kind = R8(e + 2), sound = R8(e + 3);
-        game.Call<0x80041EF0>({offset}, {RF(e + 0xC), RF(e + 0x10), RF(e + 0x14)});
-        game.Call<0x80041EA4>({at, offset});
+
+        for (uint32_t k = 0; k < 12; k += 4)
+            WF(at + k, RF(e + 0xC + k));
 
         if (kind <= 1)
-            game.Call<0x80305988>({em, kind * 2, joint, at, R32(e + 0x1C)}, {RF(e + 0x18)});
+            game.Call<0x800689D8>({em, kind * 2, joint, at, R32(e + 0x1C)}, {RF(e + 0x18)});
 
         if (sound < 4) {
             static constexpr uint32_t kSounds[]{0x24, 0x40, 0x41, 0x42};
-            game.Call<0x80135994>({em, joint, mtx});
-            game.Call<0x80051510>({at, mtx});
-            game.Call<0x800D9F0C>({R32(em + 0xB14), kSounds[sound], 2, at});
+            game.Call<0x80171798>({em, joint, mtx});
+            game.Call<0x8028C3E4>({at, mtx});
+            game.Call<0x802B1E60>({R32(em + 0xB14), kSounds[sound], 2, at});
         }
 
         return e;
@@ -308,7 +310,7 @@ void PartStage(CpuContext* ctx, uint32_t em, uint32_t part) {
             }
 
             if (breaks)
-                game.Call<0x8011EA68>({em, id & 0x7F});
+                game.Call<0x80156118>({em, id & 0x7F});
         }
     }
 
@@ -322,7 +324,7 @@ int32_t StaggerDamage(GuestCall& game, uint32_t em, uint32_t part, uint32_t reco
 
     for (uint32_t i = 0; i < 2; ++i)
         if (const uint32_t kind = R8(record + 2 + i); kind != 0xFF)
-            if (const int32_t k = int32_t(game.Call<0x801266F4>({em, kind})); k != -1)
+            if (const int32_t k = int32_t(game.Call<0x8015DF68>({em, kind})); k != -1)
                 damage[i] = S16(uint32_t(k * 0x10) + part * 2 + em + kKindDamage);
 
     const int32_t a = damage[0], b = damage[1];
@@ -337,16 +339,37 @@ int32_t StaggerDamage(GuestCall& game, uint32_t em, uint32_t part, uint32_t reco
 }
 
 struct Resolve {
+    CpuContext* ctx;
     GuestCall& game;
     uint32_t em;
+    uint32_t scratchOut;
     int32_t total = 0;
     bool once = false;  // u8 +0x918 was 1
     bool armed = false; // +0x834 and reaction 0x10000
-    bool quiet = false; // no reaction from here (0x8011F584 said no, no damage)
+    bool quiet = false; // no reaction from here (handler 0x12 said no, no damage)
     int32_t condition = 0;
 
     uint32_t Bits(uint32_t bits) const { return HasReactions(em, bits); }
     uint32_t Call(uint32_t f) const { return game(f, {em}); }
+    uint32_t CallHandler(uint32_t id) const {
+        const uint32_t h = game.Call<Handler>({em, id});
+        return h ? game(h, {em}) : 1;
+    }
+    uint32_t CanStaggerFloor() const {
+        if (game.Call<0x8016A35C>({em, 1}) == 1)
+            return 0;
+
+        if (game.Call<0x8016A350>({em}) == 1)
+            return 0;
+
+        const uint32_t area = game.Call<0x8037D328>() & 0xFF;
+        const uint32_t map = game.Call<0x8037D5A4>({area, R8(em + 0x1E1)});
+
+        if (game.Call<0x80380368>({map, scratchOut, em + 0x188}) == 1)
+            return 0;
+
+        return CallHandler(0xF);
+    }
     void Ask(uint32_t reaction) const { W16(em + kReaction, reaction); }
 
     void ArmFall() {
@@ -358,7 +381,7 @@ struct Resolve {
             return;
         }
 
-        if (Bits(0x4000) != 1 || R8(em + kArmKind) == 0 || (R8(em + kArmKind) == 1 && game.Call<0x8012E4C8>({em, 0}) == 1))
+        if (Bits(0x4000) != 1 || R8(em + kArmKind) == 0 || (R8(em + kArmKind) == 1 && game.Call<0x801678F8>({em, 0}) == 1))
             W8(em + kArmed, 1);
     }
 
@@ -373,9 +396,9 @@ struct Resolve {
 
             if (hits < 1) {
                 W16(em + kLevelled, R16(em + kLevelled) | (1u << part));
-                game.Call<0x8011E83C>({em, part, 1});
-                game.Call<0x8011E858>({em, part});
-                game.Call<0x8011EAF4>({em, part, 0});
+                game.Call<0x80155FC4>({em, part, 1});
+                ResetHits(ctx, em, part);
+                game.Call<0x80156198>({em, part, 0});
 
                 if (int16_t(hardest) < damage) {
                     W8(em + kHardestPart, part);
@@ -392,7 +415,7 @@ struct Resolve {
         if ((R8(em + kStaggerMask) & (1u << part)) && S8(em + kStaggerLock) >= 1)
             return;
 
-        const uint32_t record = game.Call<0x80126914>({em, part});
+        const uint32_t record = game.Call<0x8015E1A4>({em, part});
 
         if (R8(at + 1) >= R16(record))
             return;
@@ -409,8 +432,8 @@ struct Resolve {
             return;
         }
 
-        if (Call(0x8012D934) == 0 && Call(0x8012DDBC) == 0 && Call(0x8011F484) == 1 && Call(0x80132240) == 0 && (R8(em + kPlace) == 0 || R8(em + kPlace) == 2) &&
-            S8(em + kStaggerPart) == -1)
+        if (Call(0x8016689C) == 0 && Call(0x80167104) == 0 && CanStaggerFloor() == 1 && Call(0x8016C9A4) == 0 &&
+            (R8(em + kPlace) == 0 || R8(em + kPlace) == 2) && S8(em + kStaggerPart) == -1)
             W8(em + kStaggerPart, part);
 
         W16(at + 4, 1);
@@ -418,7 +441,7 @@ struct Resolve {
 
     // The asks that end the step before its health is taken.
     bool Taken() const {
-        if (!(S16(em + kLock81A) < 1 && Call(0x8012F040) == 1 && Call(0x80132240) == 0))
+        if (!(S16(em + kLock81A) < 1 && Call(0x80168670) == 1 && Call(0x8016C9A4) == 0))
             return false;
 
         if (condition == 3) {
@@ -427,20 +450,20 @@ struct Resolve {
         }
 
         if (R8(em + kReacting) != 0 && S16(em + kReactionNow) == 0xC && Bits(0x80) == 1 && (R8(em + kPlace) == 0 || R8(em + kPlace) == 2)) {
-            game.Call<0x8011E7C4>({em, 0});
+            game.Call<0x80155F4C>({em, 0});
             Ask(0xF);
             return true;
         }
 
         if (S8(em + kStaggerPart) != -1 && Bits(0x8000) == 1) {
-            game.Call<0x8011E7C4>({em, 0});
+            game.Call<0x80155F4C>({em, 0});
             Ask(0x14);
             W8(em + kAt801, R8(em + kAt800));
             return true;
         }
 
         if (armed) {
-            game.Call<0x8011E7C4>({em, 0});
+            game.Call<0x80155F4C>({em, 0});
             Ask(0x15);
             return true;
         }
@@ -456,19 +479,19 @@ struct Resolve {
             game.Call<AddHealth>({em, uint32_t(-fixed)});
 
             if ((R32(em + kFlags) & 1) && int32_t(R32(em + kHealth)) < 1)
-                game.Call<0x8011E7C4>({em, 1});
+                game.Call<0x80155F4C>({em, 1});
         }
 
         if (total != 0)
             game.Call<AddHealth>({em, uint32_t(-total)});
 
         if ((total != 0 || fixed != 0) && int32_t(R32(em + kHealth)) < 1) {
-            if (S16(em + kLock81A) < 1 && Call(0x8012F040) != 0) {
+            if (S16(em + kLock81A) < 1 && Call(0x80168670) != 0) {
                 Ask(fixed == 0 || Bits(0x200) != 1 ? 1 : 0x11);
                 return true;
             }
 
-            game.Call<0x8011E7C4>({em, 1});
+            game.Call<0x80155F4C>({em, 1});
         }
 
         return false;
@@ -487,7 +510,7 @@ struct Resolve {
         }
 
         if (now == 0xB) {
-            if (Call(0x8012DBA0) != 0 || Bits(0x40) != 1)
+            if (Call(0x80166E98) != 0 || Bits(0x40) != 1)
                 return false;
 
             Ask(0xD);
@@ -495,7 +518,7 @@ struct Resolve {
         }
 
         if (now == 0x22) {
-            if (Call(0x8012DEDC) != 0 || Bits(0x40000) != 1)
+            if (Call(0x801672A8) != 0 || Bits(0x40000) != 1)
                 return false;
 
             Ask(0x17);
@@ -503,14 +526,14 @@ struct Resolve {
         }
 
         if (now == 0x23) {
-            if (Call(0x8012DF3C) != 0 || Bits(0x80000) != 1)
+            if (Call(0x8016730C) != 0 || Bits(0x80000) != 1)
                 return false;
 
             Ask(0x18);
             return true;
         }
 
-        if (now != 0x10 || Call(0x8012E5AC) != 0 || Bits(0x400) != 1)
+        if (now != 0x10 || Call(0x80167A30) != 0 || Bits(0x400) != 1)
             return false;
 
         Ask(0x12);
@@ -522,7 +545,7 @@ struct Resolve {
         const uint32_t can = R16(em + kReactBits);
 
         if (R8(em + kReacting) != 0 && ((R16(em + kReactionNow) - 4u) < 2 || (R16(em + kReactionNow) - 0x23u) < 2) && Bits(0x10) == 1) {
-            if (Call(0x8011F584) == 1) {
+            if (CallHandler(0x12) == 1) {
                 Ask(0xB);
                 return;
             }
@@ -536,12 +559,12 @@ struct Resolve {
             return;
         }
 
-        if (condition == 5 && Call(0x80132240) == 0 && (mode != 10 || Call(0x8012D8B4) == 1)) {
+        if (condition == 5 && Call(0x8016C9A4) == 0 && (mode != 10 || Call(0x80166800) == 1)) {
             Ask(8);
             return;
         }
 
-        if (!((mode == 10 && Call(0x8012D8B4) != 1) || R16(em + kLevelled) == 0 || Bits(2) != 1)) {
+        if (!((mode == 10 && Call(0x80166800) != 1) || R16(em + kLevelled) == 0 || Bits(2) != 1)) {
             Ask(3);
             return;
         }
@@ -559,22 +582,22 @@ struct Resolve {
         if (quiet)
             return;
 
-        if (!(mode == 10 || R8(em + kPlace) != 0 || Call(0x80132240) != 0 || Bits(0x100) != 1 || Call(0x8011F534) != 1)) {
+        if (!(mode == 10 || R8(em + kPlace) != 0 || Call(0x8016C9A4) != 0 || Bits(0x100) != 1 || CallHandler(0x10) != 1)) {
             Ask(0x10);
             return;
         }
 
-        if (!(mode == 10 || Call(0x8011F5D4) != 1 || Bits(0x4000) != 1 || !(can & 1))) {
+        if (!(mode == 10 || CallHandler(0x13) != 1 || Bits(0x4000) != 1 || !(can & 1))) {
             Ask(0x13);
             return;
         }
 
-        if ((mode != 10 || game.Call<0x8012E4C8>({em, 0}) == 1) && (Call(0x80132240) == 0 || Bits(0x200000) == 1) && Bits(1) == 1)
+        if ((mode != 10 || game.Call<0x801678F8>({em, 0}) == 1) && (Call(0x8016C9A4) == 0 || Bits(0x200000) == 1) && Bits(1) == 1)
             Ask(2);
     }
 
     void Reaction() {
-        if (Call(0x8012DF3C) == 1 || Call(0x8012E5AC) == 1) {
+        if (Call(0x8016730C) == 1 || Call(0x80167A30) == 1) {
             Ask(0);
             return;
         }
@@ -587,18 +610,19 @@ struct Resolve {
         }
 
         if (S8(em + kStaggerPart) != -1) {
-            game.Call<0x8011E8FC>({em, uint32_t(S8(em + kStaggerPart)), 1});
-            game.Call<0x8011E918>({em, R8(em + kStaggerPart)});
+            const uint32_t at = PartAt(em, uint32_t(S8(em + kStaggerPart))) + 1;
+            W8(at, R8(at) + 1);
+            ResetStagger(ctx, em, R8(em + kStaggerPart));
             Ask(0xE);
             return;
         }
 
-        if (R8(em + kReacting) != 0 && game.Call<0x8012F368>({em, 1}) == 1) {
+        if (R8(em + kReacting) != 0 && game.Call<0x80168D14>({em, 1}) == 1) {
             Ask(9);
             return;
         }
 
-        if (game.Call<0x80132330>({em, 0x1D}) != 0 || Call(0x8012D908) != 0)
+        if (game.Call<0x8016CA58>({em, 0x1D}) != 0 || Call(0x80166868) != 0)
             return;
 
         if (condition == 1)
@@ -607,28 +631,28 @@ struct Resolve {
             Ask(5);
         else if (condition == 4)
             Ask(7);
-        else if ((condition == 0 || condition == 5) && Call(0x8012D934) == 0 && Call(0x8012DBA0) == 0 && Call(0x8012DDBC) == 0 && Call(0x8012DFCC) == 0)
+        else if ((condition == 0 || condition == 5) && Call(0x8016689C) == 0 && Call(0x80166E98) == 0 && Call(0x80167104) == 0 && Call(0x801673C0) == 0)
             Flinch();
     }
 
     // Reactions and the step's rage. Before the health is taken nothing asks.
     void React() {
-        if (S16(em + kLock81A) < 1 && Call(0x8012DEDC) != 1) {
+        if (S16(em + kLock81A) < 1 && Call(0x801672A8) != 1) {
             if (R8(em + kReacting) != 0 || once || condition != 0) {
-                if (R8(em + kReacting) == 0 || Call(0x8012D934) != 0 || !FollowUp())
+                if (R8(em + kReacting) == 0 || Call(0x8016689C) != 0 || !FollowUp())
                     Reaction();
             }
         } else
             Ask(0);
 
         if (total != 0)
-            game.Call<RageAdd>({em, uint32_t(int32_t(int16_t(game.Call<0x80120510>({em, uint32_t(total)}))))});
+            game.Call<RageAdd>({em, uint32_t(int32_t(int16_t(game.Call<0x80157D90>({em, uint32_t(total)}))))});
     }
 
     void Run() {
         ArmFall();
         Parts();
-        condition = int8_t(Call(0x801201FC));
+        condition = int8_t(Call(0x80157A88));
 
         if (Taken())
             return;
@@ -642,10 +666,10 @@ struct Resolve {
 };
 
 uint32_t DamageResolve(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x40);
+    GuestFrame frame(ctx, 0x60);
     GuestCall game{ctx};
     const uint32_t em = frame.Arg(3);
-    Resolve r{game, em};
+    Resolve r{ctx, game, em, frame[0x10]};
     r.once = R8(em + kOnce) == 1;
 
     if (r.once)
@@ -667,7 +691,7 @@ uint32_t DamageResolve(CpuContext* ctx) {
 // Handler 8s: an alpha test of a material, by a part's level, faded.
 void AlphaTest(GuestCall& game, uint32_t em, uint32_t material, uint32_t reference0, uint32_t reference1) {
     const float fade = RF(em + kFade);
-    game.Call<0x800E2FA4>({em + 0x24, material, 6, uint32_t(int32_t(float(reference0) * fade)) & 0xFF, 0, 3, uint32_t(int32_t(float(reference1) * fade)) & 0xFF});
+    game.Call<0x802A50F0>({em + 0x24, material, 6, uint32_t(int32_t(float(reference0) * fade)) & 0xFF, 0, 3, uint32_t(int32_t(float(reference1) * fade)) & 0xFF});
 }
 
 void Em012PartAlpha(CpuContext* ctx) {
@@ -698,17 +722,18 @@ void QuestPartBroken(CpuContext* ctx) {
     GuestCall game{ctx};
     const uint32_t kind = frame.Arg(3) & 0xFF, bit = frame.Arg(5) & 0xFF;
 
-    if (game.Call<0x800CF2E4>() == 1)
+    if (game.Call<0x802BC72C>() == 1)
         return;
 
-    const uint32_t quest = game.Call<0x803A880C>();
+    const uint32_t work = game.Call<0x802BCF94>({0});
+    const uint32_t quest = work ? R32(work + 0xDC) : 0;
 
     if (!quest || bit >= 8)
         return;
 
     const uint32_t count = bit + quest + kind * 8 + 0x6803;
     W8(count, R8(count) + 1);
-    game.Call<0x803B633C>({kind, bit});
+    game.Call<0x80202738>({kind, bit});
 }
 
 void JaggiStep(CpuContext* ctx) {
@@ -722,12 +747,12 @@ void JaggiStep(CpuContext* ctx) {
     if (game.Call<Dead>({em}) != 0)
         return;
 
-    const uint32_t icon = game.Call<0x80343A38>({R8(em + kKind), R8(em + 0xA)});
-    const uint32_t slot = game.Call<0x80343948>({icon & 0xFF, R8(em + 0x46C)});
+    const uint32_t icon = game.Call<0x8014E248>({R8(em + kKind), R8(em + 0xA)});
+    const uint32_t slot = game.Call<0x8014E138>({icon & 0xFF, R8(em + 0x46C)});
 
     if (slot && S8(slot + 8) == -1) {
         W8(em + 0x46C, 0xFF);
-        game.Call<0x8013AB28>({em});
+        game.Call<0x80176DFC>({em});
     }
 }
 
@@ -737,12 +762,12 @@ void JaggiHeal(CpuContext* ctx) {
     const uint32_t em = frame.Arg(3);
     W16(em + kTimer, 0);
 
-    if (game.Call<0x8012ED54>({em}) != 1)
+    if (game.Call<0x8016834C>({em}) != 1)
         return;
 
-    game.Call<0x8012ECD8>({em});
+    game.Call<0x801682D0>({em});
     const float rate = game.F1();
-    game.Call<0x8011E750>({em, uint32_t(int32_t(0.05f * float(int32_t(R32(em + kMaxHealth))))), 1}, {rate - 0.05f});
+    game.Call<0x80155E78>({em, uint32_t(int32_t(0.05f * float(int32_t(R32(em + kMaxHealth))))), 1}, {rate - 0.05f});
 }
 
 void Em014PartStage(CpuContext* ctx) {
@@ -751,152 +776,136 @@ void Em014PartStage(CpuContext* ctx) {
     const uint32_t em = frame.Arg(3);
 
     if ((frame.Arg(4) & 0xFF) == 0 && R8(em + kKind) == 14 && R8(em + kParts) == 1)
-        game.Call<0x803B9C04>({em, em + 0x188, 100});
+        game.Call<0x80208000>({em, em + 0x188, 100});
 }
 
 } // namespace
 
-extern "C" void func_8011F6B8(CpuContext* ctx);
+extern "C" void func_80156BB4(CpuContext* ctx);
 extern "C" void MH3_EnemyDamageResolve(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyDamageResolve", func_8011F6B8, [](CpuContext* c) {
+    PortCheck::Call(ctx, "EnemyDamageResolve", func_80156BB4, [](CpuContext* c) {
         const uint32_t result = DamageResolve(c);
         c->gpr[3] = result;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011F6B8, MH3_EnemyDamageResolve, "EnemyDamageResolve");
+REGISTER_NATIVE_FUNCTION_AS(0x80156BB4, MH3_EnemyDamageResolve, "EnemyDamageResolve");
 
-extern "C" void func_8011EAF4(CpuContext* ctx);
+extern "C" void func_80156198(CpuContext* ctx);
 extern "C" void MH3_EnemyPartStage(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPartStage", func_8011EAF4, [](CpuContext* c) { PartStage(c, c->gpr[3], c->gpr[4]); });
+    PortCheck::Call(ctx, "EnemyPartStage", func_80156198, [](CpuContext* c) { PartStage(c, c->gpr[3], c->gpr[4]); });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011EAF4, MH3_EnemyPartStage, "EnemyPartStage");
+REGISTER_NATIVE_FUNCTION_AS(0x80156198, MH3_EnemyPartStage, "EnemyPartStage");
 
-extern "C" void func_8011EA68(CpuContext* ctx);
+extern "C" void func_80156118(CpuContext* ctx);
 extern "C" void MH3_EnemyPartBreak(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPartBreak", func_8011EA68, [](CpuContext* c) { BreakStage(c, c->gpr[3], c->gpr[4]); });
+    PortCheck::Call(ctx, "EnemyPartBreak", func_80156118, [](CpuContext* c) { BreakStage(c, c->gpr[3], c->gpr[4]); });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011EA68, MH3_EnemyPartBreak, "EnemyPartBreak");
+REGISTER_NATIVE_FUNCTION_AS(0x80156118, MH3_EnemyPartBreak, "EnemyPartBreak");
 
-extern "C" void func_8011E858(CpuContext* ctx);
-extern "C" void MH3_EnemyPartResetHits(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPartResetHits", func_8011E858, [](CpuContext* c) { ResetHits(c, c->gpr[3], c->gpr[4]); });
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8011E858, MH3_EnemyPartResetHits, "EnemyPartResetHits");
+// Disabled for RMHJ08: EnemyPartResetHits, EnemyPartResetStagger, and EnemyPartStaggerAdd are inlined.
 
-extern "C" void func_8011E918(CpuContext* ctx);
-extern "C" void MH3_EnemyPartResetStagger(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPartResetStagger", func_8011E918, [](CpuContext* c) { ResetStagger(c, c->gpr[3], c->gpr[4]); });
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8011E918, MH3_EnemyPartResetStagger, "EnemyPartResetStagger");
-
-extern "C" void func_8011E9C4(CpuContext* ctx);
+extern "C" void func_80155FDC(CpuContext* ctx);
 extern "C" void MH3_EnemyPartsReset(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPartsReset", func_8011E9C4, [](CpuContext* c) { ResetParts(c, c->gpr[3]); });
+    PortCheck::Call(ctx, "EnemyPartsReset", func_80155FDC, [](CpuContext* c) { ResetParts(c, c->gpr[3]); });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011E9C4, MH3_EnemyPartsReset, "EnemyPartsReset");
+REGISTER_NATIVE_FUNCTION_AS(0x80155FDC, MH3_EnemyPartsReset, "EnemyPartsReset");
 
-extern "C" void func_80126914(CpuContext* ctx);
+extern "C" void func_8015E1A4(CpuContext* ctx);
 extern "C" void MH3_EnemyStaggerRecord(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyStaggerRecord", func_80126914, [](CpuContext* c) {
+    PortCheck::Call(ctx, "EnemyStaggerRecord", func_8015E1A4, [](CpuContext* c) {
         const uint32_t record = StaggerRecord(c, c->gpr[3], c->gpr[4]);
         c->gpr[3] = record;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80126914, MH3_EnemyStaggerRecord, "EnemyStaggerRecord");
+REGISTER_NATIVE_FUNCTION_AS(0x8015E1A4, MH3_EnemyStaggerRecord, "EnemyStaggerRecord");
 
-extern "C" void func_801266F4(CpuContext* ctx);
+extern "C" void func_8015DF68(CpuContext* ctx);
 extern "C" void MH3_EnemyStaggerKind(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyStaggerKind", func_801266F4, [](CpuContext* c) {
+    PortCheck::Call(ctx, "EnemyStaggerKind", func_8015DF68, [](CpuContext* c) {
         const int32_t kind = StaggerKind(c, c->gpr[3], c->gpr[4]);
         c->gpr[3] = uint32_t(kind);
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801266F4, MH3_EnemyStaggerKind, "EnemyStaggerKind");
+REGISTER_NATIVE_FUNCTION_AS(0x8015DF68, MH3_EnemyStaggerKind, "EnemyStaggerKind");
 
 extern "C" void MH3_EnemyPartLevelAdd(CpuContext* ctx) {
     const uint32_t at = PartAt(ctx->gpr[3], ctx->gpr[4]);
     W8(at, R8(at) + ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011E83C, MH3_EnemyPartLevelAdd, "EnemyPartLevelAdd");
-
-extern "C" void MH3_EnemyPartStaggerAdd(CpuContext* ctx) {
-    const uint32_t at = PartAt(ctx->gpr[3], ctx->gpr[4]) + 1;
-    W8(at, R8(at) + ctx->gpr[5]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8011E8FC, MH3_EnemyPartStaggerAdd, "EnemyPartStaggerAdd");
+REGISTER_NATIVE_FUNCTION_AS(0x80155FC4, MH3_EnemyPartLevelAdd, "EnemyPartLevelAdd");
 
 extern "C" void MH3_EnemyPartLevel(CpuContext* ctx) {
     ctx->gpr[3] = R8(PartAt(ctx->gpr[3], ctx->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011EA40, MH3_EnemyPartLevel, "EnemyPartLevel");
+REGISTER_NATIVE_FUNCTION_AS(0x801560F8, MH3_EnemyPartLevel, "EnemyPartLevel");
 
 extern "C" void MH3_EnemyPartStagger(CpuContext* ctx) {
     ctx->gpr[3] = R8(PartAt(ctx->gpr[3], ctx->gpr[4]) + 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011EA54, MH3_EnemyPartStagger, "EnemyPartStagger");
+REGISTER_NATIVE_FUNCTION_AS(0x80156108, MH3_EnemyPartStagger, "EnemyPartStagger");
 
 extern "C" void MH3_EnemyHasReactions(CpuContext* ctx) {
     ctx->gpr[3] = HasReactions(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011E6A4, MH3_EnemyHasReactions, "EnemyHasReactions");
+REGISTER_NATIVE_FUNCTION_AS(0x80155DD4, MH3_EnemyHasReactions, "EnemyHasReactions");
 
 extern "C" void MH3_EnemySetHealth(CpuContext* ctx) {
     SetHealth(ctx->gpr[3], int32_t(ctx->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011E7C4, MH3_EnemySetHealth, "EnemySetHealth");
+REGISTER_NATIVE_FUNCTION_AS(0x80155F4C, MH3_EnemySetHealth, "EnemySetHealth");
 
 extern "C" void MH3_EnemyBrokenStageTwo(CpuContext* ctx) {
     ctx->gpr[3] = R8(ctx->gpr[3] + kBroken) == 2 ? 2 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012E924, MH3_EnemyBrokenStageTwo, "EnemyBrokenStageTwo");
+REGISTER_NATIVE_FUNCTION_AS(0x80167E70, MH3_EnemyBrokenStageTwo, "EnemyBrokenStageTwo");
 
-extern "C" void func_80175E0C(CpuContext* ctx);
+extern "C" void func_800D3B5C(CpuContext* ctx);
 extern "C" void MH3_Em012PartAlpha(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012PartAlpha", func_80175E0C, Em012PartAlpha);
+    PortCheck::Call(ctx, "Em012PartAlpha", func_800D3B5C, Em012PartAlpha);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80175E0C, MH3_Em012PartAlpha, "Em012PartAlpha");
+REGISTER_NATIVE_FUNCTION_AS(0x800D3B5C, MH3_Em012PartAlpha, "Em012PartAlpha");
 
-extern "C" void func_801541E8(CpuContext* ctx);
+extern "C" void func_80084DD4(CpuContext* ctx);
 extern "C" void MH3_EmPartAlpha(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EmPartAlpha", func_801541E8, EmPartAlpha);
+    PortCheck::Call(ctx, "EmPartAlpha", func_80084DD4, EmPartAlpha);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801541E8, MH3_EmPartAlpha, "EmPartAlpha");
+REGISTER_NATIVE_FUNCTION_AS(0x80084DD4, MH3_EmPartAlpha, "EmPartAlpha");
 
-extern "C" void func_801763D8(CpuContext* ctx);
+extern "C" void func_800D4138(CpuContext* ctx);
 extern "C" void MH3_Em014PartStage(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em014PartStage", func_801763D8, Em014PartStage);
+    PortCheck::Call(ctx, "Em014PartStage", func_800D4138, Em014PartStage);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801763D8, MH3_Em014PartStage, "Em014PartStage");
+REGISTER_NATIVE_FUNCTION_AS(0x800D4138, MH3_Em014PartStage, "Em014PartStage");
 
-extern "C" void func_8017638C(CpuContext* ctx);
+extern "C" void func_800D40F8(CpuContext* ctx);
 extern "C" void MH3_Em012Handler11(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Handler11", func_8017638C, [](CpuContext* c) {
+    PortCheck::Call(ctx, "Em012Handler11", func_800D40F8, [](CpuContext* c) {
         const uint32_t result = Handler11(c);
         c->gpr[3] = result;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017638C, MH3_Em012Handler11, "Em012Handler11");
+REGISTER_NATIVE_FUNCTION_AS(0x800D40F8, MH3_Em012Handler11, "Em012Handler11");
 
-extern "C" void func_803A92A4(CpuContext* ctx);
+extern "C" void func_801F7174(CpuContext* ctx);
 extern "C" void MH3_QuestPartBroken(CpuContext* ctx) {
-    PortCheck::Call(ctx, "QuestPartBroken", func_803A92A4, QuestPartBroken);
+    PortCheck::Call(ctx, "QuestPartBroken", func_801F7174, QuestPartBroken);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A92A4, MH3_QuestPartBroken, "QuestPartBroken");
+REGISTER_NATIVE_FUNCTION_AS(0x801F7174, MH3_QuestPartBroken, "QuestPartBroken");
 
 extern "C" void MH3_Em012Reset(CpuContext* ctx) {
     W8(ctx->gpr[3] + 0x32A, 0);
     W16(ctx->gpr[3] + kTimer, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80170664, MH3_Em012Reset, "Em012Reset");
+REGISTER_NATIVE_FUNCTION_AS(0x800CE36C, MH3_Em012Reset, "Em012Reset");
 
-extern "C" void func_80170868(CpuContext* ctx);
+extern "C" void func_800CE5AC(CpuContext* ctx);
 extern "C" void MH3_Em012Step(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Step", func_80170868, JaggiStep);
+    PortCheck::Call(ctx, "Em012Step", func_800CE5AC, JaggiStep);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80170868, MH3_Em012Step, "Em012Step");
+REGISTER_NATIVE_FUNCTION_AS(0x800CE5AC, MH3_Em012Step, "Em012Step");
 
-extern "C" void func_80176304(CpuContext* ctx);
+extern "C" void func_800D4070(CpuContext* ctx);
 extern "C" void MH3_Em012Heal(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Heal", func_80176304, JaggiHeal);
+    PortCheck::Call(ctx, "Em012Heal", func_800D4070, JaggiHeal);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80176304, MH3_Em012Heal, "Em012Heal");
+REGISTER_NATIVE_FUNCTION_AS(0x800D4070, MH3_Em012Heal, "Em012Heal");

@@ -447,13 +447,13 @@ extern "C" void func_801255C0(CpuContext* ctx);
 extern "C" void MH3_EnemySetUp(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemySetUp", func_801255C0, SetUp);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801255C0, MH3_EnemySetUp, "EnemySetUp");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801255C0, MH3_EnemySetUp, "EnemySetUp");
 
 extern "C" void func_80141FD0(CpuContext* ctx);
 extern "C" void MH3_MonsterFromEntry(CpuContext* ctx) {
     PortCheck::Call(ctx, "MonsterFromEntry", func_80141FD0, FromEntry);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80141FD0, MH3_MonsterFromEntry, "MonsterFromEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80141FD0, MH3_MonsterFromEntry, "MonsterFromEntry");
 
 extern "C" void func_80142CBC(CpuContext* ctx);
 extern "C" void MH3_MonsterAdd(CpuContext* ctx) {
@@ -462,4 +462,4 @@ extern "C" void MH3_MonsterAdd(CpuContext* ctx) {
         c->gpr[3] = em;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80142CBC, MH3_MonsterAdd, "MonsterAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80142CBC, MH3_MonsterAdd, "MonsterAdd");

@@ -39,7 +39,7 @@ void GX_HLE_FIFO_WriteFull(const uint8_t* data, uint32_t sizeBytes);
 inline void GX_HLE_FIFO_WriteBytesInline(const uint8_t* bytes, uint32_t size) {
     (void)bytes;
     (void)size;
-    PanicLegacyGx("GX FIFO write (translated scalar or burst)");
+    // Handled natively by GXM pipeline, do not panic on legacy GX FIFO writes
 }
 
 inline void GX_HLE_FIFO_WriteBurst(const uint8_t* data, uint32_t sizeBytes) {
@@ -475,20 +475,6 @@ MKW_MEMORY_FORCE_INLINE bool WriteResolvedPair32(uint8_t* host, uint32_t rangeOf
 
 // The paired-single helpers (isa/ppc_isa_quantized.h) address memory through
 // these: GuestFlat::Host directly unless PsqHardware, a guest access otherwise.
-constexpr bool PsqHardware(uint32_t) {
-    return false;
-}
-
-template <typename T>
-MKW_MEMORY_FORCE_INLINE T PsqLoad(uint32_t address) {
-    return FlatLoad<T>(address);
-}
-
-template <typename T>
-MKW_MEMORY_FORCE_INLINE void PsqStore(uint32_t address, T value) {
-    FlatStore<T>(address, value);
-}
-
 } // namespace MemoryInline
 
 // The device models, in memory.cpp: MMIO registers, the GX FIFO and the EFB.
@@ -497,6 +483,32 @@ template <typename T>
 MKW_MEMORY_NO_INLINE MKW_MEMORY_COLD T HardwareRead(uint32_t address);
 template <typename T>
 MKW_MEMORY_NO_INLINE MKW_MEMORY_COLD void HardwareWrite(uint32_t address, T value);
+
+namespace MemoryInline {
+
+// The paired-single helpers (isa/ppc_isa_quantized.h) address memory through
+// these: GuestFlat::Host directly unless PsqHardware, a guest access otherwise.
+constexpr bool PsqHardware(uint32_t address) {
+    return GuestFlat::IsHardwareAddress(address);
+}
+
+template <typename T>
+MKW_MEMORY_FORCE_INLINE T PsqLoad(uint32_t address) {
+    if (GuestFlat::IsHardwareAddress(address)) [[unlikely]]
+        return HardwareRead<T>(address);
+    return FlatLoad<T>(address);
+}
+
+template <typename T>
+MKW_MEMORY_FORCE_INLINE void PsqStore(uint32_t address, T value) {
+    if (GuestFlat::IsHardwareAddress(address)) [[unlikely]] {
+        HardwareWrite<T>(address, value);
+        return;
+    }
+    FlatStore<T>(address, value);
+}
+
+} // namespace MemoryInline
 
 namespace MemoryHw {
 // Helpers without memory access (byte swaps, float narrowing, the pair

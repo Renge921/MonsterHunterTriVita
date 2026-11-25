@@ -339,6 +339,7 @@ bool Characters(const std::string& text, std::set<uint32_t>& codes) {
 constexpr uint16_t kJis[]{
 #include "language_jis.inc"
 };
+} // namespace
 
 // Shift-JIS to UTF-8, control codes kept.
 std::string FromShiftJis(std::span<const uint8_t> text) {
@@ -370,6 +371,8 @@ std::string FromShiftJis(std::span<const uint8_t> text) {
 
     return out;
 }
+
+namespace {
 
 class Atlas {
   public:

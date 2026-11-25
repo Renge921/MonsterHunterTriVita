@@ -15,30 +15,30 @@
 
 namespace {
 
-// Game flags (0x8065AA60 block).
-constexpr uint32_t kResetting = 0x8065AA65;      // u8: reset in progress
-constexpr uint32_t kResetDisabled = 0x8065AA91;  // u8: 1 = ignore HOME
-constexpr uint32_t kQuestActive = 0x8065B2C5;    // u8
-constexpr uint32_t kResetRequested = 0x8065B2CC; // u8
-constexpr uint32_t kResetConfirmed = 0x8065B2CD; // u8
-constexpr uint32_t kResetPhase = 0x8065B2CF;     // u8: 0 idle, 1 running, 2 waiting on hook
-constexpr uint32_t kSaving = 0x8065B2D0;         // u8
-constexpr uint32_t kSkipFlag = 0x8065B2D2;       // u8
-constexpr uint32_t kResetActive = 0x8065B2D3;    // u8
-constexpr uint32_t kOnResetHook = 0x8065B32C;    // void (*)()
-constexpr uint32_t kResetReadyHook = 0x8065B330; // int (*)(): 1 = not ready yet
-constexpr uint32_t kOnlineMode = 0x8065AA84;     // u8 (0x800CF26C, inlined)
+// Game flags (0x80768AA8 block, system_w).
+constexpr uint32_t kResetting = 0x80768AAD;      // u8: reset in progress
+constexpr uint32_t kResetDisabled = 0x80768AD9;  // u8: 1 = ignore HOME
+constexpr uint32_t kQuestActive = 0x8076930D;    // u8
+constexpr uint32_t kResetRequested = 0x80769314; // u8
+constexpr uint32_t kResetConfirmed = 0x80769315; // u8
+constexpr uint32_t kResetPhase = 0x80769317;     // u8: 0 idle, 1 running, 2 waiting on hook
+constexpr uint32_t kSaving = 0x80769318;         // u8
+constexpr uint32_t kSkipFlag = 0x8076931A;       // u8
+constexpr uint32_t kResetActive = 0x8076931B;    // u8
+constexpr uint32_t kOnResetHook = 0x80769374;    // void (*)()
+constexpr uint32_t kResetReadyHook = 0x80769378; // int (*)(): 1 = not ready yet
+constexpr uint32_t kOnlineMode = 0x80768ACC;     // u8 (inlined)
 
-// Controller state (0x8065B7D0 block).
-constexpr uint32_t kPad0Buttons = 0x8065B89E; // u16
-constexpr uint32_t kPad1Channel = 0x8065BB50; // s32: -1 = no second player
-constexpr uint32_t kPad1Buttons = 0x8065BBEE; // u16
+// Controller state (0x80754428 block, PAD).
+constexpr uint32_t kPad0Buttons = 0x807544F6; // u16
+constexpr uint32_t kPad1Channel = 0x807547A8; // s32: -1 = no second player
+constexpr uint32_t kPad1Buttons = 0x80754846; // u16
 
-// Fade state (0x806978E8).
-constexpr uint32_t kFade = 0x806978E8;
+// Fade state (0x80767998).
+constexpr uint32_t kFade = 0x80767998;
 enum : uint32_t {
     kState = 0x00,  // u8
-    kClear1 = 0x01, // u8 (0x800D26C4 clears +1 and +6)
+    kClear1 = 0x01, // u8 (0x802BF4D4 clears +1 and +6)
     kHold = 0x04,   // s16: frames (in retraces) to hold black
     kClear6 = 0x06, // u16
     kLevel = 0x20,  // s32: 0..255 fade alpha
@@ -46,26 +46,26 @@ enum : uint32_t {
     kActive = 0x28, // u8
 };
 
-constexpr uint32_t kSaveBusy = 0x806970EC;        // u32 (0x800CEE20, inlined: == 0)
-constexpr uint32_t kEventBusy = 0x806977A0;       // u8
-constexpr uint32_t kDemoState = 0x806D4FA0;       // u8 (event_demo_ck, inlined: == 4)
-constexpr uint32_t kNetworkBusy = 0x806D6D4A;     // u8 (0x804360A0, inlined)
-constexpr uint32_t kMovieFrameDrawn = 0x806D6D24; // u8 (0x80434688, inlined)
+constexpr uint32_t kSaveBusy = 0x80753FDC;        // u32 (0x80298820, inlined: == 0)
+constexpr uint32_t kEventBusy = 0x80767868;       // u8
+constexpr uint32_t kDemoState = 0x807863D0;       // u8 (event_demo_ck, inlined: == 4)
+constexpr uint32_t kNetworkBusy = 0x80799CCA;     // u8 (0x8040D9AC, inlined)
+constexpr uint32_t kMovieFrameDrawn = 0x80799CA4; // u8 (0x8040B9D8, inlined)
 
 enum : int32_t {
-    kRetracesPerFrame = -0x4684
-}; // r13 (0x8003F588, inlined)
+    kRetracesPerFrame = -0x4708
+}; // r13 (0x80031F70, inlined)
 
 enum : uint32_t {
-    get_rcSwitch_on = 0x8004392C,
-    get_ControlType = 0x80043BAC,
-    ResetScene = 0x80044AB8,
-    FadeHold = 0x800D2154,
-    FadeOutDone = 0x800D26DC,
-    ResetFinished = 0x800D2810,
-    ResetTitle = 0x800E4B30,
-    ResetAudio = 0x800E874C,
-    ResetOnline = 0x803A91F0,
+    get_rcSwitch_on = 0x8029A150,
+    get_ControlType = 0x8029A6D8,
+    ResetScene = 0x8029B43C,
+    FadeHold = 0x8036D378,
+    FadeOutDone = 0x802BF4EC,
+    ResetFinished = 0x802BF624,
+    ResetTitle = 0x8036D024,
+    ResetAudio = 0x80367494,
+    ResetOnline = 0x801F70B0,
 };
 
 // 0x800D26C4, inlined.
@@ -226,4 +226,4 @@ extern "C" void MH3_ResetFade(CpuContext* ctx) {
 
     *ctx = saved;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D2230, MH3_ResetFade, "ResetFade");
+REGISTER_NATIVE_FUNCTION_AS(0x802BF064, MH3_ResetFade, "ResetFade");

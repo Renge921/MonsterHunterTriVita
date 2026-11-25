@@ -98,13 +98,14 @@ double Reciprocal(double x) {
 // share of the span) over d (the frame past the first key). Constants from the
 // small-data area.
 double Hermite(uint32_t r2, double v0, double t0, double v1, double t1, double s, double d) {
-    double f0 = MemoryInline::FlatReadFloat32(r2 - 31672);
+    (void)r2;
+    double f0 = 1.0f;
     const double f7 = static_cast<double>(PpcForceSingleValueInline(s - f0));
     const double f6 = PpcFmulsInline(d, f7);
     f0 = PpcFmulsInline(s, t1);
     const double f4 = PPC_Fmadds(f7, t0, f0);
-    double f2 = MemoryInline::FlatReadFloat32(r2 - 31668);
-    f0 = MemoryInline::FlatReadFloat32(r2 - 31664);
+    double f2 = 2.0f;
+    f0 = 3.0f;
     f2 = PPC_Fmsubs(f2, s, f0);
     f0 = static_cast<double>(PpcForceSingleValueInline(v0 - v1));
     f0 = PpcFmulsInline(f2, f0);
@@ -395,9 +396,10 @@ double EvaluateLean(uint32_t r2, uint32_t anm, float frame, const CpuContext& cp
     const float s = d * (1.0f / (f1 - f0));
 
     // Hermite, as 0x8008AF34.
-    const float c0 = MemoryInline::FlatReadFloat32(r2 - 31672);
-    const float c1 = MemoryInline::FlatReadFloat32(r2 - 31668);
-    const float c2 = MemoryInline::FlatReadFloat32(r2 - 31664);
+    (void)r2;
+    const float c0 = 1.0f;
+    const float c1 = 2.0f;
+    const float c2 = 3.0f;
     const float f7 = s - c0;
     const float f6 = d * f7;
     const float f4 = Madd(f7, t0, s * t1);
@@ -457,24 +459,24 @@ double Checked(const char* name, void (*original)(CpuContext*), void (*port)(Cpu
         return Checked<track>(#name, func_##address, name##Port, check, r1, r2, r3, f1);                                                                                                               \
     }
 
-MH3_ANM_CHR_KEYS(8008B264, Fvs48, AnmChrKeyEvalFVS48)
-MH3_ANM_CHR_KEYS(8008B9C0, Fvs32, AnmChrKeyEvalFVS32)
-MH3_ANM_CHR_KEYS(8008AAF0, Fvs96, AnmChrKeyEvalFVS96)
+MH3_ANM_CHR_KEYS(80520550, Fvs48, AnmChrKeyEvalFVS48)
+MH3_ANM_CHR_KEYS(805206C0, Fvs32, AnmChrKeyEvalFVS32)
+MH3_ANM_CHR_KEYS(80520424, Fvs96, AnmChrKeyEvalFVS96)
 
 extern "C" void MH3_AnmChrKeyEvalFVS48(CpuContext* ctx) {
     ctx->fpr[1].d = AnmChrKeyEvalFVS48Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008B264, MH3_AnmChrKeyEvalFVS48, "AnmChrKeyEvalFVS48");
+REGISTER_NATIVE_FUNCTION_AS(0x80520550, MH3_AnmChrKeyEvalFVS48, "AnmChrKeyEvalFVS48");
 
 extern "C" void MH3_AnmChrKeyEvalFVS32(CpuContext* ctx) {
     ctx->fpr[1].d = AnmChrKeyEvalFVS32Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008B9C0, MH3_AnmChrKeyEvalFVS32, "AnmChrKeyEvalFVS32");
+REGISTER_NATIVE_FUNCTION_AS(0x805206C0, MH3_AnmChrKeyEvalFVS32, "AnmChrKeyEvalFVS32");
 
 extern "C" void MH3_AnmChrKeyEvalFVS96(CpuContext* ctx) {
     ctx->fpr[1].d = AnmChrKeyEvalFVS96Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008AAF0, MH3_AnmChrKeyEvalFVS96, "AnmChrKeyEvalFVS96");
+REGISTER_NATIVE_FUNCTION_AS(0x80520424, MH3_AnmChrKeyEvalFVS96, "AnmChrKeyEvalFVS96");
 
 // 0x8008D660: ResAnmChr::GetAnmResult(result, node index, frame). The node's
 // data comes from the animation's node dictionary (data +0x10); its flags
@@ -560,7 +562,7 @@ struct ResultPort {
             }
         };
 
-        const float zero = Load(r2 - 0x7BD0);
+        const float zero = 0.0f;
 
         if (frame <= zero)
             return value(0);
@@ -625,7 +627,7 @@ struct ResultPort {
             Panic("NW4R:Internal error ResAnmChrNodeData rotation format", flags);
         }
 
-        const float k = Load(r2 - 0x7BAC); // 256/360
+        const float k = 256.0f / 360.0f;
         G3dNative::MtxRotXYZFIdx(result + kResultMtx, k * r[0], k * r[1], k * r[2], r2);
 
         for (int i = 0; i < 3; ++i)
@@ -645,7 +647,7 @@ struct ResultPort {
     }
 
     void UnitScale(uint32_t result) const {
-        const float one = Load(r2 - 0x7BB8);
+        const float one = 1.0f;
 
         for (int i = 0; i < 3; ++i)
             Store(result + kResultScale + 4 * i, one);
@@ -658,7 +660,7 @@ struct ResultPort {
     }
 
     void ZeroTranslation(uint32_t result) const {
-        const float zero = Load(r2 - 0x7BD0);
+        const float zero = 0.0f;
 
         for (int i = 0; i < 3; ++i)
             Store(result + kResultMtx + 0xC + 0x10 * i, zero);
@@ -749,7 +751,7 @@ void GetAnmResultPort(CpuContext* ctx) {
 
 // The port, or with MH3_PORT_CHECK=AnmChrGetAnmResult the port checked against
 // the original (whose key evaluation is the key ports above too).
-extern "C" void func_8008D660(CpuContext* ctx);
+extern "C" void func_80521930(CpuContext* ctx);
 extern "C" void MH3_AnmChrGetAnmResult(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     MH3FrameSplitCall(1);
@@ -758,10 +760,10 @@ extern "C" void MH3_AnmChrGetAnmResult(CpuContext* ctx) {
     const bool check = PortCheck::Enabled("AnmChrGetAnmResult");
 
     if (check) [[unlikely]] {
-        PortCheck::Run(ctx, "AnmChrGetAnmResult", func_8008D660, GetAnmResultPort);
+        PortCheck::Run(ctx, "AnmChrGetAnmResult", func_80521930, GetAnmResultPort);
         return;
     }
 #endif
     GetAnmResult(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008D660, MH3_AnmChrGetAnmResult, "AnmChrGetAnmResult");
+REGISTER_NATIVE_FUNCTION_AS(0x80521930, MH3_AnmChrGetAnmResult, "AnmChrGetAnmResult");

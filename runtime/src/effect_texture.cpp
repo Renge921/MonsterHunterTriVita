@@ -5,4 +5,4 @@
 extern "C" void MH3_EffectDrawTextureSetup(CpuContext *ctx) {
     ctx->gpr[3] = NativeEffectTextureSetup(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C7D44, MH3_EffectDrawTextureSetup, "EffectDrawTextureSetup");
+REGISTER_NATIVE_FUNCTION_AS(0x8050B778, MH3_EffectDrawTextureSetup, "EffectDrawTextureSetup");

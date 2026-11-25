@@ -1,4 +1,4 @@
-// Thin RMHP08 ABI boundary for native display-mode selection. No GX calls.
+// Thin RMHJ08 ABI boundary for native display-mode selection. No GX calls.
 #include "abi_bridge.h"
 #include "fatal.h"
 #include "guest_call.h"
@@ -6,7 +6,6 @@
 #include "native_graphics.h"
 #include "widescreen.h"
 #include "language.h"
-#include "language_pack.h"
 #include "../native/mh3_render_mode.h"
 #include <array>
 #include <cstdlib>
@@ -15,23 +14,22 @@
 #include <string_view>
 
 namespace {
-constexpr uint32_t ModeAddress = 0x8065A980;
-constexpr std::array<uint32_t, 3> Defaults{0x8061B280, 0x8061B2BC, 0x8061B334};
-constexpr int32_t ModePointer = -0x46B8;
+constexpr uint32_t ModeAddress = 0x80731E80;
+constexpr std::array<uint32_t, 3> Defaults{0x80704A20, 0x80704A5C, 0x80704A98};
+constexpr int32_t ModePointer = -0x4738;
 
-// .sdata2 f32 16:9 camera aspect (r2 - 0x7FF8). main (8003f278) and
-// ApplyWidemode are its only readers; both copy it to the screen record's
-// aspect (0x8065B4C8), which the game's cameras take as their projection
-// aspect (80040300, 8043a974, 8043d908).
-constexpr uint32_t WideAspect = 0x80797F68;
+// .sdata2 f32 16:9 camera aspect (r2 - 0x7FF8).
+constexpr uint32_t WideAspect = 0x808A13C8;
+constexpr uint32_t ScreenRecord = 0x807693F8;
+
 std::optional<bool> launcherSetting;
 std::optional<uint8_t> launcherLanguage;
 
 constexpr uint8_t kEnglish = 1;
 
-// Wii SC language numbers (SC_LANG_*), in the launcher's order.
+// Wii SC language numbers (SC_LANG_*). Japanese ROM is Japanese only (0).
 constexpr GameLanguage Languages[]{
-    {"English", "en", 1}, {"French", "fr", 3}, {"German", "de", 2}, {"Italian", "it", 5}, {"Spanish", "es", 4},
+    {"Japanese", "ja", 0},
 };
 
 void Checked(mh3_res_status status) {
@@ -72,13 +70,13 @@ extern "C" void MH3_SCGetAspectRatio(CpuContext* cpu) {
     } else {
         GuestFrame frame(cpu, 0x10);
         const uint32_t value = frame[8];
-        const int found = GuestCall{cpu}(0x804DC740, {value, 1}) != 0; // SCFindU8Item(&value, IPL.AR)
+        const int found = GuestCall{cpu}(0x8047846C, {value, 1}) != 0; // SCFindU8Item(&value, IPL.AR)
         ratio = mh3_sc_aspect_ratio(found, Memory::Read8(value));
     }
 
     cpu->gpr[3] = ratio;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804DD060, MH3_SCGetAspectRatio, "SCGetAspectRatio");
+REGISTER_NATIVE_FUNCTION(0x80478D74, MH3_SCGetAspectRatio);
 
 std::span<const GameLanguage> GameLanguages() {
     return Languages;
@@ -88,41 +86,24 @@ std::optional<uint8_t> LanguageSetting() {
     if (launcherLanguage)
         return launcherLanguage;
 
-    // Read at first use.
-    static const auto environment = []() -> std::optional<uint8_t> {
-        if (const char* value = std::getenv("MH3_LANGUAGE"); value && *value)
-            for (const auto& language : Languages)
-                if (std::string_view(value) == language.code)
-                    return language.system;
-
-        return std::nullopt;
-    }();
-    return environment;
+    // Default to Japanese (0) for Japanese ROM
+    return 0;
 }
 
 void SetLanguageSetting(uint8_t system) {
     launcherLanguage = system;
 }
 
-// SCGetLanguage: the console's IPL.LNG item, unless the host sets it. The
-// game takes its language from it at startup (system_w+1, then +9), and the
-// software keyboard its layout.
-extern "C" void func_804DD150(CpuContext* cpu);
+// SCGetLanguage: the console's IPL.LNG item, unless the host sets it.
 extern "C" void MH3_SCGetLanguage(CpuContext* cpu) {
-    // An imported language replaces the English game's text.
-    if (LanguagePack::Active()) {
-        cpu->gpr[3] = kEnglish;
-        return;
-    }
-
     if (const auto setting = LanguageSetting()) {
         cpu->gpr[3] = *setting;
         return;
     }
 
-    func_804DD150(cpu);
+    cpu->gpr[3] = 0; // Japanese
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804DD150, MH3_SCGetLanguage, "SCGetLanguage");
+REGISTER_NATIVE_FUNCTION(0x80478DC8, MH3_SCGetLanguage);
 
 extern "C" void MH3_RenderInit(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
@@ -130,21 +111,19 @@ extern "C" void MH3_RenderInit(CpuContext* cpu) {
     const auto sda = frame.Arg(13);
     const auto customAddress = frame.Arg(3);
     mh3_render_preferences preferences{};
-    preferences.progressive = uint8_t(call(0x804DD1C0));
-    Memory::Write8(sda - 0x46A0, preferences.progressive);
-    preferences.widescreen = uint8_t(call(0x804DD060));
-    Memory::Write8(sda - 0x469F, preferences.widescreen);
+    preferences.progressive = uint8_t(call(0x80478EC0)); // SCGetProgressiveMode
+    Memory::Write8(sda - 0x4720, preferences.progressive);
+    preferences.widescreen = uint8_t(call(0x80478D74)); // SCGetAspectRatio
+    Memory::Write8(sda - 0x471F, preferences.widescreen);
 
     // The game's 16:9 picture is anamorphic: the EFB stays 640x448 and the
     // display stretches it. Its cameras take the displayed picture's aspect.
     Memory::WriteFloat32(WideAspect, NativeWidescreenAspect());
-    Memory::Write8(sda - 0x469E, uint8_t(call(0x804DD150))); // language
-    preferences.component_cable = uint8_t(call(0x804E9420));
-    Memory::Write8(sda - 0x469B, preferences.component_cable);
-    call(0x804E93C0); // retain VI initialization/query side effects
-    preferences.tv_format = uint8_t(call(0x804E9360));
-    Memory::Write8(sda - 0x469D, preferences.tv_format);
-    Memory::Write8(sda - 0x469C, 0);
+    preferences.component_cable = uint8_t(call(0x8043BA10)); // VIGetComponentCableStatus
+    Memory::Write8(sda - 0x471D, preferences.component_cable);
+    call(0x8043B9B0); // VIInit
+    preferences.tv_format = uint8_t(call(0x8043B950)); // VIGetTvFormat
+    Memory::Write8(sda - 0x471E, preferences.tv_format);
 
     std::array<mh3_render_mode, 3> defaults{};
 
@@ -162,37 +141,31 @@ extern "C" void MH3_RenderInit(CpuContext* cpu) {
 
     if (status == MH3_RES_UNSUPPORTED) {
         cpu->cr &= ~(1u << (31 - 6)); // integer-only variadic panic
-        call(0x804CDD30, {0x8057CFE0, 0x2ED, 0x8057CFEC});
+        call(0x804241EC); // OSPanic
     }
 
     Checked(status);
     Checked(mh3_render_mode_store({Memory::GetPointer(ModeAddress, MH3_RENDER_MODE_BYTES), MH3_RENDER_MODE_BYTES}, &configuration.mode));
-    Memory::Write8(sda - 0x469C, configuration.pal);
-
-    if (!customAddress) {
-        cpu->cr &= ~(1u << (31 - 6));
-        call(0x804CDCA0, {0x8057D010, configuration.mode.tv_mode});
-    }
 
     Memory::Write32(sda + uint32_t(ModePointer), ModeAddress);
-    Memory::Write8(sda - 0x468F, configuration.widescreen);
-    Memory::Write16(sda - 0x468E, configuration.mode.vi_x_origin);
-    Memory::Write16(sda - 0x468C, configuration.mode.vi_y_origin);
+    Memory::Write8(sda - 0x4713, configuration.widescreen);
+    Memory::Write16(sda - 0x4712, configuration.mode.vi_x_origin);
+    Memory::Write16(sda - 0x4710, configuration.mode.vi_y_origin);
     SetNativeDisplayWidescreen(configuration.widescreen);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003F794, MH3_RenderInit, "RenderInit");
+REGISTER_NATIVE_FUNCTION(0x80032160, MH3_RenderInit);
 
 extern "C" void MH3_ApplyWidemode(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x60);
     const auto wide = uint8_t(frame.Arg(3));
     const auto sda = frame.Arg(13);
 
-    if (wide == Memory::Read8(sda - 0x468F))
+    if (wide == Memory::Read8(sda - 0x4713))
         return;
 
     mh3_render_preferences preferences{};
-    preferences.progressive = Memory::Read8(sda - 0x46A0);
-    preferences.tv_format = Memory::Read8(sda - 0x469D);
+    preferences.progressive = Memory::Read8(sda - 0x4720);
+    preferences.tv_format = Memory::Read8(sda - 0x471E);
     preferences.widescreen = wide;
     std::array<mh3_render_mode, 3> defaults{};
 
@@ -211,24 +184,26 @@ extern "C" void MH3_ApplyWidemode(CpuContext* cpu) {
     // Publish only the two fields written by the original caller.
     Memory::Write16(address + 14, mode.vi_width);
     Memory::Write16(address + 10, mode.vi_x_origin);
-    GuestCall{cpu}(0x804E85E0, {address});
-    Memory::Write16(0x8065B4BC, 640);
-    Memory::Write16(0x8065B4BE, 448);
-    const float width = Memory::ReadFloat32(wide == 1 ? 0x80797F60 : 0x80797F6C);
-    const float height = Memory::ReadFloat32(0x80797F64);
-    const float left = Memory::ReadFloat32(0x80797F78);
-    const float top = Memory::ReadFloat32(0x80797F7C);
-    Memory::WriteFloat32(0x8065B4C0, width);
-    Memory::Write32(0x8065B4C8, Memory::Read32(wide == 1 ? WideAspect : 0x80797F70));
-    Memory::Write16(0x8065B4F8, uint16_t(int32_t(width)));
-    Memory::Write16(0x8065B4FA, Memory::Read16(address + 6));
-    Memory::Write8(0x8065B4D5, wide == 1);
-    Memory::WriteFloat32(0x8065B4C4, height);
-    Memory::WriteFloat32(0x8065B4E8, left);
-    Memory::WriteFloat32(0x8065B4EC, top);
-    Memory::WriteFloat32(0x8065B4F0, width - left);
-    Memory::WriteFloat32(0x8065B4F4, height - top);
-    Memory::Write8(sda - 0x468F, wide);
+    GuestCall{cpu}(0x8043ABEC, {address}); // VIConfigure
+
+    // Update ScreenRecord structure (0x807793F8)
+    Memory::Write16(ScreenRecord + 0x00, 640);
+    Memory::Write16(ScreenRecord + 0x02, 448);
+    const float width = Memory::ReadFloat32(wide == 1 ? 0x808A13C0 : 0x808A13CC);
+    const float height = Memory::ReadFloat32(0x808A13C4);
+    const float left = Memory::ReadFloat32(0x808A13D8);
+    const float top = Memory::ReadFloat32(0x808A13DC);
+    Memory::WriteFloat32(ScreenRecord + 0x04, width);
+    Memory::Write32(ScreenRecord + 0x0C, Memory::Read32(wide == 1 ? WideAspect : 0x808A13D0));
+    Memory::Write16(ScreenRecord + 0x3C, uint16_t(int32_t(width)));
+    Memory::Write16(ScreenRecord + 0x3E, Memory::Read16(address + 6));
+    Memory::Write8(ScreenRecord + 0x19, wide == 1);
+    Memory::WriteFloat32(ScreenRecord + 0x08, height);
+    Memory::WriteFloat32(ScreenRecord + 0x2C, left);
+    Memory::WriteFloat32(ScreenRecord + 0x30, top);
+    Memory::WriteFloat32(ScreenRecord + 0x34, width - left);
+    Memory::WriteFloat32(ScreenRecord + 0x38, height - top);
+    Memory::Write8(sda - 0x4713, wide);
     SetNativeDisplayWidescreen(wide == 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FA48, MH3_ApplyWidemode, "ApplyWidemode");
+REGISTER_NATIVE_FUNCTION(0x800323E4, MH3_ApplyWidemode);

@@ -663,7 +663,7 @@ extern "C" void MH3_OnlineScreens(CpuContext* cpu) {
     func_8044E4FC(cpu);
     Memory::Write16(kPressed, pressed);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8044E4FC, MH3_OnlineScreens, "OnlineScreens");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8044E4FC, MH3_OnlineScreens, "OnlineScreens");
 
 extern "C" void func_8042E26C(CpuContext* cpu);
 extern "C" void MH3_CityList(CpuContext* cpu) {
@@ -680,7 +680,7 @@ extern "C" void MH3_CityList(CpuContext* cpu) {
     func_8042E26C(cpu);
     Memory::Write16(kLobbyPressed, pressed);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8042E26C, MH3_CityList, "CityList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8042E26C, MH3_CityList, "CityList");
 
 // A quest session's start (0x803D99B0) and end (0x803DA0CC) state machines:
 // (session, phase*) -> done. MH3_TRACE=net prints each phase change, with the
@@ -729,13 +729,13 @@ extern "C" void func_803D99B0(CpuContext* cpu);
 extern "C" void MH3_SessionStart(CpuContext* cpu) {
     TracePhases(cpu, "start", func_803D99B0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803D99B0, MH3_SessionStart, "SessionStart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803D99B0, MH3_SessionStart, "SessionStart");
 
 extern "C" void func_803DA0CC(CpuContext* cpu);
 extern "C" void MH3_SessionEnd(CpuContext* cpu) {
     TracePhases(cpu, "end", func_803DA0CC);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803DA0CC, MH3_SessionEnd, "SessionEnd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803DA0CC, MH3_SessionEnd, "SessionEnd");
 
 // The quest session's event handler 0x803DC5AC (session, event, ...; the
 // event's block in r8): MH3_TRACE=net prints each event's first 4 and every
@@ -767,4 +767,4 @@ extern "C" void MH3_SessionEvent(CpuContext* cpu) {
 
     func_803DC5AC(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803DC5AC, MH3_SessionEvent, "SessionEvent");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803DC5AC, MH3_SessionEvent, "SessionEvent");

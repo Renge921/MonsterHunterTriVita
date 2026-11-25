@@ -1,13 +1,18 @@
 #pragma once
 #include "status.h"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <span>
 #include <string>
 
 // Makes language packs (language_pack.h) in the game data directory.
 namespace LanguageImport {
 using Progress = std::function<void(const std::string&)>;
+
+// Shift-JIS to UTF-8, control codes kept.
+std::string FromShiftJis(std::span<const uint8_t> text);
 
 // Japanese text, font and textures from the Japanese disc (RMHJ08). The pack
 // holds what it needs: the disc can go afterwards.

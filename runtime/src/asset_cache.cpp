@@ -1,5 +1,4 @@
 #include "asset_cache.h"
-#include "language_pack.h"
 #include <optional>
 #include "fatal.h"
 #include "fs_status.h"
@@ -1544,8 +1543,6 @@ struct Game {
     DiscImage image;
     std::unique_ptr<AssetCache> cache;
     explicit Game(const char* root) : image(root) {
-        const auto languageFiles = LanguagePack::RegisterFiles(image, root);
-
         if (!image.Packed() || image.HasNativeTextureMap() || std::getenv("MH3_NATIVE_ASSET_DIR"))
             return;
 
@@ -1558,17 +1555,13 @@ struct Game {
                 MH3_THROW(std::runtime_error("Oversized texture source: " + name));
 
             sources.push_back({name, image.FileOffset(name), bytes});
-
-            for (const auto& file : languageFiles)
-                if (file.name == name)
-                    sources.push_back({name + " (language)", file.offset, file.bytes});
         }
 
-        // The audio streams (16/srt): read in small pieces over minutes of play.
+        // The audio streams (16/srt or sound/srt): read in small pieces over minutes of play.
         std::vector<AssetCache::SourceFile> streams;
 
         for (const auto& name : image.FileNames())
-            if (name.rfind("16/srt/", 0) == 0)
+            if (name.rfind("16/srt/", 0) == 0 || name.rfind("sound/srt/", 0) == 0)
                 streams.push_back({name, image.FileOffset(name), image.FileSize(name)});
         cache = std::make_unique<AssetCache>(root, std::move(sources), std::move(streams), [this](uint64_t offset, uint8_t* output, size_t length) { return image.ReadRaw(offset, output, length); });
         image.SetReader([this](uint64_t offset, uint8_t* output, size_t length) { return cache->Read(offset, output, length); });

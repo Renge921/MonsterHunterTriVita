@@ -19,6 +19,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <aurora/aurora.h>
+#ifdef __vita__
+#include <psp2/ime_dialog.h>
+#include <psp2/common_dialog.h>
+#endif
 namespace {
 struct VertexFormat {
     bool colors = true;
@@ -330,8 +335,8 @@ void PublishFont(uint32_t font, uint32_t resource, uint32_t information) {
 extern "C" void MH3_SystemUIFontResource(CpuContext* cpu) {
     PublishFont(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80503024, MH3_SystemUIFontResource, "SystemUIFontResource");
-REGISTER_NATIVE_FUNCTION_AS(0x8083A1D0, MH3_SystemUIFontResource, "HBMFontResource");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80503024, MH3_SystemUIFontResource, "SystemUIFontResource");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8083A1D0, MH3_SystemUIFontResource, "HBMFontResource");
 
 // The name-entry keyboard's font (0x80506D30, called by the keyboard layout
 // loader 0x80448708) builds its glyph information around one I4 sheet it is
@@ -339,10 +344,10 @@ REGISTER_NATIVE_FUNCTION_AS(0x8083A1D0, MH3_SystemUIFontResource, "HBMFontResour
 // Its glyphs name that sheet, so publish it, at its current producer
 // generation, after the original setup. A repeated setup keeps the font's
 // first sheet (r13-0x369C) and returns 0.
-extern "C" void func_80506D30(CpuContext*);
+extern "C" void func_80542C54(CpuContext*);
 extern "C" void MH3_KeyboardFontSetup(CpuContext* cpu) {
-    const uint32_t font = cpu->gpr[3], sheetGlobal = cpu->gpr[13] - 0x369C;
-    func_80506D30(cpu);
+    const uint32_t font = cpu->gpr[3], sheetGlobal = cpu->gpr[13] - 0x3720;
+    func_80542C54(cpu);
     const uint32_t sheet = Memory::Read32(sheetGlobal), information = Memory::Read32(font + 16);
 
     if (!sheet || !information)
@@ -350,26 +355,28 @@ extern "C" void MH3_KeyboardFontSetup(CpuContext* cpu) {
 
     mh3_native_texture_source source{};
     source.resource_address = source.payload_address = sheet;
-    source.width = Memory::Read16(information + 30); // what GetGlyph (0x80507450) reports
+    source.width = Memory::Read16(information + 30); // what GetGlyph (0x80542F34 [PAL: 0x80507450]) reports
     source.height = Memory::Read16(information + 32);
     source.format = 0; // GX_TF_I4, as the font's glyphs report
     source.levels = 1;
     source.generation = ReadNativeTextureGeneration(sheet);
 
-    if (!source.generation)
-        MH3_THROW(std::runtime_error("Keyboard font sheet has no producer"));
+    if (!source.generation) {
+        source.generation = 1;
+        MarkNativeTextureProduced(sheet, 1);
+    }
 
     font_sheets.insert_or_assign(sheet, source);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80506D30, MH3_KeyboardFontSetup, "KeyboardFontSetup");
+REGISTER_NATIVE_FUNCTION_AS(0x80542C54, MH3_KeyboardFontSetup, "KeyboardFontSetup");
 extern "C" void MH3_SystemUIFontSetup(CpuContext* cpu) {
     FontSetup(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80503C38, MH3_SystemUIFontSetup, "SystemUIFontSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80503C38, MH3_SystemUIFontSetup, "SystemUIFontSetup");
 extern "C" void MH3_HBMFontSetup(CpuContext* cpu) {
     FontSetup(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80837290, MH3_HBMFontSetup, "HBMFontSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80837290, MH3_HBMFontSetup, "HBMFontSetup");
 namespace {
 void FontMapping(CpuContext* cpu, bool hbm) {
     GuestFrame frame(cpu, 0x10);
@@ -394,64 +401,64 @@ void FontDefault(CpuContext* cpu, mh3_system_ui_pipeline mode) {
 extern "C" void MH3_SystemUIFontMapping(CpuContext* cpu) {
     FontMapping(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80504D70, MH3_SystemUIFontMapping, "SystemUIFontMapping");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80504D70, MH3_SystemUIFontMapping, "SystemUIFontMapping");
 extern "C" void MH3_HBMFontMapping(CpuContext* cpu) {
     FontMapping(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x808390D0, MH3_HBMFontMapping, "HBMFontMapping");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x808390D0, MH3_HBMFontMapping, "HBMFontMapping");
 extern "C" void MH3_SystemUIFontDefault(CpuContext* cpu) {
     FontDefault(cpu, MH3_SYSTEM_UI_MODULATE);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80838F00, MH3_SystemUIFontDefault, "HBMFontDefault");
-REGISTER_NATIVE_FUNCTION_AS(0x80839600, MH3_SystemUIFontDefault, "HBMFontRGBA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80838F00, MH3_SystemUIFontDefault, "HBMFontDefault");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80839600, MH3_SystemUIFontDefault, "HBMFontRGBA");
 extern "C" void MH3_SystemUIFontIntensity(CpuContext* cpu) {
     FontDefault(cpu, MH3_SYSTEM_UI_INTENSITY);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x808393D0, MH3_SystemUIFontIntensity, "HBMFontIntensity");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x808393D0, MH3_SystemUIFontIntensity, "HBMFontIntensity");
 extern "C" void MH3_SystemUIFontGlyph(CpuContext* cpu) {
     Glyph(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805049A4, MH3_SystemUIFontGlyph, "SystemUIFontGlyph");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805049A4, MH3_SystemUIFontGlyph, "SystemUIFontGlyph");
 extern "C" void MH3_HBMFontGlyph(CpuContext* cpu) {
     Glyph(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80838970, MH3_HBMFontGlyph, "HBMFontGlyph");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80838970, MH3_HBMFontGlyph, "HBMFontGlyph");
 extern "C" void MH3_HBMFontTexture(CpuContext* cpu) {
     GlyphTexture(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5], true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80838C00, MH3_HBMFontTexture, "HBMFontTexture");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80838C00, MH3_HBMFontTexture, "HBMFontTexture");
 extern "C" void MH3_SystemUIVertexFormat(CpuContext* cpu) {
     if (uint8_t(cpu->gpr[4]) > 8)
         MH3_THROW(std::runtime_error("Layout vertex format has too many coordinates"));
 
     format = {cpu->gpr[3] != 0, uint8_t(cpu->gpr[4])};
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80535E6C, MH3_SystemUIVertexFormat, "SystemUIVertexFormat");
-REGISTER_NATIVE_FUNCTION_AS(0x8082A360, MH3_SystemUIVertexFormat, "HBMVertexFormat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80535E6C, MH3_SystemUIVertexFormat, "SystemUIVertexFormat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082A360, MH3_SystemUIVertexFormat, "HBMVertexFormat");
 extern "C" void MH3_HBMFontVertexFormat(CpuContext*) {
     format = {true, 1};
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80838E70, MH3_HBMFontVertexFormat, "HBMFontVertexFormat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80838E70, MH3_HBMFontVertexFormat, "HBMFontVertexFormat");
 extern "C" void MH3_SystemUIQuad(CpuContext* cpu) {
     Quad(cpu, -1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80535F50, MH3_SystemUIQuad, "SystemUIQuad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80535F50, MH3_SystemUIQuad, "SystemUIQuad");
 extern "C" void MH3_HBMQuad(CpuContext* cpu) {
     Quad(cpu, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082A580, MH3_HBMQuad, "HBMQuad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082A580, MH3_HBMQuad, "HBMQuad");
 extern "C" void MH3_SystemUIPane(CpuContext* cpu) {
     LoadPane(cpu->gpr[3], cpu->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8052B654, MH3_SystemUIPane, "SystemUIPane");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8052B654, MH3_SystemUIPane, "SystemUIPane");
 extern "C" void MH3_SystemUITextPane(CpuContext* cpu) {
     LoadPane(cpu->gpr[3], cpu->gpr[4], 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8052E2B8, MH3_SystemUITextPane, "SystemUITextPane");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8052E2B8, MH3_SystemUITextPane, "SystemUITextPane");
 extern "C" void MH3_HBMPane(CpuContext* cpu) {
     LoadPane(cpu->gpr[3], cpu->gpr[4], 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x808313B0, MH3_HBMPane, "HBMPane");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x808313B0, MH3_HBMPane, "HBMPane");
 extern "C" void MH3_SystemUIIndirectMatrix(CpuContext* cpu) {
     const unsigned index = cpu->gpr[3];
 
@@ -467,24 +474,24 @@ extern "C" void MH3_SystemUIIndirectMatrix(CpuContext* cpu) {
 
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80531010, MH3_SystemUIIndirectMatrix, "SystemUIIndirectMatrix");
-REGISTER_NATIVE_FUNCTION_AS(0x8082C370, MH3_SystemUIIndirectMatrix, "HBMIndirectMatrix");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80531010, MH3_SystemUIIndirectMatrix, "SystemUIIndirectMatrix");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082C370, MH3_SystemUIIndirectMatrix, "HBMIndirectMatrix");
 extern "C" void MH3_HBMTPL(CpuContext* cpu) {
     ConstructTPL(cpu, cpu->gpr[3], cpu->gpr[4], cpu->gpr[5], true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082ADC0, MH3_HBMTPL, "HBMTPL");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082ADC0, MH3_HBMTPL, "HBMTPL");
 extern "C" void MH3_HBMTextureGet(CpuContext* cpu) {
     CopyTexture(cpu->gpr[4], TextureSlot(cpu->gpr[3], cpu->gpr[5]), false, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082EB40, MH3_HBMTextureGet, "HBMTextureGet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082EB40, MH3_HBMTextureGet, "HBMTextureGet");
 extern "C" void MH3_HBMTextureSet(CpuContext* cpu) {
     CopyTexture(TextureSlot(cpu->gpr[3], cpu->gpr[4]), cpu->gpr[5], false, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082EC50, MH3_HBMTextureSet, "HBMTextureSet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082EC50, MH3_HBMTextureSet, "HBMTextureSet");
 extern "C" void MH3_HBMTextureNoWrap(CpuContext* cpu) {
     CopyTexture(TextureSlot(cpu->gpr[3], cpu->gpr[4]), cpu->gpr[5], true, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082ECB0, MH3_HBMTextureNoWrap, "HBMTextureNoWrap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082ECB0, MH3_HBMTextureNoWrap, "HBMTextureNoWrap");
 extern "C" void MH3_HBMTPLNoWrap(CpuContext* cpu) {
     const auto object = TextureSlot(cpu->gpr[3], cpu->gpr[4]), tpl = cpu->gpr[5];
     const auto old = ReadNativeTextureObject(object);
@@ -495,7 +502,7 @@ extern "C" void MH3_HBMTPLNoWrap(CpuContext* cpu) {
     StoreNativeTextureObject(object, b);
     Memory::Write32(object + 16, palette_headers.at(object));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082EBC0, MH3_HBMTPLNoWrap, "HBMTPLNoWrap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082EBC0, MH3_HBMTPLNoWrap, "HBMTPLNoWrap");
 extern "C" void MH3_HBMTextureSize(CpuContext* cpu) {
     const auto output = cpu->gpr[3], material = cpu->gpr[4], slot = cpu->gpr[5];
     float width = 0, height = 0;
@@ -509,7 +516,7 @@ extern "C" void MH3_HBMTextureSize(CpuContext* cpu) {
     Memory::WriteFloat32(output, width);
     Memory::WriteFloat32(output + 4, height);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x808300B0, MH3_HBMTextureSize, "HBMTextureSize");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x808300B0, MH3_HBMTextureSize, "HBMTextureSize");
 extern "C" void MH3_SystemUITextureImport(CpuContext* cpu) {
     const auto info = cpu->gpr[3], object = cpu->gpr[4];
     mh3_native_texture_binding binding{};
@@ -523,7 +530,7 @@ extern "C" void MH3_SystemUITextureImport(CpuContext* cpu) {
     StoreNativeTextureObject(object, binding);
     palette_headers[object] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80533C50, MH3_SystemUITextureImport, "SystemUITextureImport");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80533C50, MH3_SystemUITextureImport, "SystemUITextureImport");
 extern "C" void MH3_SystemUIPaletteImport(CpuContext* cpu) {
     const auto info = cpu->gpr[3], object = cpu->gpr[4];
     mh3_native_palette_source palette{};
@@ -534,24 +541,24 @@ extern "C" void MH3_SystemUIPaletteImport(CpuContext* cpu) {
     palette.generation = Produced(palette.payload_address);
     StoreNativePaletteObject(object, palette);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80533D3C, MH3_SystemUIPaletteImport, "SystemUIPaletteImport");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80533D3C, MH3_SystemUIPaletteImport, "SystemUIPaletteImport");
 extern "C" void MH3_SystemUITextureExport(CpuContext* cpu) {
     const auto binding = ReadNativeTextureObject(cpu->gpr[4]);
     Checked(mh3_system_ui_texture_info_store(Mutable(cpu->gpr[3], 28), &binding));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80533D58, MH3_SystemUITextureExport, "SystemUITextureExport");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80533D58, MH3_SystemUITextureExport, "SystemUITextureExport");
 extern "C" void MH3_SystemUISaveDraw(CpuContext* cpu) {
     SaveDraw(cpu, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8055DC5C, MH3_SystemUISaveDraw, "SystemUISaveDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8055DC5C, MH3_SystemUISaveDraw, "SystemUISaveDraw");
 extern "C" void MH3_SystemUISaveAlways(CpuContext* cpu) {
     SaveDraw(cpu, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80564CEC, MH3_SystemUISaveAlways, "SystemUISaveAlways");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80564CEC, MH3_SystemUISaveAlways, "SystemUISaveAlways");
 extern "C" void MH3_SystemUISaveDepth(CpuContext* cpu) {
     SaveDraw(cpu, 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80565238, MH3_SystemUISaveDepth, "SystemUISaveDepth");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80565238, MH3_SystemUISaveDepth, "SystemUISaveDepth");
 namespace {
 uint32_t LayoutMaterial(CpuContext* cpu, bool hbm) {
     GuestFrame frame(cpu, 0x80);
@@ -660,11 +667,11 @@ uint32_t LayoutMaterial(CpuContext* cpu, bool hbm) {
 extern "C" void MH3_SystemUILayoutMaterial(CpuContext* cpu) {
     cpu->gpr[3] = LayoutMaterial(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80532BB0, MH3_SystemUILayoutMaterial, "SystemUILayoutMaterial");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80532BB0, MH3_SystemUILayoutMaterial, "SystemUILayoutMaterial");
 extern "C" void MH3_HBMLayoutMaterial(CpuContext* cpu) {
     cpu->gpr[3] = LayoutMaterial(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082F0B0, MH3_HBMLayoutMaterial, "HBMLayoutMaterial");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082F0B0, MH3_HBMLayoutMaterial, "HBMLayoutMaterial");
 extern "C" void MH3_HBMSimpleQuad(CpuContext* cpu) {
     if (format.coordinates != 1 || format.colors != (cpu->gpr[7] != 0))
         MH3_THROW(std::runtime_error("HBM simple quad format disagrees with emitted attributes"));
@@ -690,7 +697,7 @@ extern "C" void MH3_HBMSimpleQuad(CpuContext* cpu) {
     mh3_system_ui_quad(vertices, origin, size, 1, uv, 1, colors);
     Submit(vertices, 4);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082A450, MH3_HBMSimpleQuad, "HBMSimpleQuad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082A450, MH3_HBMSimpleQuad, "HBMSimpleQuad");
 namespace {
 void Identity() {
     float m[12];
@@ -839,11 +846,11 @@ void DebugQuad(CpuContext* cpu, unsigned mode, bool hbm = false) {
 extern "C" void MH3_HBMFadeSetup(CpuContext*) {
     FadeSetup();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8081ED60, MH3_HBMFadeSetup, "HBMFadeSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8081ED60, MH3_HBMFadeSetup, "HBMFadeSetup");
 extern "C" void MH3_HBMBlackFader(CpuContext* cpu) {
     Fade(cpu->gpr[3], 0, 4, 12);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80828410, MH3_HBMBlackFader, "HBMBlackFader");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80828410, MH3_HBMBlackFader, "HBMBlackFader");
 extern "C" void MH3_HBMHomeButton(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -856,7 +863,7 @@ extern "C" void MH3_HBMHomeButton(CpuContext* cpu) {
             call.Virtual(Memory::Read32(self + 0x248 - i * 4), 0x28, {self + 600});
     Fade(self, 0x454, 0x458, 0x460);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80822E10, MH3_HBMHomeButton, "HBMHomeButton");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80822E10, MH3_HBMHomeButton, "HBMHomeButton");
 extern "C" void MH3_HBMDraw(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -889,23 +896,23 @@ extern "C" void MH3_HBMDraw(CpuContext* cpu) {
 
     SetNativeMaterial(m);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8081A49C, MH3_HBMDraw, "HBMDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8081A49C, MH3_HBMDraw, "HBMDraw");
 extern "C" void MH3_SystemUIDebugQuad(CpuContext* cpu) {
     DebugQuad(cpu, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8056A648, MH3_SystemUIDebugQuad, "SystemUIDebugQuad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8056A648, MH3_SystemUIDebugQuad, "SystemUIDebugQuad");
 extern "C" void MH3_SystemUIDebugStroke(CpuContext* cpu) {
     DebugQuad(cpu, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8056A9BC, MH3_SystemUIDebugStroke, "SystemUIDebugStroke");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8056A9BC, MH3_SystemUIDebugStroke, "SystemUIDebugStroke");
 extern "C" void MH3_SystemUIDebugLine(CpuContext* cpu) {
     DebugQuad(cpu, 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8056AC5C, MH3_SystemUIDebugLine, "SystemUIDebugLine");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8056AC5C, MH3_SystemUIDebugLine, "SystemUIDebugLine");
 extern "C" void MH3_HBMDebugLine(CpuContext* cpu) {
     DebugQuad(cpu, 2, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8081ACD0, MH3_HBMDebugLine, "HBMDebugLine");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8081ACD0, MH3_HBMDebugLine, "HBMDebugLine");
 extern "C" void MH3_HBMOutline(CpuContext* cpu) {
     auto m = GetNativeMaterialState();
     const uint32_t inherited_cull = m.cull_mode;
@@ -951,7 +958,7 @@ extern "C" void MH3_HBMOutline(CpuContext* cpu) {
         SubmitNativeMaterialGeometry(geometry);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082AC20, MH3_HBMOutline, "HBMOutline");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082AC20, MH3_HBMOutline, "HBMOutline");
 extern "C" void MH3_SystemUITextureInfoTPL(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -974,7 +981,7 @@ extern "C" void MH3_SystemUITextureInfoTPL(CpuContext* cpu) {
     if (palette)
         Produced(Memory::Read32(palette + 8));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80533EAC, MH3_SystemUITextureInfoTPL, "SystemUITextureInfoTPL");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80533EAC, MH3_SystemUITextureInfoTPL, "SystemUITextureInfoTPL");
 extern "C" void MH3_HBMMaterialConstruct(CpuContext* cpu) {
     const auto self = cpu->gpr[3], resource = cpu->gpr[4], blocks = cpu->gpr[5];
     {
@@ -1042,7 +1049,7 @@ extern "C" void MH3_HBMMaterialConstruct(CpuContext* cpu) {
 
     cpu->gpr[3] = self;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8082C720, MH3_HBMMaterialConstruct, "HBMMaterialConstruct");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8082C720, MH3_HBMMaterialConstruct, "HBMMaterialConstruct");
 extern "C" void MH3_SystemUIPanelBegin(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -1078,7 +1085,7 @@ extern "C" void MH3_SystemUIPanelBegin(CpuContext* cpu) {
         call(Memory::Read32(Memory::Read32(self + 0x4c) + 0x94), {self});
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8055B950, MH3_SystemUIPanelBegin, "SystemUIPanelBegin");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8055B950, MH3_SystemUIPanelBegin, "SystemUIPanelBegin");
 extern "C" void MH3_SystemUIPanelEnd(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
@@ -1101,7 +1108,7 @@ extern "C" void MH3_SystemUIPanelEnd(CpuContext* cpu) {
     call(Memory::Read32(Memory::Read32(self + 0x4c) + 0x28), {self});
     Memory::WriteFloat32(self + 0xb8, float(double(float(double(Memory::ReadFloat32(self + 0xb8)) - previous)) + cpu->fpr[1].d));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8055BB38, MH3_SystemUIPanelEnd, "SystemUIPanelEnd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8055BB38, MH3_SystemUIPanelEnd, "SystemUIPanelEnd");
 extern "C" void MH3_SystemUIPanelProjection(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x30);
     GuestCall call{cpu};
@@ -1120,7 +1127,7 @@ extern "C" void MH3_SystemUIPanelProjection(CpuContext* cpu) {
     Floats(frame[0x10], bounds, 4);
     Ortho(full ? bounds[3] : bounds[1], full ? bounds[1] : bounds[3], bounds[0], bounds[2], -1, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8055CB18, MH3_SystemUIPanelProjection, "SystemUIPanelProjection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8055CB18, MH3_SystemUIPanelProjection, "SystemUIPanelProjection");
 extern "C" void MH3_SystemUIPanelDraw(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x30);
     GuestCall call{cpu};
@@ -1178,7 +1185,7 @@ extern "C" void MH3_SystemUIPanelDraw(CpuContext* cpu) {
 
     SetNativeScissor(saved[0], saved[1], saved[2], saved[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8055319C, MH3_SystemUIPanelDraw, "SystemUIPanelDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8055319C, MH3_SystemUIPanelDraw, "SystemUIPanelDraw");
 namespace {
 void TPLRecord(GuestCall& call, uint32_t tpl, uint32_t index, uint32_t record, bool linear) {
     const auto descriptor = call(0x804e4d50, {tpl, index}), header = Memory::Read32(descriptor);
@@ -1260,11 +1267,11 @@ uint32_t TPLArray(CpuContext* cpu, bool global) {
 extern "C" void MH3_UITPLArray(CpuContext* cpu) {
     cpu->gpr[3] = TPLArray(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D0324, MH3_UITPLArray, "UITPLArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800D0324, MH3_UITPLArray, "UITPLArray");
 extern "C" void MH3_UITPLGlobalArray(CpuContext* cpu) {
     cpu->gpr[3] = TPLArray(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D042C, MH3_UITPLGlobalArray, "UITPLGlobalArray");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800D042C, MH3_UITPLGlobalArray, "UITPLGlobalArray");
 extern "C" void MH3_SystemUITextDraw(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x180);
     GuestCall call{cpu};
@@ -1337,12 +1344,12 @@ extern "C" void MH3_SystemUITextDraw(CpuContext* cpu) {
     Checked(mh3_system_ui_text_lines(&io, text, Memory::Read16(self + 0xfe), left, width, alignment, Memory::ReadFloat32(self + 0x4c)));
     call(0x805051cc, {writer, 0xffffffff});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8052D674, MH3_SystemUITextDraw, "SystemUITextDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8052D674, MH3_SystemUITextDraw, "SystemUITextDraw");
 namespace {
 void HudSetup(CpuContext* cpu) {
     GuestCall call{cpu};
-    call(0x8005af80);
-    Ortho(0, Memory::ReadFloat32(0x8065b4c4), 0, Memory::ReadFloat32(0x8065b4c0), 0, 1);
+    call(0x80034340); // DebugDrawSetup (PAL: 0x8005af80)
+    Ortho(0, Memory::ReadFloat32(0x80769400), 0, Memory::ReadFloat32(0x807693FC), 0, 1);
     Identity();
     auto m = GetNativeMaterialState();
     mh3_system_ui_hud_material(&m);
@@ -1406,17 +1413,16 @@ void Notice(CpuContext* cpu, std::span<const char* const> lines, uint32_t top) {
 
     GuestFrame frame(cpu, 0x60);
     GuestCall call{cpu};
-    const float width = call(0x80040424) == 1 ? 854 : 640;
+    const float width = call(0x800331D0) == 1 ? 854 : 640;
 
     for (size_t i = 0; i < lines.size(); ++i) {
         const size_t length = std::strlen(lines[i]);
         std::memcpy(Memory::GetPointer(frame[0x10], uint32_t(length + 1)), lines[i], length + 1);
-        call(0x8005b714, {22, 22});
-        const uint32_t columns = call(0x8005b83c, {frame[0x10]});
-        call(0x8005b780, {uint32_t(int32_t((width - float(columns * 11)) * .5f)), uint32_t(top + i * 30)});
-        call(0x8005b7ec, {i == 0 && lines.size() > 1 ? 0xf0a060ffu : 0xc0c0c0ffu});
-        call(0x8005ba04, {frame[0x10]});
-        call(0x8005c174);
+        call(0x80295204, {22, 22}); // flfntSetSize (PAL: 0x8005b714)
+        call(0x80295270, {uint32_t(int32_t((width - float(length * 11)) * .5f)), uint32_t(top + i * 30)}); // flfntSetPos (PAL: 0x8005b780)
+        call(0x802952dc, {i == 0 && lines.size() > 1 ? 0xf0a060ffu : 0xc0c0c0ffu}); // flfntSetColor (PAL: 0x8005b7ec)
+        call(0x80295348, {frame[0x10]}); // flfntPrintf (PAL: 0x8005ba04)
+        call(0x80295af0); // flfntFlush (PAL: 0x8005c174)
     }
 }
 } // namespace
@@ -1432,19 +1438,19 @@ extern "C" void MH3_HUDTexgen(CpuContext* cpu) {
     m.texgen[slot].values[MH3_TEXGEN_PROJECTION] = 0;
     SetNativeMaterial(m);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D2130, MH3_HUDTexgen, "HUDTexgen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800D2130, MH3_HUDTexgen, "HUDTexgen");
 extern "C" void MH3_HUDIcon(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     const uint8_t index = frame.Arg(3);
     HudSetup(cpu);
-    HudBind(0x8069787c);
-    const float width = Memory::Read16(0x806978a0), height = Memory::Read16(0x806978a2);
+    HudBind(0x8076792C);
+    const float width = Memory::Read16(0x80767950), height = Memory::Read16(0x80767952);
 
     if (!width || !height)
         MH3_THROW(std::runtime_error("HUD icon atlas has zero dimensions"));
 
-    const uint32_t tile = 0x80595b10 + Memory::Read8(0x8065b23c + index) * 8;
+    const uint32_t tile = 0x806C5700 + Memory::Read8(0x80769284 + index) * 8;
     float uv[4];
 
     for (unsigned i = 0; i < 4; ++i)
@@ -1454,118 +1460,89 @@ extern "C" void MH3_HUDIcon(CpuContext* cpu) {
     mh3_system_ui_vertex vertices[4];
 
     if (NativeGraphicsFrameShouldRender()) {
-        if (!mh3_system_ui_hud_rectangle(vertices, call(0x80040424) == 1 ? 770 : 577, index == 1 ? 95 : 47, 32, 32, white, uv[0], uv[1], uv[2], uv[3]))
+        if (!mh3_system_ui_hud_rectangle(vertices, call(0x800331D0) == 1 ? 770 : 577, index == 1 ? 95 : 47, 32, 32, white, uv[0], uv[1], uv[2], uv[3]))
             MH3_THROW(std::runtime_error("HUD icon position is unrepresentable"));
 
         Submit(vertices, 4);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D29DC, MH3_HUDIcon, "HUDIcon");
+REGISTER_NATIVE_FUNCTION_AS(0x802BF798, MH3_HUDIcon, "HUDIcon");
 extern "C" void MH3_HUDDraw(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x60);
     GuestCall call{cpu};
 
-    if (!Memory::Read8(0x806977a0)) {
+    if (!Memory::Read8(0x80767868)) {
         LoadProgress::Idle();
         Notice(cpu, OnlineNotice(false), kDialogNoticeTop);
         return;
     }
 
-    if (Memory::Read8(0x80697846) == 6 && !uint8_t(call(0x800d0744))) {
-        Memory::Write8(0x806977a0, 0);
-        LoadProgress::Idle();
-        Notice(cpu, OnlineNotice(false), kDialogNoticeTop);
-        return;
-    }
+    // Inlined leaf 0x8041C024 (PAL: 0x80040870)
+    Memory::Write8(0x807ABA00, 0);
+    Memory::Write8(0x807ABA02, 0);
+    Memory::Write8(0x807ABA05, 0);
+    Memory::Write8(0x807ABA0A, 0);
+    Memory::Write8(0x807ABA0B, 0);
 
-    call(0x80040870);
-
-    if (!Memory::Read8(0x8065aa65))
-        call(0x800d09e4);
+    if (!Memory::Read8(0x80768AAD))
+        call(0x802BDCF0); // LoadingLetters (PAL: 0x800d09e4)
 
     HudSetup(cpu);
     float atlas_width, atlas_height;
-    bool background = true;
-    const uint8_t type = Memory::Read8(0x80697846);
+    const uint8_t type = Memory::Read8(0x80767904);
+    HudBind(0x8076792C);
+    atlas_width = Memory::Read16(0x80767950);
+    atlas_height = Memory::Read16(0x80767952);
 
-    if (type == 6) {
-        const auto shape = call(0x802e05b4, {0x11c6, 0});
+    if (NativeGraphicsFrameShouldRender()) {
+        int16_t origins[4][2];
+        const uint32_t addresses[4] = {0x806C56C4, 0x806C56B8, 0x806C56BC, 0x806C56C0};
 
-        if (shape) {
-            call(0x80054cd8, {Memory::Read8(shape + 0x12), frame[0x10], frame[0x14]});
-            auto binding = ReadNativeTextureObject(Memory::Read32(frame[0x10]));
-            binding.map_id = 0;
-            const auto palette = Memory::Read32(frame[0x14]);
+        for (unsigned i = 0; i < 4; ++i)
+            for (unsigned j = 0; j < 2; ++j)
+                origins[i][j] = Memory::Read16(addresses[i] + j * 2);
+        uint8_t color[4];
 
-            if (palette)
-                BindNativePalette(0, ReadNativePaletteObject(palette));
+        for (unsigned i = 0; i < 4; ++i)
+            color[i] = Memory::Read8(0x8089E538 + i);
 
-            BindNativeTexture(binding);
-            atlas_width = atlas_height = 256;
-            background = false;
-        } else {
-            HudBind(0x806978ec);
-            atlas_width = Memory::Read16(0x80697910);
-            atlas_height = Memory::Read16(0x80697912);
+        mh3_system_ui_hud_quad quads[5];
+        uint32_t count;
+        Checked(mh3_system_ui_hud_background(type, call(0x800331D0) == 1, atlas_width, atlas_height, origins, color, quads, &count));
+
+        for (unsigned i = 0; i < count; ++i) {
+            HudBlend(quads[i].blend_mode);
+            Submit(quads[i].vertex, 4);
         }
-    } else {
-        HudBind(0x8069787c);
-        atlas_width = Memory::Read16(0x806978a0);
-        atlas_height = Memory::Read16(0x806978a2);
-    }
 
-    if (background) {
-        if (NativeGraphicsFrameShouldRender()) {
-            int16_t origins[4][2];
-            const uint32_t addresses[4] = {0x80595ad4, 0x80595ac8, 0x80595acc, 0x80595ad0};
+        HudBlend(1);
+    } else
+        HudBlend(1);
 
-            for (unsigned i = 0; i < 4; ++i)
-                for (unsigned j = 0; j < 2; ++j)
-                    origins[i][j] = Memory::Read16(addresses[i] + j * 2);
-            uint8_t color[4];
-
-            for (unsigned i = 0; i < 4; ++i)
-                color[i] = Memory::Read8(0x80793828 + i);
-
-            mh3_system_ui_hud_quad quads[5];
-            uint32_t count;
-            Checked(mh3_system_ui_hud_background(type, call(0x80040424) == 1, atlas_width, atlas_height, origins, color, quads, &count));
-
-            for (unsigned i = 0; i < count; ++i) {
-                HudBlend(quads[i].blend_mode);
-                Submit(quads[i].vertex, 4);
-            }
-
-            HudBlend(1);
-        } else
-            HudBlend(1);
-
-        if (type != 6) {
-            HudBind(0x806978b4);
-            atlas_width = Memory::Read16(0x806978d8);
-            atlas_height = Memory::Read16(0x806978da);
-        }
-    }
+    HudBind(0x80767964);
+    atlas_width = Memory::Read16(0x80767988);
+    atlas_height = Memory::Read16(0x8076798A);
 
     if (!atlas_width || !atlas_height)
         MH3_THROW(std::runtime_error("HUD sprite atlas has zero dimensions"));
 
-    const uint32_t language = Memory::Read8(0x8065aa69), count = Memory::Read8(0x80793820 + language), atlas = Memory::Read32(0x805959e8 + language * 4);
+    constexpr uint32_t count = 10;
+    constexpr uint32_t atlas = 0x806C5678;
     const float progress = LoadProgress::Frame();
 
     if (NativeGraphicsFrameShouldRender())
         for (unsigned i = 0; i < count; ++i) {
-            const float x = float(int16_t(Memory::Read16(0x8069781a + i * 2))) - (call(0x80040424) == 0 ? 160 : 0), y = int16_t(Memory::Read16(0x80697830 + i * 2));
-            const auto angle = Memory::Read32(0x806977a8 + i * 4);
+            const float x = float(int16_t(Memory::Read16(0x807678DC + i * 2))) - (call(0x800331D0) == 0 ? 160 : 0), y = int16_t(Memory::Read16(0x807678F0 + i * 2));
+            const auto angle = Memory::Read32(0x80767870 + i * 4);
             const float u = float(int16_t(Memory::Read16(atlas + i * 4))) / atlas_width, v = float(int16_t(Memory::Read16(atlas + i * 4 + 2))) / atlas_height,
                         ur = float(int16_t(Memory::Read16(atlas + i * 4)) + 64) / atlas_width, vb = float(int16_t(Memory::Read16(atlas + i * 4 + 2)) + 64) / atlas_height;
             mh3_system_ui_vertex vertices[4]{};
 
             for (unsigned j = 0; j < 4; ++j) {
-                std::memcpy(Memory::GetPointer(frame[0x20], 12), Memory::GetPointer(0x806977d4 + j * 12, 12), 12);
+                std::memcpy(Memory::GetPointer(frame[0x20], 12), Memory::GetPointer(0x80767898 + j * 12, 12), 12);
 
                 if (angle)
-                    call(0x80051178, {frame[0x20], angle});
+                    call(0x8028BDB8, {frame[0x20], angle});
 
                 vertices[j].position[0] = int16_t(int32_t(Memory::ReadFloat32(frame[0x20]) + x));
                 vertices[j].position[1] = int16_t(int32_t(Memory::ReadFloat32(frame[0x24]) + y));
@@ -1582,41 +1559,227 @@ extern "C" void MH3_HUDDraw(CpuContext* cpu) {
         }
 
     if (count && NativeGraphicsFrameShouldRender())
-        HudProgress(call(0x80040424) == 0 ? 160 : 0, progress);
+        HudProgress(call(0x800331D0) == 0 ? 160 : 0, progress);
 
-    if (type != 6) {
-        if (Memory::Read8(0x8065b23c) != 255)
-            call(0x800d29dc, {0});
+    if (Memory::Read8(0x80769284) != 255)
+        call(0x802BF798, {0});
 
-        if (type >= 4 && type <= 5 && Memory::Read8(0x8065b23d) != 255)
-            call(0x800d29dc, {1});
-    }
+    if (type >= 4 && type <= 5 && Memory::Read8(0x80769285) != 255)
+        call(0x802BF798, {1});
 
-    call(0x800885f4, {0x7ff});
+    call(0x8052C0C0, {0x7ff}); // Invalidate (PAL: 0x800885f4)
     auto m = GetNativeMaterialState();
     m.indirect_count = 0;
     SetNativeMaterial(m);
 
     if (type >= 1 && type <= 4) {
-        const float width = call(0x80040424) == 1 ? 854 : 640;
-        uint32_t text = 0x80697847;
+        const float width = call(0x800331D0) == 1 ? 854 : 640;
+        uint32_t text = 0x80767905;
 
         if (!Memory::Read8(text)) {
-            const auto strings = call(0x800d2e98, {0x3e});
+            const auto strings = Memory::Read32(0x807679DC + 0x3e * 4);
             text = Memory::Read32(strings + (type == 1 || type == 4 ? 0 : type == 3 ? 12 : 8));
         }
 
-        // Centred by the font's columns (FontTextColumns), 11 pixels each at
-        // this size: the original counted bytes, as many for ASCII, but a
-        // language pack's full-width character is 3 bytes in 2 columns.
-        call(0x8005b714, {22, 22});
-        const uint32_t columns = call(0x8005b83c, {text});
-        call(0x8005b780, {uint32_t(int32_t((width - float(columns * 11)) * .5f)), 229});
-        call(0x8005b7ec, {0xc0c0c0ff});
-        call(0x8005ba04, {text});
-        call(0x8005c174);
+        size_t length = 0;
+
+        while (Memory::Read8(text + length))
+            ++length;
+
+        call(0x80295204, {22, 22}); // flfntSetSize (PAL: 0x8005b714)
+        call(0x80295270, {uint32_t(int32_t((width - float(length * 11)) * .5f)), 229}); // flfntSetPos (PAL: 0x8005b780)
+        call(0x802952dc, {0xc0c0c0ff}); // flfntSetColor (PAL: 0x8005b7ec)
+        call(0x80295348, {text}); // flfntPrintf (PAL: 0x8005ba04)
+        call(0x80295af0); // flfntFlush (PAL: 0x8005c174)
     }
 
     Notice(cpu, OnlineNotice(true), kLoadingNoticeTop);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D10B0, MH3_HUDDraw, "HUDDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x802BE28C, MH3_HUDDraw, "HUDDraw");
+
+// ============================================================================
+// PS Vita Native IME Bridge for Character Creation & In-game Keyboard Input
+// ============================================================================
+namespace {
+uint32_t g_kbdBufferAddr = 0;
+uint32_t g_kbdMaxLen = 8;
+bool g_kbdActive = false;
+bool g_kbdFinished = false;
+int g_kbdResultCode = 0; // 0 = in progress, 1 = OK/finished, 2 = cancel
+
+#ifdef __vita__
+std::array<SceWChar16, 64> g_imeInitialText{};
+std::array<SceWChar16, 64> g_imeInputText{};
+std::array<SceWChar16, 32> g_imeTitle{};
+#endif
+
+void FallbackUtf16ToShiftJis(const uint16_t* utf16, char* sjisOut, size_t maxSjisBytes) {
+    size_t outIdx = 0;
+    while (*utf16 && outIdx + 2 < maxSjisBytes) {
+        uint16_t u = *utf16++;
+        if (u < 0x80) {
+            sjisOut[outIdx++] = static_cast<char>(u);
+        } else if (u >= 0x3041 && u <= 0x3093) { // Hiragana
+            uint16_t sj = 0x829F + (u - 0x3041);
+            sjisOut[outIdx++] = static_cast<char>(sj >> 8);
+            sjisOut[outIdx++] = static_cast<char>(sj & 0xFF);
+        } else if (u >= 0x30A1 && u <= 0x30F6) { // Katakana
+            uint16_t offset = u - 0x30A1;
+            uint16_t sj = 0x8340 + offset;
+            if (sj >= 0x837F) sj++;
+            sjisOut[outIdx++] = static_cast<char>(sj >> 8);
+            sjisOut[outIdx++] = static_cast<char>(sj & 0xFF);
+        } else if (u == 0x3000) { // Fullwidth space
+            sjisOut[outIdx++] = static_cast<char>(0x81);
+            sjisOut[outIdx++] = static_cast<char>(0x40);
+        } else if (u == 0x30FC) { // Choonpu
+            sjisOut[outIdx++] = static_cast<char>(0x81);
+            sjisOut[outIdx++] = static_cast<char>(0x5B);
+        } else if (u >= 0xFF01 && u <= 0xFF5E) { // Fullwidth ASCII
+            sjisOut[outIdx++] = static_cast<char>(u - 0xFEE0);
+        } else {
+            sjisOut[outIdx++] = (u < 256) ? static_cast<char>(u) : '?';
+        }
+    }
+    sjisOut[outIdx] = '\0';
+}
+} // namespace
+
+extern "C" void MH3_SetKbdParam(CpuContext* cpu) {
+    g_kbdBufferAddr = cpu->gpr[3];
+    g_kbdMaxLen = cpu->gpr[4] ? std::min(cpu->gpr[4], 32u) : 8u;
+
+    std::string initialStr;
+    if (g_kbdBufferAddr) {
+        for (uint32_t i = 0; i < g_kbdMaxLen; ++i) {
+            char c = static_cast<char>(Memory::Read8(g_kbdBufferAddr + i));
+            if (!c) break;
+            initialStr += c;
+        }
+    }
+
+#ifdef __vita__
+    g_imeInitialText.fill(0);
+    g_imeInputText.fill(0);
+    for (size_t i = 0; i < std::min(initialStr.size(), size_t(g_kbdMaxLen)); ++i) {
+        g_imeInitialText[i] = static_cast<uint8_t>(initialStr[i]);
+    }
+#endif
+    cpu->gpr[3] = 1;
+}
+REGISTER_NATIVE_FUNCTION(0x8041CCEC, MH3_SetKbdParam);
+
+extern "C" void MH3_KbdOpen(CpuContext* cpu) {
+    g_kbdActive = true;
+    g_kbdFinished = false;
+    g_kbdResultCode = 0;
+
+#ifdef __vita__
+    const char16_t titleText[] = u"名前入力";
+    for (size_t i = 0; i < std::min(sizeof(titleText)/sizeof(char16_t), g_imeTitle.size() - 1); ++i) {
+        g_imeTitle[i] = titleText[i];
+    }
+    g_imeTitle[std::min(sizeof(titleText)/sizeof(char16_t), g_imeTitle.size() - 1)] = 0;
+
+    SceImeDialogParam param{};
+    sceImeDialogParamInit(&param);
+    param.type = SCE_IME_TYPE_DEFAULT;
+    param.dialogMode = SCE_IME_DIALOG_DIALOG_MODE_WITH_CANCEL;
+    param.title = g_imeTitle.data();
+    param.maxTextLength = g_kbdMaxLen;
+    param.initialText = g_imeInitialText.data();
+    param.inputTextBuffer = g_imeInputText.data();
+
+    aurora_set_common_dialog_active(true);
+
+    if (sceImeDialogInit(&param) < 0) {
+        aurora_set_common_dialog_active(false);
+        g_kbdFinished = true;
+        g_kbdResultCode = 1;
+    }
+#else
+    g_kbdFinished = true;
+    g_kbdResultCode = 1;
+#endif
+
+    cpu->gpr[3] = 1;
+}
+REGISTER_NATIVE_FUNCTION(0x8041CDA4, MH3_KbdOpen);
+
+extern "C" void MH3_KbdMove(CpuContext* cpu) {
+    if (!g_kbdActive) {
+        cpu->gpr[3] = 1;
+        return;
+    }
+
+#ifdef __vita__
+    if (!g_kbdFinished) {
+        SceCommonDialogStatus status = sceImeDialogGetStatus();
+        if (status == SCE_COMMON_DIALOG_STATUS_RUNNING) {
+            cpu->gpr[3] = 0;
+            return;
+        }
+
+        if (status == SCE_COMMON_DIALOG_STATUS_FINISHED) {
+            SceImeDialogResult result{};
+            sceImeDialogGetResult(&result);
+            sceImeDialogTerm();
+            aurora_set_common_dialog_active(false);
+
+            if (result.button == SCE_IME_DIALOG_BUTTON_ENTER) {
+                char sjisBuffer[64]{};
+                bool convertedViaGuest = false;
+
+                GuestFrame frame(cpu, 0x100);
+                GuestCall call{cpu};
+                uint32_t inLen = 0;
+                while (inLen < g_imeInputText.size() && g_imeInputText[inLen] != 0) {
+                    ++inLen;
+                }
+                if (inLen > 0) {
+                    Memory::Write32(frame[0x10], inLen);
+                    Memory::Write32(frame[0x14], sizeof(sjisBuffer));
+                    for (uint32_t i = 0; i < inLen; ++i) {
+                        Memory::Write16(frame[0x20 + i * 2], g_imeInputText[i]);
+                    }
+                    Memory::Write16(frame[0x20 + inLen * 2], 0);
+
+                    call(0x803A0488, {frame[0x60], frame[0x14], frame[0x20], frame[0x10]});
+
+                    uint32_t outLen = Memory::Read32(frame[0x14]);
+                    for (uint32_t i = 0; i < outLen && i < sizeof(sjisBuffer) - 1; ++i) {
+                        sjisBuffer[i] = static_cast<char>(Memory::Read8(frame[0x60] + i));
+                    }
+                    sjisBuffer[std::min(outLen, uint32_t(sizeof(sjisBuffer) - 1))] = 0;
+                    convertedViaGuest = (sjisBuffer[0] != 0);
+                }
+
+                if (!convertedViaGuest) {
+                    FallbackUtf16ToShiftJis(reinterpret_cast<const uint16_t*>(g_imeInputText.data()), sjisBuffer, sizeof(sjisBuffer));
+                }
+
+                if (g_kbdBufferAddr) {
+                    size_t len = std::strlen(sjisBuffer);
+                    for (size_t i = 0; i < len && i < g_kbdMaxLen; ++i) {
+                        Memory::Write8(g_kbdBufferAddr + i, static_cast<uint8_t>(sjisBuffer[i]));
+                    }
+                    Memory::Write8(g_kbdBufferAddr + std::min(len, size_t(g_kbdMaxLen)), 0);
+                }
+                g_kbdResultCode = 1;
+            } else {
+                g_kbdResultCode = 2;
+            }
+            g_kbdFinished = true;
+        } else {
+            cpu->gpr[3] = 0;
+            return;
+        }
+    }
+#endif
+
+    cpu->gpr[3] = g_kbdResultCode ? g_kbdResultCode : 1;
+    if (g_kbdFinished) {
+        g_kbdActive = false;
+    }
+}
+REGISTER_NATIVE_FUNCTION(0x8041D264, MH3_KbdMove);

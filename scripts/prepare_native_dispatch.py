@@ -1,3 +1,4 @@
+import shutil
 #!/usr/bin/env python3
 """Refresh translator-owned dispatch, registration and direct-call traits.
 
@@ -10,7 +11,10 @@ detect edited/missing generated artifacts.
 """
 from pathlib import Path
 import argparse
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 import hashlib
 import json
 import os
@@ -111,7 +115,8 @@ def input_digests(args):
 def prepare(args):
     args.out.mkdir(parents=True, exist_ok=True)
     with (args.out / '.native-dispatch.lock').open('a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
+        if fcntl:
+            fcntl.flock(lock, fcntl.LOCK_EX)
         stamp = args.out / 'native_dispatch_freshness.json'
         inputs = input_digests(args)
         recipe = [str(args.base_metadata), str(args.functions), str(args.native_dir),
@@ -166,7 +171,15 @@ def main():
     parser.add_argument('--out', type=Path, default=ROOT / 'generated/build_shards')
     parser.add_argument('--translator', type=Path,
                         default=ROOT / 'toolchain/translator/src/Translator.Cli/bin/Release/net8.0/Translator.Cli.dll')
-    parser.add_argument('--dotnet', type=Path, default=Path(os.environ.get('DOTNET_BIN', ROOT / 'tools/dotnet/dotnet')))
+    dotnet_default = os.environ.get('DOTNET_BIN') or shutil.which('dotnet')
+    if not dotnet_default:
+        for candidate in ['/usr/local/bin/dotnet', '/usr/bin/dotnet', ROOT / 'tools/dotnet/dotnet']:
+            if Path(candidate).is_file():
+                dotnet_default = str(candidate)
+                break
+    if not dotnet_default:
+        dotnet_default = ROOT / 'tools/dotnet/dotnet'
+    parser.add_argument('--dotnet', type=Path, default=Path(dotnet_default))
     parser.add_argument('--resolved-profile', type=Path)
     parser.add_argument('--retro-cpp-dir', type=Path)
     parser.add_argument('--check', action='store_true')

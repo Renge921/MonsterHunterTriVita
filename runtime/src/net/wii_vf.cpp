@@ -466,127 +466,127 @@ uint32_t Arg(CpuContext* cpu, int n) {
 extern "C" void MH3_VFFill(CpuContext* cpu) {
     Fill(Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805219C0, MH3_VFFill, "VFi_memset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805219C0, MH3_VFFill, "VFi_memset");
 
 extern "C" void MH3_VFPack(CpuContext* cpu) {
     cpu->gpr[3] = Pack(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521AC0, MH3_VFPack, "VFi_PackResult");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521AC0, MH3_VFPack, "VFi_PackResult");
 
 extern "C" void MH3_VFUnpack(CpuContext* cpu) {
     const uint32_t value = Arg(cpu, 3);
     Memory::Write16(Arg(cpu, 4), uint16_t(value >> 16));
     Memory::Write16(Arg(cpu, 5), uint16_t(value));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521AD0, MH3_VFUnpack, "VFi_UnpackResult");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521AD0, MH3_VFUnpack, "VFi_UnpackResult");
 
 extern "C" void MH3_VFClearVolumes(CpuContext* cpu) {
     ClearVolumes();
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521AE0, MH3_VFClearVolumes, "VFi_InitVolumes");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521AE0, MH3_VFClearVolumes, "VFi_InitVolumes");
 
 extern "C" void MH3_VFSetCodePageThunk(CpuContext* cpu) {
     cpu->gpr[3] = SetCodePage(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521C10, MH3_VFSetCodePageThunk, "VFi_SetCodePageSjis");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521C10, MH3_VFSetCodePageThunk, "VFi_SetCodePageSjis");
 
 extern "C" void MH3_VFSetCodePage(CpuContext* cpu) {
     cpu->gpr[3] = SetCodePage(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521C20, MH3_VFSetCodePage, "VFi_SetCodePage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521C20, MH3_VFSetCodePage, "VFi_SetCodePage");
 
 extern "C" void MH3_VFToUnicode(CpuContext* cpu) {
     cpu->gpr[3] = ToUnicode(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521DB0, MH3_VFToUnicode, "VFi_SjisToUnicode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521DB0, MH3_VFToUnicode, "VFi_SjisToUnicode");
 
 extern "C" void MH3_VFFromUnicode(CpuContext* cpu) {
     cpu->gpr[3] = FromUnicode(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521F70, MH3_VFFromUnicode, "VFi_UnicodeToSjis");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521F70, MH3_VFFromUnicode, "VFi_UnicodeToSjis");
 
 extern "C" void MH3_VFCharLength(CpuContext* cpu) {
     const uint32_t from = Arg(cpu, 3);
     cpu->gpr[3] = uint32_t(CharLength(cpu, from));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805221D0, MH3_VFCharLength, "VFi_SjisCharLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805221D0, MH3_VFCharLength, "VFi_SjisCharLength");
 
 extern "C" void MH3_VFIsSjisByte(CpuContext* cpu) {
     cpu->gpr[3] = IsSjisByte(Arg(cpu, 3), Arg(cpu, 4)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522210, MH3_VFIsSjisByte, "VFi_IsSjisByte");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522210, MH3_VFIsSjisByte, "VFi_IsSjisByte");
 
 extern "C" void MH3_VFMaxChar(CpuContext* cpu) {
     cpu->gpr[3] = 2;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522290, MH3_VFMaxChar, "VFi_SjisMaxCharBytes");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522290, MH3_VFMaxChar, "VFi_SjisMaxCharBytes");
 
 extern "C" void MH3_VFNoOp(CpuContext* cpu) {
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805222A0, MH3_VFNoOp, "VFi_SjisNoOp");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805222A0, MH3_VFNoOp, "VFi_SjisNoOp");
 
 extern "C" void MH3_VFErrorOf(CpuContext* cpu) {
     cpu->gpr[3] = Arg(cpu, 3) ? 0xFFFFFFFF : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805222B0, MH3_VFErrorOf, "VFi_ErrorOf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805222B0, MH3_VFErrorOf, "VFi_ErrorOf");
 
 extern "C" void MH3_VFInitCodePage(CpuContext* cpu) {
     cpu->gpr[3] = SetCodePage(Arg(cpu, 3), Arg(cpu, 4)) ? 0xFFFFFFFF : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805222C0, MH3_VFInitCodePage, "VFi_InitCodePage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805222C0, MH3_VFInitCodePage, "VFi_InitCodePage");
 
 extern "C" void MH3_VFResetCodePageState(CpuContext*) {
     Write(kCodePageState, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522300, MH3_VFResetCodePageState, "VFi_ResetCodePageState");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522300, MH3_VFResetCodePageState, "VFi_ResetCodePageState");
 
 extern "C" void MH3_VFCodePageReady(CpuContext*) {
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522310, MH3_VFCodePageReady, "VFi_CodePageReady");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522310, MH3_VFCodePageReady, "VFi_CodePageReady");
 
 extern "C" void MH3_VFStart(CpuContext* cpu) {
     Start(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522320, MH3_VFStart, "VFInitEx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522320, MH3_VFStart, "VFInitEx");
 
 extern "C" void MH3_VFFinish(CpuContext* cpu) {
     Finish(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805223F0, MH3_VFFinish, "VFFinish");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805223F0, MH3_VFFinish, "VFFinish");
 
 extern "C" void MH3_VFIsStarted(CpuContext* cpu) {
     cpu->gpr[3] = Read(kStarted) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522460, MH3_VFIsStarted, "VFIsInitialized");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522460, MH3_VFIsStarted, "VFIsInitialized");
 
 extern "C" void MH3_VFPoolSetup(CpuContext* cpu) {
     PoolSetup(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522480, MH3_VFPoolSetup, "VFi_InitPool");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522480, MH3_VFPoolSetup, "VFi_InitPool");
 
 extern "C" void MH3_VFPoolTeardown(CpuContext* cpu) {
     PoolTeardown(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80522610, MH3_VFPoolTeardown, "VFi_FinishPool");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80522610, MH3_VFPoolTeardown, "VFi_FinishPool");
 
 extern "C" void MH3_VFSwapHook(CpuContext* cpu) {
     cpu->gpr[3] = SwapHook(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805227A0, MH3_VFSwapHook, "VFi_SetHook");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805227A0, MH3_VFSwapHook, "VFi_SetHook");
 
 extern "C" void MH3_VFClearNames(CpuContext*) {
     ClearNames();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805227B0, MH3_VFClearNames, "VFi_InitNames");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805227B0, MH3_VFClearNames, "VFi_InitNames");
 
 extern "C" void MH3_VFClearCache(CpuContext*) {
     for (uint32_t i = 0; i < 130; ++i)
         Write(kCache + 4 * i, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805228C0, MH3_VFClearCache, "VFi_InitCache");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805228C0, MH3_VFClearCache, "VFi_InitCache");
 
 extern "C" void MH3_VFCacheReady(CpuContext*) {
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805229B0, MH3_VFCacheReady, "VFi_CacheReady");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805229B0, MH3_VFCacheReady, "VFi_CacheReady");

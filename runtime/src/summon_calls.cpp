@@ -381,28 +381,28 @@ extern "C" void func_80155160(CpuContext* ctx);
 extern "C" void MH3_QurupecoEvent(CpuContext* ctx) {
     PortCheck::Call(ctx, "QurupecoEvent", func_80155160, QurupecoEventPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80155160, MH3_QurupecoEvent, "QurupecoEvent");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80155160, MH3_QurupecoEvent, "QurupecoEvent");
 
 extern "C" void func_8015D734(CpuContext* ctx);
 extern "C" void MH3_QurupecoCalls(CpuContext* ctx) {
     PortCheck::Call(ctx, "QurupecoCalls", PortCheck::Returns::Gpr3, func_8015D734, QurupecoCallsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015D734, MH3_QurupecoCalls, "QurupecoCalls");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8015D734, MH3_QurupecoCalls, "QurupecoCalls");
 
 extern "C" void func_80145B28(CpuContext* ctx);
 extern "C" void MH3_SummonRules(CpuContext* ctx) {
     PortCheck::Call(ctx, "SummonRules", func_80145B28, SummonRulesPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80145B28, MH3_SummonRules, "SummonRules");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80145B28, MH3_SummonRules, "SummonRules");
 
 extern "C" void func_801450E4(CpuContext* ctx);
 extern "C" void MH3_SummonRulesTick(CpuContext* ctx) {
     PortCheck::Call(ctx, "SummonRulesTick", func_801450E4, SummonRulesTickPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801450E4, MH3_SummonRulesTick, "SummonRulesTick");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801450E4, MH3_SummonRulesTick, "SummonRulesTick");
 
 extern "C" void func_803A9238(CpuContext* ctx);
 extern "C" void MH3_MonsterDownNotice(CpuContext* ctx) {
     PortCheck::Call(ctx, "MonsterDownNotice", func_803A9238, MonsterDownNoticePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A9238, MH3_MonsterDownNotice, "MonsterDownNotice");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A9238, MH3_MonsterDownNotice, "MonsterDownNotice");

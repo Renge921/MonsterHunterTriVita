@@ -157,9 +157,9 @@ extern "C" void func_8041C7F4(CpuContext* cpu);
 extern "C" void MH3_ConnectionBusy(CpuContext* cpu) {
     PortCheck::Call(cpu, "ConnectionBusy", func_8041C7F4, ConnectionBusyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8041C7F4, MH3_ConnectionBusy, "ConnectionBusy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8041C7F4, MH3_ConnectionBusy, "ConnectionBusy");
 
 extern "C" void MH3_OnlineClose(CpuContext* cpu) {
     OnlineClose(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803D6FFC, MH3_OnlineClose, "OnlineClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803D6FFC, MH3_OnlineClose, "OnlineClose");

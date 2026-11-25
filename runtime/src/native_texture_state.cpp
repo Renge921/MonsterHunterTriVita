@@ -13,7 +13,9 @@
 #include <cstdio>
 #include <aurora/native_texture.hpp>
 #include "gl/gl.hpp"
+#include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstring>
 #include <deque>
 #include <mutex>
@@ -54,6 +56,9 @@ aurora::NativeTextureSource SourceOf(const mh3_native_texture_binding& binding) 
     source.asset = input.asset_id;
     source.generation = input.generation;
     source.mutable_source = input.mutable_source;
+    if (source.mutable_source && !source.generation) {
+        source.generation = 1;
+    }
     source.original_image = NativeTextureResourceIsOriginal(input.payload_address, input.generation);
     const size_t bytes = aurora::native_texture_source_size(source.format, source.width, source.height, source.levels);
     source.bytes = {Memory::GetPointer(input.payload_address, bytes), bytes};
@@ -94,7 +99,15 @@ aurora::NativeTextureSource SourceOf(const mh3_native_texture_binding& binding) 
 
 aurora::NativeTextureSampler SamplingOf(const mh3_native_texture_binding& binding) {
     const auto& sampler = binding.sampler;
-    return {sampler.wrap_s, sampler.wrap_t, sampler.min_filter, sampler.mag_filter, sampler.anisotropy, binding.source.min_lod, binding.source.max_lod, sampler.lod_bias};
+    const uint32_t wrap_s = sampler.wrap_s <= 2 ? sampler.wrap_s : 0;
+    const uint32_t wrap_t = sampler.wrap_t <= 2 ? sampler.wrap_t : 0;
+    const uint32_t min_filter = sampler.min_filter <= 5 ? sampler.min_filter : 1;
+    const uint32_t mag_filter = sampler.mag_filter <= 1 ? sampler.mag_filter : 1;
+    const uint32_t anisotropy = sampler.anisotropy <= 2 ? sampler.anisotropy : 0;
+    const float min_lod = std::isfinite(binding.source.min_lod) ? binding.source.min_lod : 0.0f;
+    const float max_lod = std::isfinite(binding.source.max_lod) ? std::max(min_lod, binding.source.max_lod) : min_lod;
+    const float lod_bias = std::isfinite(sampler.lod_bias) ? sampler.lod_bias : 0.0f;
+    return {wrap_s, wrap_t, min_filter, mag_filter, anisotropy, min_lod, max_lod, lod_bias};
 }
 
 // Render thread: bind one recorded texture to its backend unit; through

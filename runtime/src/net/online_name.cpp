@@ -109,4 +109,4 @@ extern "C" void func_803FE8F4(CpuContext* cpu);
 extern "C" void MH3_SetUserObjectName(CpuContext* cpu) {
     PortCheck::Call(cpu, "SetUserObjectName", func_803FE8F4, SetUserObjectNamePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803FE8F4, MH3_SetUserObjectName, "SetUserObjectName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803FE8F4, MH3_SetUserObjectName, "SetUserObjectName");

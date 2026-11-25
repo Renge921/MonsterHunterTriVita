@@ -6,14 +6,17 @@
 #include "guest_call.h"
 #include "memory.h"
 #include "native_graphics.h"
+#include "ios_host.h"
+#include "audio/native_audio.h"
 #include "runtime/native/adapters/model_pose_bridge.h"
+#include "village_boot.h"
 #include <stdexcept>
 
 // GXInit only created the FIFO and initial GPU state, then cleared/copied both
 // old XFBs. Aurora owns the actual display surfaces; native frame begin sets
 // viewport and clears the color/depth target once admission succeeds.
 extern "C" void MH3_NativeGraphicsInit(CpuContext* cpu) {
-    const auto mode = Memory::Read32(cpu->gpr[13] - 0x46B8);
+    const auto mode = Memory::Read32(cpu->gpr[13] - 0x4738);
 
     if (!mode || !Memory::Contains(mode, 60))
         MH3_THROW(std::runtime_error("Native graphics startup has no render mode"));
@@ -23,7 +26,7 @@ extern "C" void MH3_NativeGraphicsInit(CpuContext* cpu) {
     // Verified __GXInitRevisionBits enables XF DUALTEX in the original init.
     PublishNativeModelDualTexture(true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FD30, MH3_NativeGraphicsInit, "NativeGraphicsInit");
+REGISTER_NATIVE_FUNCTION(0x80032B0C, MH3_NativeGraphicsInit);
 
 // Preserve the boot VI configuration, compatibility XFB bookkeeping, and
 // initial retraces used by the game's timing. These calls update the emulated
@@ -32,45 +35,50 @@ extern "C" void MH3_NativeDisplaySetup(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     const auto sda = frame.Arg(13);
-    const auto mode = Memory::Read32(sda - 0x46B8);
+    const auto mode = Memory::Read32(sda - 0x4738);
 
     if (!mode || !Memory::Contains(mode, 60))
         MH3_THROW(std::runtime_error("Native display setup has no render mode"));
 
-    const auto index = Memory::Read32(sda - 0x46A4);
+    const auto index = Memory::Read32(sda - 0x4724);
 
     if (index > 1)
         MH3_THROW(std::runtime_error("Boot VI framebuffer index exceeds its compatibility pair"));
 
-    call(0x804E85E0, {mode});
-    call(0x804E9130, {Memory::Read32(sda - 0x46B0 + index * 4)});
-    Memory::Write32(sda - 0x46A4, index ^ 1);
-    Memory::Write32(sda - 0x46A8, Memory::Read32(sda - 0x46B0 + (index ^ 1) * 4));
-    call(0x804E9010);
-    call(0x804E8050);
+    call(0x8043ABEC, {mode});
+    call(0x8043B738, {Memory::Read32(sda - 0x4730 + index * 4)});
+    Memory::Write32(sda - 0x4724, index ^ 1);
+    Memory::Write32(sda - 0x4728, Memory::Read32(sda - 0x4730 + (index ^ 1) * 4));
+    call(0x8043B624);
+    call(0x8043A66C);
 
     if (Memory::Read32(mode) & 1)
-        call(0x804E8050);
+        call(0x8043A66C);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FE94, MH3_NativeDisplaySetup, "NativeDisplaySetup");
+REGISTER_NATIVE_FUNCTION(0x80032C90, MH3_NativeDisplaySetup);
 
 // 8003fe88 installed 8003fe84 as the GX draw-done callback. Decompilation of
 // that four-byte callback confirms it returns without any application work.
 // Native buffer retirement uses Aurora's notifications, so no callback is
 // installed. Other calls to the SDK callback setter still hit the GX tripwire.
 extern "C" void MH3_NativeCompletionSetup(CpuContext*) {}
-REGISTER_NATIVE_FUNCTION_AS(0x8003FE88, MH3_NativeCompletionSetup, "NativeCompletionSetup");
+REGISTER_NATIVE_FUNCTION(0x80032C84, MH3_NativeCompletionSetup);
 
 void MH3StartDrawOverlap(); // game_frame.cpp
 
-extern "C" void MH3_NativeFrameBegin(CpuContext*) {
+extern "C" void MH3_NativeFrameBegin(CpuContext* cpu) {
+    NativeAudio::ServiceNativeAudio(cpu);
+    PumpIosCompletions(cpu);
     MH3StartDrawOverlap();
+    StepVillageBoot(cpu);
     BeginNativeGraphicsFrame();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FF20, MH3_NativeFrameBegin, "NativeFrameBegin");
+REGISTER_NATIVE_FUNCTION(0x80032D04, MH3_NativeFrameBegin);
 
-extern "C" void MH3_NativeFrameEnd(CpuContext*) {
+extern "C" void MH3_NativeFrameEnd(CpuContext* cpu) {
+    NativeAudio::ServiceNativeAudio(cpu);
+    PumpIosCompletions(cpu);
     if (!EndOverlappedNativeGraphicsFrame())
         EndNativeGraphicsFrame();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003FFFC, MH3_NativeFrameEnd, "NativeFrameEnd");
+REGISTER_NATIVE_FUNCTION(0x80032DDC, MH3_NativeFrameEnd);

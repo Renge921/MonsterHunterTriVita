@@ -68,7 +68,7 @@ double Pending() {
 
 } // namespace
 
-extern "C" void func_802BD3A0(CpuContext* ctx);
+extern "C" void func_8037544C(CpuContext* ctx);
 
 static void CameraScriptInterpolatePort(CpuContext* ctx) {
     const uint32_t script = ctx->gpr[4];
@@ -80,7 +80,7 @@ static void CameraScriptInterpolatePort(CpuContext* ctx) {
     const double pending = Pending();
 
     if (total < 1 || pending == 0.0) {
-        func_802BD3A0(ctx);
+        func_8037544C(ctx);
         return;
     }
 
@@ -88,30 +88,30 @@ static void CameraScriptInterpolatePort(CpuContext* ctx) {
     const int32_t scale = std::max(1, std::min(256, 32767 / total));
     Memory::Write16(script + kLeft, uint16_t(int16_t(std::lround(now * scale))));
     Memory::Write16(script + kTotal, uint16_t(int16_t(total * scale)));
-    func_802BD3A0(ctx);
+    func_8037544C(ctx);
     Memory::Write16(script + kLeft, uint16_t(left));
     Memory::Write16(script + kTotal, uint16_t(total));
 }
 
 extern "C" void MH3_CameraScriptInterpolate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CameraScriptInterpolate", func_802BD3A0, CameraScriptInterpolatePort);
+    PortCheck::Call(ctx, "CameraScriptInterpolate", func_8037544C, CameraScriptInterpolatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BD3A0, MH3_CameraScriptInterpolate, "CameraScriptInterpolate");
+REGISTER_NATIVE_FUNCTION_AS(0x8037544C, MH3_CameraScriptInterpolate, "CameraScriptInterpolate");
 
-extern "C" void func_802BD938(CpuContext* ctx);
+extern "C" void func_8037596C(CpuContext* ctx);
 
 namespace {
 
 // A path (camera work +0x7C) is 36-byte keys, ended by a negative frame:
 //   +0 s32 frame (half frames), +4 the f32 for +0x34, +8 the f32 for +0x30,
 //   +0xC eye, +0x18 target
-// The path kind (+0xFD) selects a u16 of flags at 0x805D3326 + 4 * kind:
+// The path kind (+0xFD) selects a u16 of flags at 0x806E12EE + 4 * kind:
 //   1 orbit the result around the work, 2 keep it above the ground,
 //   8 hold the last key past the end (the path never reports done).
 enum : uint32_t {
     kPathKeys = 0x7C,
     kPathKind = 0xFD,
-    kPathFlags = 0x805D3326,
+    kPathFlags = 0x806E12EE,
     kKeyBytes = 36,
 };
 
@@ -271,7 +271,7 @@ static void CameraPathEvaluatePort(CpuContext* ctx) {
 
     if (pending == 0.0) {
         if (flags & 3)
-            func_802BD938(ctx);
+            func_8037596C(ctx);
         else
             ctx->gpr[3] = EvaluatePath(script, flags, keys, SeekKey(keys, HalfFrames(frame)));
 
@@ -322,7 +322,7 @@ static void CameraPathEvaluatePort(CpuContext* ctx) {
     auto evaluate = [&](int32_t at, PathPose* pose) {
         *ctx = entry;
         Memory::Write16(script + kFrame, uint16_t(int16_t(at)));
-        func_802BD938(ctx);
+        func_8037596C(ctx);
 
         if (pose)
             pose->Read(script);
@@ -346,6 +346,6 @@ static void CameraPathEvaluatePort(CpuContext* ctx) {
 }
 
 extern "C" void MH3_CameraPathEvaluate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CameraPathEvaluate", func_802BD938, CameraPathEvaluatePort);
+    PortCheck::Call(ctx, "CameraPathEvaluate", func_8037596C, CameraPathEvaluatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BD938, MH3_CameraPathEvaluate, "CameraPathEvaluate");
+REGISTER_NATIVE_FUNCTION_AS(0x8037596C, MH3_CameraPathEvaluate, "CameraPathEvaluate");

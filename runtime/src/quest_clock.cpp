@@ -24,8 +24,8 @@
 namespace {
 
 enum : uint32_t {
-    QuestWork = 0x803A880C, // () -> quest work, 0 without a quest
-    OSGetTime = 0x804D53D0,
+    GetMoveWork = 0x802BCF94, // (0) -> move work; +0xDC is quest work (0 without a quest)
+    OSGetTime = 0x8042BF64,
 };
 
 enum : uint32_t {
@@ -36,7 +36,7 @@ enum : uint32_t {
     kTimeLeftExact = 0x6A60, // f64 frames
 };
 
-constexpr uint32_t kFrameRate = 0x8065B4D0; // f32
+constexpr uint32_t kFrameRate = 0x8076940C; // f32
 constexpr uint32_t kBusClock = 0x800000F8;
 constexpr float kNoLimitMinutes = 99.0f;
 
@@ -44,12 +44,13 @@ double ReadF64(uint32_t a) {
     return Memory::ReadFloat64(a);
 }
 
-// 0x803A9014(running): counts the time limit down; `running` 0 holds it.
+// 0x801F6EB0(running): counts the time limit down; `running` 0 holds it.
 void QuestClockTick(CpuContext* ctx) {
     const int32_t running = int32_t(ctx->gpr[3]);
     GuestFrame frame(ctx, 0x20);
     GuestCall game{ctx};
-    const uint32_t work = game.Call<QuestWork>();
+    const uint32_t moveWork = game.Call<GetMoveWork>({0});
+    const uint32_t work = moveWork ? Memory::Read32(moveWork + 0xDC) : 0;
 
     if (!work)
         return;
@@ -107,9 +108,9 @@ void QuestClockTick(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_803A9014(CpuContext* ctx);
+extern "C" void func_801F6EB0(CpuContext* ctx);
 
 extern "C" void MH3_QuestClockTick(CpuContext* ctx) {
-    PortCheck::Call(ctx, "QuestClockTick", func_803A9014, QuestClockTick);
+    PortCheck::Call(ctx, "QuestClockTick", func_801F6EB0, QuestClockTick);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A9014, MH3_QuestClockTick, "QuestClockTick");
+REGISTER_NATIVE_FUNCTION_AS(0x801F6EB0, MH3_QuestClockTick, "QuestClockTick");

@@ -12,7 +12,7 @@
 
 namespace {
 
-constexpr uint32_t kOnlineMode = 0x8065AA84u; // u8, what GetOnlineMode (0x800CF26C) returns
+constexpr uint32_t kOnlineMode = 0x80768ACCu; // u8, what GetOnlineMode (0x802BC6BC in RMHJ08) returns
 constexpr uint32_t kLobby = 0x806ACFC4u;      // lobby_w: u8 state, +0xAC the session
 
 bool OnlineSkillSet() {

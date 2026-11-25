@@ -48,9 +48,9 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    PlayerMotion = 0x8026A36C, // Get_motion_no(PLW*)
-    EnemyMotion = 0x8012F960,  // em_get_mot_no(ENEMY_WORK*)
-    NpcMotion = 0x802D2A14,    // ai_get_motion_no(AINPC_W*)
+    PlayerMotion = 0x803385C8, // Get_motion_no(PLW*)
+    EnemyMotion = 0x80169AA0,  // em_get_mot_no(ENEMY_WORK*)
+    NpcMotion = 0x802DB4B4,    // ai_get_motion_no(AINPC_W*)
 };
 
 constexpr float kFrames = 2.0f;
@@ -157,9 +157,9 @@ static void HitTimerStep(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-extern "C" void func_80299F5C(CpuContext* ctx);
+extern "C" void func_801ACF38(CpuContext* ctx);
 
 extern "C" void MH3_HitTimerStep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "HitTimerStep", func_80299F5C, HitTimerStep);
+    PortCheck::Call(ctx, "HitTimerStep", func_801ACF38, HitTimerStep);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80299F5C, MH3_HitTimerStep, "HitTimerStep");
+REGISTER_NATIVE_FUNCTION_AS(0x801ACF38, MH3_HitTimerStep, "HitTimerStep");

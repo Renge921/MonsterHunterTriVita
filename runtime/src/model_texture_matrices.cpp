@@ -65,7 +65,7 @@ extern "C" void MH3_CalcTextureSrt(CpuContext* cpu) {
     Checked(mh3_texture_srt_calc(&srt, cpu->gpr[7], cpu->gpr[4] != 0, &matrix));
     StoreMatrix(cpu->gpr[3], matrix);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80075F00, MH3_CalcTextureSrt, "CalcTextureSrt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80533F4C, MH3_CalcTextureSrt);
 
 extern "C" void MH3_CalcTextureSrtXsi(CpuContext* cpu) {
     const auto srt = Srt(cpu->gpr[5], cpu->gpr[6]);
@@ -83,12 +83,12 @@ extern "C" void MH3_CalcTextureSrtXsi(CpuContext* cpu) {
     StoreMatrix(cpu->gpr[3], matrix);
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D754C, MH3_CalcTextureSrtXsi, "CalcTextureSrtXsi");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80533318, MH3_CalcTextureSrtXsi);
 
 extern "C" void MH3_LoadModelTextureSrt(CpuContext* cpu) {
     LoadNativeModelTextureSrt(Resource(cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800871C0, MH3_LoadModelTextureSrt, "LoadModelTextureSrt");
+REGISTER_NATIVE_FUNCTION(0x8052B370, MH3_LoadModelTextureSrt);
 void LoadNativeModelTextureSrt(uint32_t resource) {
     mh3_native_texture_srt srt;
     Checked(mh3_texture_srt_read_for_prepare(Bytes(resource, 0x248), &srt));
@@ -98,7 +98,7 @@ void LoadNativeModelTextureSrt(uint32_t resource) {
     // The constructor defines these exact built-in mapping functions. Custom
     // slots may change their callback and type at runtime; reject those until
     // their own typed native producer is implemented.
-    constexpr uint32_t functions[]{0x800850a0, 0x80084694, 0x80084a78, 0x80084694, 0x80084c00};
+    constexpr uint32_t functions[]{0x80529964, 0x80528fd0, 0x805293d4, 0x80528fd0, 0x80529500};
     constexpr uint32_t kinds[]{0, 1, 2, 1, 1};
 
     for (uint32_t i = 0; i < 8; i++) {
@@ -107,7 +107,7 @@ void LoadNativeModelTextureSrt(uint32_t resource) {
         if (!(slot.flags & 1) || !slot.map_mode)
             continue;
 
-        const uint32_t mode = slot.map_mode, entry = 0x80685560 + mode * 8;
+        const uint32_t mode = slot.map_mode, entry = 0x808667a0 + mode * 8;
         const uint32_t builtin = mode < 5 ? mode : 0;
 
         if (Memory::Read32(entry) != functions[builtin] || Memory::Read32(entry + 4) != kinds[builtin])
@@ -115,7 +115,7 @@ void LoadNativeModelTextureSrt(uint32_t resource) {
 
         if (builtin) {
             mh3_texture_mapping_input input{};
-            Checked(mh3_texture_mapping_read(Mutable(0x80688d94, 0x1a34), Bytes(0x80686368, MH3_LIGHT_STATE_BYTES), builtin, slot.camera_reference, slot.light_reference, &input));
+            Checked(mh3_texture_mapping_read(Mutable(0x80869fe0, 0x1a34), Bytes(0x808675b4, MH3_LIGHT_STATE_BYTES), builtin, slot.camera_reference, slot.light_reference, &input));
             Checked(mh3_texture_mapping(builtin, &input, &maps[i]));
         } else
             Checked(mh3_texture_mapping(0, nullptr, &maps[i]));
@@ -125,16 +125,16 @@ void LoadNativeModelTextureSrt(uint32_t resource) {
 
     mh3_texture_matrices matrices{};
     uint32_t next = 0;
-    Checked(mh3_texture_matrices_prepare(&srt, maps, sources, Memory::Read32(0x80796db8), &matrices, &next));
+    Checked(mh3_texture_matrices_prepare(&srt, maps, sources, Memory::Read32(0x8089a338), &matrices, &next));
 
     for (uint32_t i = 0; i < 8; i++) {
-        Memory::Write32(0x80685510 + i * 4, matrices.source[i]);
+        Memory::Write32(0x80866770 + i * 4, matrices.source[i]);
 
         if (matrices.apply & (1u << i))
             SetNativeTextureMatrix(64 + i * 3, &matrices.matrix[i].v[0][0], true);
     }
 
-    Memory::Write32(0x80796db8, next);
+    Memory::Write32(0x8089a338, next);
 }
 
 extern "C" void MH3_NormalTextureMatrix(CpuContext* cpu) {
@@ -144,28 +144,28 @@ extern "C" void MH3_NormalTextureMatrix(CpuContext* cpu) {
     Checked(mh3_texture_matrix_from_normal(&normal, &matrix));
     SetNativeTextureMatrix(cpu->gpr[4], &matrix.v[0][0], true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009B330, MH3_NormalTextureMatrix, "NormalTextureMatrix");
+REGISTER_NATIVE_FUNCTION(0x80528DAC, MH3_NormalTextureMatrix);
 
 extern "C" void MH3_ModelMatrixSourceState(CpuContext* cpu) {
     const uint32_t addresses[]{cpu->gpr[4], cpu->gpr[5], cpu->gpr[6]};
     StoreNativeModelMatrixSources(cpu->gpr[3], addresses);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80087E7C, MH3_ModelMatrixSourceState, "ModelMatrixSourceState");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80087E7C, MH3_ModelMatrixSourceState, "ModelMatrixSourceState");
 extern "C" void MH3_ModelMatrixSources(CpuContext* cpu) {
     const uint32_t addresses[]{cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]};
-    StoreNativeModelMatrixSources(0x80685530, addresses);
+    StoreNativeModelMatrixSources(0x80866790, addresses);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80087E5C, MH3_ModelMatrixSources, "ModelMatrixSources");
+REGISTER_NATIVE_FUNCTION(0x8052BAB0, MH3_ModelMatrixSources);
 
 extern "C" void MH3_ModelLightReference(CpuContext* cpu) {
     int32_t id = 0;
     Checked(mh3_model_light_reference(Bytes(cpu->gpr[3], MH3_LIGHT_STATE_BYTES), int32_t(cpu->gpr[4]), &id));
     cpu->gpr[3] = uint32_t(id);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80085BB8, MH3_ModelLightReference, "ModelLightReference");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80085BB8, MH3_ModelLightReference, "ModelLightReference");
 extern "C" void MH3_CurrentModelLightReference(CpuContext* cpu) {
     int32_t id = 0;
-    Checked(mh3_model_light_reference(Bytes(0x80686368, MH3_LIGHT_STATE_BYTES), int32_t(cpu->gpr[3]), &id));
+    Checked(mh3_model_light_reference(Bytes(0x808675b4, MH3_LIGHT_STATE_BYTES), int32_t(cpu->gpr[3]), &id));
     cpu->gpr[3] = uint32_t(id);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800882D4, MH3_CurrentModelLightReference, "CurrentModelLightReference");
+REGISTER_NATIVE_FUNCTION(0x8052BD6C, MH3_CurrentModelLightReference);

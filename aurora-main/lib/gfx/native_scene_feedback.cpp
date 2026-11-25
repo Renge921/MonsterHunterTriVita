@@ -365,15 +365,14 @@ bool bind_scene_feedback_texture(uint32_t unit, const void* id, uint32_t w, uint
   if (it == images.end() || it->second.texture->width != w || it->second.texture->height != h)
     return false;
 
-  if (s.wrap_s || s.wrap_t || s.min_filter > 1 || s.mag_filter > 1 || s.lod_bias != 0)
-    AURORA_THROW(std::runtime_error("Unsupported scene feedback sampler"));
-
   if (unit >= sampledImages.size())
     AURORA_THROW(std::runtime_error("Scene feedback texture unit out of range"));
 
-  gl::SamplerDesc sampler = s.min_filter || s.mag_filter ? gl::LinearClamp : gl::NearestClamp;
-  sampler.minFilter = s.min_filter ? GL_LINEAR : GL_NEAREST;
-  sampler.magFilter = s.mag_filter ? GL_LINEAR : GL_NEAREST;
+  const bool useLinearMin = s.min_filter != 0;
+  const bool useLinearMag = s.mag_filter != 0;
+  gl::SamplerDesc sampler = (useLinearMin || useLinearMag) ? gl::LinearClamp : gl::NearestClamp;
+  sampler.minFilter = useLinearMin ? GL_LINEAR : GL_NEAREST;
+  sampler.magFilter = useLinearMag ? GL_LINEAR : GL_NEAREST;
   sampledImages[unit] = it->second.texture;
   gl::bind_texture(unit, it->second.texture->gl(), gl::sampler(sampler));
   return true;

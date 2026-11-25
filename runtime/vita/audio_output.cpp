@@ -201,15 +201,13 @@ NativeAudioOutputStatistics GetNativeAudioOutputStatistics() {
 }
 
 void QueueHostPcm(const uint8_t* data, uint32_t bytes, uint32_t rate) {
-    if (bytes % 4 || (rate != 32000 && rate != 48000))
-        MH3_THROW(std::runtime_error("Invalid Wii PCM block"));
-
-    if (!audio) {
-        audio = std::make_unique<AudioOutput>();
-        std::atexit(Shutdown);
-    }
-
-    audio->Queue(data, bytes, rate);
+    // On PS Vita with NativeAudio, guest AI DMA contains no DSP audio.
+    // Audio is natively mixed and output via NativeAudio::RunNative.
+    // Opening a second BGM port here blocks NativeAudio from acquiring
+    // SCE_AUDIO_OUT_PORT_TYPE_BGM, causing total silence.
+    (void)data;
+    (void)bytes;
+    (void)rate;
 }
 
 // Native mixer output: one core-0 thread mixes 12 ms (four AX ticks) at a time

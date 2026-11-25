@@ -306,22 +306,22 @@ extern "C" void func_800AA804(CpuContext* ctx);
 extern "C" void MH3_ParticleInitialize(CpuContext* ctx) {
     PortCheck::Call(ctx, "ParticleInitialize", func_800AA804, InitializePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AA804, MH3_ParticleInitialize, "ParticleInitialize");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AA804, MH3_ParticleInitialize, "ParticleInitialize");
 
 extern "C" void func_800AA334(CpuContext* ctx);
 extern "C" void MH3_ParticleParameterCopy(CpuContext* ctx) {
     PortCheck::Call(ctx, "ParticleParameterCopy", func_800AA334, ParameterCopyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AA334, MH3_ParticleParameterCopy, "ParticleParameterCopy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AA334, MH3_ParticleParameterCopy, "ParticleParameterCopy");
 
 extern "C" void func_800AA764(CpuContext* ctx);
 extern "C" void MH3_EfAngleByte(CpuContext* ctx) {
     PortCheck::Call(ctx, "EfAngleByte", func_800AA764, AngleBytePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AA764, MH3_EfAngleByte, "EfAngleByte");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AA764, MH3_EfAngleByte, "EfAngleByte");
 
 extern "C" void func_800AA7C0(CpuContext* ctx);
 extern "C" void MH3_Vec2Copy(CpuContext* ctx) {
     PortCheck::Call(ctx, "Vec2Copy", func_800AA7C0, Vec2CopyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AA7C0, MH3_Vec2Copy, "Vec2Copy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AA7C0, MH3_Vec2Copy, "Vec2Copy");

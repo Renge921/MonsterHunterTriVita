@@ -43,7 +43,7 @@ enum : uint32_t {
     kPolicy = 0x10,
 };
 
-constexpr uint32_t kGetAnmResult = 0x8008D660; // ResAnmChr::GetAnmResult(res, result, node, frame)
+constexpr uint32_t kGetAnmResult = 0x80521930; // ResAnmChr::GetAnmResult(res, result, node, frame)
 
 float F32(uint32_t address) {
     return MemoryInline::FlatReadFloat32(address);
@@ -108,13 +108,14 @@ void SetFrame(GuestCall& game, uint32_t self, float frame) {
 }
 
 void UpdateFrame(GuestCall& game, uint32_t self, uint32_t r2, uint32_t r13) {
+    (void)r2;
     FoldPointer(self);
     const uint32_t control = self + kFrameCtrl;
 
-    if (F32(control + kRate) == F32(r2 - 32088)) // 0.0f
+    if (F32(control + kRate) == 0.0f)
         return;
     // FrameCtrl::UpdateFrm: frame + rate * smBaseUpdateRate, each rounded to single.
-    const float advance = F32(control + kRate) * F32(r13 - 31928);
+    const float advance = F32(control + kRate) * F32(r13 - 21448);
     SetControlFrame(game, control, F32(control + kFrame) + advance);
 
     if (Memory::Read32(self + kCache))
@@ -191,7 +192,7 @@ void ControlSetFramePort(CpuContext* ctx) {
 
 void ControlUpdateFrmPort(CpuContext* ctx) {
     const uint32_t control = ctx->gpr[3];
-    ctx->fpr[1].d = F32(control + kFrame) + F32(control + kRate) * F32(ctx->gpr[13] - 31928);
+    ctx->fpr[1].d = F32(control + kFrame) + F32(control + kRate) * F32(ctx->gpr[13] - 21448);
     ControlSetFramePort(ctx);
 }
 
@@ -230,51 +231,51 @@ uint32_t AnmObjChrResResultAt(GuestCall& game, uint32_t anim, uint32_t result, u
 #define MH3_ANM_OBJ_CHECK(name, original, port)
 #endif
 
-extern "C" void func_80061D90(CpuContext* ctx);
+extern "C" void func_80526710(CpuContext* ctx);
 extern "C" void MH3_AnmObjChrResSetFrame(CpuContext* ctx) {
-    MH3_ANM_OBJ_CHECK("AnmObjChrResSetFrame", func_80061D90, SetFramePort)
+    MH3_ANM_OBJ_CHECK("AnmObjChrResSetFrame", func_80526710, SetFramePort)
     SetFramePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80061D90, MH3_AnmObjChrResSetFrame, "AnmObjChrResSetFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x80526710, MH3_AnmObjChrResSetFrame, "AnmObjChrResSetFrame");
 
 extern "C" void func_80061F28(CpuContext* ctx);
 extern "C" void MH3_FrameCtrlSetFrame(CpuContext* ctx) {
     MH3_ANM_OBJ_CHECK("FrameCtrlSetFrame", func_80061F28, ControlSetFramePort)
     ControlSetFramePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80061F28, MH3_FrameCtrlSetFrame, "FrameCtrlSetFrame");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80061F28, MH3_FrameCtrlSetFrame, "FrameCtrlSetFrame");
 
-extern "C" void func_80061F6C(CpuContext* ctx);
+extern "C" void func_805267D0(CpuContext* ctx);
 extern "C" void MH3_AnmObjChrResGetFrame(CpuContext* ctx) {
-    MH3_ANM_OBJ_CHECK("AnmObjChrResGetFrame", func_80061F6C, GetFramePort)
+    MH3_ANM_OBJ_CHECK("AnmObjChrResGetFrame", func_805267D0, GetFramePort)
     GetFramePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80061F6C, MH3_AnmObjChrResGetFrame, "AnmObjChrResGetFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x805267D0, MH3_AnmObjChrResGetFrame, "AnmObjChrResGetFrame");
 
-extern "C" void func_8006236C(CpuContext* ctx);
+extern "C" void func_80526894(CpuContext* ctx);
 extern "C" void MH3_AnmObjChrResUpdateFrame(CpuContext* ctx) {
-    MH3_ANM_OBJ_CHECK("AnmObjChrResUpdateFrame", func_8006236C, UpdateFramePort)
+    MH3_ANM_OBJ_CHECK("AnmObjChrResUpdateFrame", func_80526894, UpdateFramePort)
     UpdateFramePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006236C, MH3_AnmObjChrResUpdateFrame, "AnmObjChrResUpdateFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x80526894, MH3_AnmObjChrResUpdateFrame, "AnmObjChrResUpdateFrame");
 
 extern "C" void func_800624B0(CpuContext* ctx);
 extern "C" void MH3_FrameCtrlUpdateFrm(CpuContext* ctx) {
     MH3_ANM_OBJ_CHECK("FrameCtrlUpdateFrm", func_800624B0, ControlUpdateFrmPort)
     ControlUpdateFrmPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800624B0, MH3_FrameCtrlUpdateFrm, "FrameCtrlUpdateFrm");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800624B0, MH3_FrameCtrlUpdateFrm, "FrameCtrlUpdateFrm");
 
-extern "C" void func_800631D4(CpuContext* ctx);
+extern "C" void func_80526E3C(CpuContext* ctx);
 extern "C" void MH3_AnmObjChrResGetResult(CpuContext* ctx) {
-    MH3_ANM_OBJ_CHECK("AnmObjChrResGetResult", func_800631D4, GetResultPort)
+    MH3_ANM_OBJ_CHECK("AnmObjChrResGetResult", func_80526E3C, GetResultPort)
     GetResultPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800631D4, MH3_AnmObjChrResGetResult, "AnmObjChrResGetResult");
+REGISTER_NATIVE_FUNCTION_AS(0x80526E3C, MH3_AnmObjChrResGetResult, "AnmObjChrResGetResult");
 
 extern "C" void func_800634A0(CpuContext* ctx);
 extern "C" void MH3_AnmObjChrResUpdateCache(CpuContext* ctx) {
     MH3_ANM_OBJ_CHECK("AnmObjChrResUpdateCache", func_800634A0, UpdateCachePort)
     UpdateCachePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800634A0, MH3_AnmObjChrResUpdateCache, "AnmObjChrResUpdateCache");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800634A0, MH3_AnmObjChrResUpdateCache, "AnmObjChrResUpdateCache");

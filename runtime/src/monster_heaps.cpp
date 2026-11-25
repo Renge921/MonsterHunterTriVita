@@ -364,52 +364,52 @@ extern "C" void func_80141434(CpuContext* ctx);
 extern "C" void MH3_LoadEntryWith(CpuContext* ctx) {
     PortCheck::Call(ctx, "LoadEntryWith", func_80141434, LoadEntryWithPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80141434, MH3_LoadEntryWith, "LoadEntryWith");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80141434, MH3_LoadEntryWith, "LoadEntryWith");
 
 extern "C" void func_80141538(CpuContext* ctx);
 extern "C" void MH3_LoadEntryOf(CpuContext* ctx) {
     PortCheck::Call(ctx, "LoadEntryOf", func_80141538, LoadEntryOfPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80141538, MH3_LoadEntryOf, "LoadEntryOf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80141538, MH3_LoadEntryOf, "LoadEntryOf");
 
 extern "C" void func_801414D4(CpuContext* ctx);
 extern "C" void MH3_TakeLoadEntry(CpuContext* ctx) {
     PortCheck::Call(ctx, "TakeLoadEntry", func_801414D4, TakeLoadEntryPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801414D4, MH3_TakeLoadEntry, "TakeLoadEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801414D4, MH3_TakeLoadEntry, "TakeLoadEntry");
 
 extern "C" void func_80146BFC(CpuContext* ctx);
 extern "C" void MH3_CountSlotTaken(CpuContext* ctx) {
     PortCheck::Call(ctx, "CountSlotTaken", func_80146BFC, CountSlotTakenPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146BFC, MH3_CountSlotTaken, "CountSlotTaken");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80146BFC, MH3_CountSlotTaken, "CountSlotTaken");
 
 extern "C" void func_80146A88(CpuContext* ctx);
 extern "C" void MH3_SlotClassFree(CpuContext* ctx) {
     PortCheck::Call(ctx, "SlotClassFree", func_80146A88, SlotClassFreePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146A88, MH3_SlotClassFree, "SlotClassFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80146A88, MH3_SlotClassFree, "SlotClassFree");
 
 extern "C" void func_80146CC8(CpuContext* ctx);
 extern "C" void MH3_FindHeapSlot(CpuContext* ctx) {
     PortCheck::Call(ctx, "FindHeapSlot", func_80146CC8, FindHeapSlotPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146CC8, MH3_FindHeapSlot, "FindHeapSlot");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80146CC8, MH3_FindHeapSlot, "FindHeapSlot");
 
 extern "C" void func_80146E58(CpuContext* ctx);
 extern "C" void MH3_TakeHeapSlot(CpuContext* ctx) {
     PortCheck::Call(ctx, "TakeHeapSlot", func_80146E58, TakeHeapSlotPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146E58, MH3_TakeHeapSlot, "TakeHeapSlot");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80146E58, MH3_TakeHeapSlot, "TakeHeapSlot");
 
 extern "C" void func_801410B4(CpuContext* ctx);
 extern "C" void MH3_LoadMonster(CpuContext* ctx) {
     PortCheck::Call(ctx, "LoadMonster", func_801410B4, LoadMonsterPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801410B4, MH3_LoadMonster, "LoadMonster");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801410B4, MH3_LoadMonster, "LoadMonster");
 
 extern "C" void func_80146604(CpuContext* ctx);
 extern "C" void MH3_SetMonsterHeaps(CpuContext* ctx) {
     PortCheck::Call(ctx, "SetMonsterHeaps", func_80146604, SetMonsterHeapsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146604, MH3_SetMonsterHeaps, "SetMonsterHeaps");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80146604, MH3_SetMonsterHeaps, "SetMonsterHeaps");

@@ -1,4 +1,5 @@
 #include "model_assets.h"
+#include "diag_log.h"
 #include "fatal.h"
 #include "asset_cache.h"
 #include "../native/adapters/model_catalog_bridge.h"
@@ -786,11 +787,14 @@ void LoadNativeModelAssets(const char* discRoot) {
     const auto root = std::filesystem::path(discRoot ? discRoot : "ux0:/data/mh3-wii") / "native-models";
     const auto indexPath = overrideIndex ? std::filesystem::path(overrideIndex) : root / "models.index.bin";
     auto next = std::make_unique<Manager>();
+    MH3DiagLog("MH3 diag: load native models root=%s index=%d pack=%d cache=%d\n", root.string().c_str(), std::filesystem::exists(indexPath) ? 1 : 0,
+               std::filesystem::exists(root / "models.bin") ? 1 : 0, GameAssetCache() ? 1 : 0);
 
     if (!overridePack && (overrideIndex || std::filesystem::exists(indexPath))) {
         CheckStatus(OpenIndex(*next, indexPath));
         std::fprintf(stderr, "MH3 native model index: %u packs, %u partition extents, %llu CPU bytes; demand admission enabled\n", next->packCount, next->sourceCount,
                      static_cast<unsigned long long>(next->index.size()));
+        MH3DiagLog("MH3 diag: native models indexed packs=%u\n", next->packCount);
     } else {
         const auto path = overridePack ? std::filesystem::path(overridePack) : root / "models.bin";
 
@@ -798,6 +802,7 @@ void LoadNativeModelAssets(const char* discRoot) {
             if (GameAssetCache()) {
                 next->converted = true;
                 std::fprintf(stderr, "MH3 native models: converted at load time\n");
+                MH3DiagLog("MH3 diag: native models converted at load time\n");
                 manager = std::move(next);
                 GameAssetCache()->SetModelPackReady([](uint32_t key, const std::string& pack) { PackPreparer::Get().Queue(key, pack); });
             }
@@ -808,6 +813,7 @@ void LoadNativeModelAssets(const char* discRoot) {
         std::unique_ptr<Assets> asset;
         CheckStatus(OpenPack(*next, path, LegacyPack, asset));
         CheckStatus(Admit(*next, LegacyPack, std::move(asset), true));
+        MH3DiagLog("MH3 diag: native models packed\n");
     }
 
     manager = std::move(next);

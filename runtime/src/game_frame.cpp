@@ -71,36 +71,35 @@ extern "C" void mh3_io_trace_frame(int enabled, int loading_screen); // vita/io_
 
 namespace {
 
-constexpr uint32_t kSystem = 0x8065AA60; // game system flags
+constexpr uint32_t kSystem = 0x80768AA8; // game system flags
 enum : uint32_t {
-    kBootState = 0x22,   // u8 0x8065AA82: 0 boot, 1-2 running
-    kFramePhase = 0x23,  // u8 0x8065AA83
-    kScreenGrab = 0x872, // u8 0x8065B2D2: copy the grabbed screen back to the EFB
+    kBootState = 0x22,   // u8 0x80768ACA: 0 boot, 1-2 running
+    kFramePhase = 0x23,  // u8 0x80768ACB
+    kScreenGrab = 0x872, // u8 0x8076931A: copy the grabbed screen back to the EFB
 };
 
 enum : uint32_t {
-    WPADDisconnect = 0x804EEF40,
-    PollControllers = 0x80041F6C,
-    StartBootTask = 0x80041854, // (task function, arg)
-    BootTask = 0x80059648,
-    flfntStackReset = 0x8005B52C,
-    UpdateScene = 0x80046EFC,       // scene root update when a scene is loaded
-    Setup2DProjection = 0x80046E98, // ortho projection + identity position matrix
-    DiscErrorPause = 0x80435B54,    // pauses the game while the disc reports an error
-    NetworkResetCheck = 0x8044E258,
-    RunTasks = 0x800416F8,
-    GrabScreen = 0x800586A0,
-    ResetFade = 0x800D2230,
-    TickSystemTimers = 0x80044AF4,
-    DrawScene = 0x80049308,
-    flfntFlush = 0x8005C174,
-    DrawFadeOverlay = 0x800582EC,
-    TickFades = 0x800581A4,
-    RestoreGrabbedScreen = 0x80058F84,
-    DrawHud = 0x800D10B0,
-    MovieDraw = 0x80435D84,
-    PauseHook = 0x800D2678,
-    OverlayHook = 0x800D298C,
+    WPADDisconnect = 0x8047E63C,
+    PollControllers = 0x80298D8C,
+    StartBootTask = 0x802A5D80, // (task function, arg)
+    BootTask = 0x80296D1C,
+    flfntStackReset = 0x8029501C,
+    UpdateScene = 0x802A1740,       // scene root update when a scene is loaded
+    Setup2DProjection = 0x802A16DC, // ortho projection + identity position matrix
+    DiscErrorPause = 0x8040D3EC,    // pauses the game while the disc reports an error
+    NetworkResetCheck = 0x80398580,
+    RunTasks = 0x802A5C38,
+    GrabScreen = 0x80291940,
+    ResetFade = 0x802BF064,
+    TickSystemTimers = 0x8029B4A4,
+    DrawScene = 0x802BFEEC,
+    flfntFlush = 0x80295AF0,
+    DrawFadeOverlay = 0x80294B90,
+    TickFades = 0x80294A80,
+    RestoreGrabbedScreen = 0x802921A0,
+    DrawHud = 0x802BE28C,
+    MovieDraw = 0x8040D620,
+    PauseHook = 0x802BF488,
 };
 
 #ifdef MH3_DEVELOPMENT
@@ -460,7 +459,7 @@ void LaunchScenePrepare(CpuContext* cpu) {
         // The camera's view first: the traverse and a layer's 3D primitive
         // both read its cached view matrix, which a read after logic makes.
         GuestFrame frame(cpu, 0x40);
-        GuestCall{cpu}.Call<0x802BDCA4>({frame[0x10]}); // get_current_view_mtx
+        GuestCall{cpu}.Call<0x80375DB4>({frame[0x10]}); // get_current_view_mtx
         EffectStep::HoldView(frame[0x10]);
     }
 
@@ -607,7 +606,7 @@ void MH3StartDrawOverlap() {
 
 extern "C" void MH3_GameFrame(CpuContext* ctx) {
     const CpuContext saved = *ctx;
-    UpdateNativeCameraAspect();
+    // UpdateNativeCameraAspect(); // Unported PAL addresses for RMHJ08
 #ifdef MH3_DEVELOPMENT
     mh3GameStackProbe = uintptr_t(&saved);
 #endif
@@ -712,13 +711,13 @@ extern "C" void MH3_GameFrame(CpuContext* ctx) {
                 }
 
                 call(PauseHook);
-                call(OverlayHook);
             });
 #endif
-        GameTasks::SkipStrapScreen();
-        StepVillageBoot(ctx);
-        Cheats::Step(ctx);
-        MonsterControl::Step(ctx);
+        // Disabled unported PAL helpers and duplicate boot hook (native_frame.cpp already runs StepVillageBoot):
+        // GameTasks::SkipStrapScreen();
+        // StepVillageBoot(ctx);
+        // Cheats::Step(ctx);
+        // MonsterControl::Step(ctx);
 #if defined(MH3_DEVELOPMENT) && !defined(__vita__)
         DebugPort::Step(ctx);
 #endif
@@ -779,7 +778,6 @@ extern "C" void MH3_GameFrame(CpuContext* ctx) {
 
         MH3_SPLIT(draw);
         call(PauseHook);
-        call(OverlayHook);
     } else if (boot == 0) {
         call(StartBootTask, {BootTask, 0});
         Memory::Write8(kSystem + kBootState, 1);
@@ -793,4 +791,4 @@ extern "C" void MH3_GameFrame(CpuContext* ctx) {
     *ctx = saved;
     ctx->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80046D98, MH3_GameFrame, "GameFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x802A15DC, MH3_GameFrame, "GameFrame");

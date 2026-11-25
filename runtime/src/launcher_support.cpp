@@ -2,6 +2,7 @@
 #include "fatal.h"
 #include "disc_image.h"
 #include "fs_status.h"
+#include "language_import.h"
 #include "quest_catalog.h"
 #include "quest_placement.h"
 #include <cstdio>
@@ -33,13 +34,14 @@ void PutHalf(std::vector<uint8_t>& data, size_t at, uint16_t value) {
 }
 
 const char* QuestPath(QuestCatalog::Set set) {
+    const bool jpn = GameDiscImage().FileSizeOrZero("quest/quest00.bin") > 0;
     switch (set) {
     case QuestCatalog::Set::Village:
-        return "05/quest00_eng.bin";
+        return jpn ? "quest/quest00.bin" : "05/quest00_eng.bin";
     case QuestCatalog::Set::Online:
-        return "05/quest01_eng.bin";
+        return jpn ? "quest/quest01.bin" : "05/quest01_eng.bin";
     case QuestCatalog::Set::Arena:
-        return "05/quest03_eng.bin";
+        return jpn ? "quest/quest03.bin" : "05/quest03_eng.bin";
     }
 
     MH3_THROW(std::runtime_error("Invalid quest category"));
@@ -53,19 +55,100 @@ std::string Key(const CustomQuest& q) {
     return std::to_string(unsigned(q.set)) + "-" + std::to_string(q.base);
 }
 
+struct QuestFormat {
+    bool jpn;
+    size_t entryBytes; // 0x4B8 (PAL) / 0x3BC (JPN)
+    size_t nameEnd;    // 0x02C / 0x01E
+    size_t id;         // 0x02C / 0x01E
+    size_t goalStart;  // 0x02E / 0x020
+    size_t goalEnd;    // 0x088 / 0x05E
+    size_t stars;      // 0x08A / 0x05E
+    size_t map;        // 0x08B / 0x05F
+    size_t subAStart;  // 0x08C / 0x060
+    size_t subAEnd;    // 0x0B5 / 0x07C
+    size_t subBStart;  // 0x0B5 / 0x07C
+    size_t subBEnd;    // 0x0DE / 0x098
+    size_t time;       // 0x13A / 0x0D6
+    size_t failStart;  // 0x13C / 0x0D8
+    size_t failEnd;    // 0x19A / 0x118
+    size_t descStart;  // 0x1CD / 0x138
+    size_t descEnd;    // 0x30C / 0x210
+    size_t mode;       // 0x310 / 0x214
+    size_t slots;      // 0x314 / 0x218
+    size_t intruder;   // 0x32C / 0x230
+    size_t objectives; // 0x330 / 0x234
+    size_t layout;     // 0x390 / 0x294
+    size_t records;    // 0x394 / 0x298
+};
+
+constexpr QuestFormat kFormatPal{false, 0x4B8, 0x02C, 0x02C, 0x02E, 0x088, 0x08A, 0x08B, 0x08C, 0x0B5, 0x0B5, 0x0DE, 0x13A, 0x13C, 0x19A, 0x1CD, 0x30C, 0x310, 0x314, 0x32C, 0x330, 0x390, 0x394};
+constexpr QuestFormat kFormatJpn{true, 0x3BC, 0x01E, 0x01E, 0x020, 0x05E, 0x05E, 0x05F, 0x060, 0x07C, 0x07C, 0x098, 0x0D6, 0x0D8, 0x118, 0x138, 0x210, 0x214, 0x218, 0x230, 0x234, 0x294, 0x298};
+
+const QuestFormat& DetectFormat(std::span<const uint8_t> bytes) {
+    if (bytes.size() < 8 || Word(bytes, 0) != 0x4f4d4f4d)
+        return kFormatPal;
+
+    const uint32_t count = Word(bytes, 4);
+
+    if (count == 0 || count > (bytes.size() - 8) / 8)
+        return kFormatPal;
+
+    for (uint32_t i = 0; i < count; ++i) {
+        const size_t at = Word(bytes, 8 + i * 8), size = Word(bytes, 12 + i * 8);
+
+        if (at > bytes.size() || size > bytes.size() - at)
+            return kFormatPal;
+
+        if (size >= kFormatJpn.entryBytes && size < kFormatPal.entryBytes)
+            return kFormatJpn;
+    }
+
+    const size_t at0 = Word(bytes, 8);
+
+    if (at0 + 0x284 <= bytes.size() && Word(bytes, at0 + 0x280) == kFormatJpn.entryBytes)
+        return kFormatJpn;
+
+    return kFormatPal;
+}
+
+void WriteText(std::vector<uint8_t>& data, size_t at, size_t from, size_t to, std::string_view value, bool jpn) {
+    std::fill(data.begin() + at + from, data.begin() + at + to, 0);
+    const size_t n = std::min(value.size(), to - from - 1);
+    std::copy_n(value.begin(), n, data.begin() + at + from);
+
+    if (jpn) {
+        for (size_t i = 0; i < n; ++i)
+            data[at + from + i] ^= 0xFF;
+    }
+}
+
+std::string ReadText(std::span<const uint8_t> data, size_t at, size_t from, size_t to, bool jpn) {
+    const auto begin = data.begin() + at + from;
+    const auto end = std::find(begin, data.begin() + at + to, uint8_t(0));
+    const size_t len = size_t(end - begin);
+
+    if (!jpn)
+        return std::string(begin, end);
+
+    std::vector<uint8_t> raw(len);
+
+    for (size_t i = 0; i < len; ++i)
+        raw[i] = begin[i] ^ 0xFF;
+
+    return LanguageImport::FromShiftJis(raw);
+}
+
 // Bytes for a quest entry: an offset into it and the bytes from there.
 struct EntryBytes {
     size_t offset;
     std::vector<uint8_t> bytes;
 };
 
-constexpr size_t kEntryBytes = 0x4b8;
-
 // "OFFSET=HEX[,OFFSET=HEX...]", both in hex, within the entry's 0x4b8 bytes.
-Status ParseEntryBytes(std::string_view text, std::vector<EntryBytes>& result) {
+Status ParseEntryBytes(std::string_view text, std::vector<EntryBytes>& result, size_t maxBytes = kFormatPal.entryBytes) {
     result.clear();
     const auto hex = [](char c) { return std::isxdigit(static_cast<unsigned char>(c)) != 0; };
-    const Status invalid = Status::Error("Entry bytes take OFFSET=HEX[,OFFSET=HEX...] in hex, within the quest entry's 0x4B8 bytes");
+    const Status invalid = Status::Error("Entry bytes take OFFSET=HEX[,OFFSET=HEX...] in hex, within the quest entry's header bytes");
 
     while (!text.empty()) {
         const size_t comma = std::min(text.find(','), text.size());
@@ -88,7 +171,7 @@ Status ParseEntryBytes(std::string_view text, std::vector<EntryBytes>& result) {
         for (size_t i = equals + 1; i < part.size(); i += 2)
             entry.bytes.push_back(uint8_t(std::stoul(std::string(part.substr(i, 2)), nullptr, 16)));
 
-        if (entry.offset + entry.bytes.size() > kEntryBytes)
+        if (entry.offset + entry.bytes.size() > maxBytes)
             return invalid;
 
         result.push_back(std::move(entry));
@@ -146,18 +229,19 @@ Status Validate(const CustomQuest& q) {
     return ParseEntryBytes(q.patch, patch);
 }
 
-// The entries' offsets. Each entry holds at least 0x4b8 bytes: reads below
-// that cannot fail.
+// The entries' offsets. Each entry holds at least fmt.entryBytes bytes: reads
+// below that cannot fail.
 Status Entries(std::span<const uint8_t> bytes, std::vector<size_t>& offsets) {
     if (bytes.size() < 8 || Word(bytes, 0) != 0x4f4d4f4d || Word(bytes, 4) > (bytes.size() - 8) / 8)
         return Status::Error("Invalid quest table");
 
+    const QuestFormat& fmt = DetectFormat(bytes);
     offsets.clear();
 
     for (uint32_t i = 0; i < Word(bytes, 4); ++i) {
         const size_t at = Word(bytes, 8 + i * 8), size = Word(bytes, 12 + i * 8);
 
-        if (size < 0x4b8 || at > bytes.size() || size > bytes.size() - at)
+        if (size < fmt.entryBytes || at > bytes.size() || size > bytes.size() - at)
             return Status::Error("Invalid quest extent");
 
         offsets.push_back(at);
@@ -167,41 +251,45 @@ Status Entries(std::span<const uint8_t> bytes, std::vector<size_t>& offsets) {
 }
 
 Status Entry(std::span<const uint8_t> source, uint16_t id, size_t& entry) {
+    const QuestFormat& fmt = DetectFormat(source);
     std::vector<size_t> entries;
     MH3_RETURN_IF_ERROR(Entries(source, entries));
 
     for (size_t at : entries)
-        if ((Word(source, at + 0x2c) >> 16) == id) {
+        if ((Word(source, at + fmt.id) >> 16) == id) {
             entry = at;
             return {};
         }
     return Status::Error("Quest template no longer exists on this disc");
 }
 
-bool Composable(std::span<const uint8_t> source, size_t at) {
-    const uint32_t type = Word(source, at + 0x330), target = Word(source, at + 0x334) >> 16;
+bool Composable(std::span<const uint8_t> source, size_t at, const QuestFormat& fmt) {
+    const uint32_t type = Word(source, at + fmt.objectives), target = Word(source, at + fmt.objectives + 4) >> 16;
 
     // 803AE9F4 selects the monster's authored map placement using this complete
     // eight-byte slot. Exclude special quest modes, invaders and extra slots.
-    return source[at + 0x8b] >= 1 && source[at + 0x8b] <= 5 && (Word(source, at + 0x310) & ~1u) == 0x300c4 && (type == 1 || type == 0x81) && target == source[at + 0x314] && source[at + 0x317] == 1 &&
-           !source[at + 0x32c] && Word(source, at + 0x31c) == 0 && Word(source, at + 0x320) == 0 && Word(source, at + 0x324) == 0 && Word(source, at + 0x328) == 0;
+    return source[at + fmt.map] >= 1 && source[at + fmt.map] <= 5 && (Word(source, at + fmt.mode) & ~1u) == 0x300c4 && (type == 1 || type == 0x81) &&
+           target == source[at + fmt.slots] && source[at + fmt.slots + 3] == 1 && !source[at + fmt.intruder] && Word(source, at + fmt.slots + 8) == 0 &&
+           Word(source, at + fmt.slots + 12) == 0 && Word(source, at + fmt.slots + 16) == 0 && Word(source, at + fmt.slots + 20) == 0;
 }
 } // namespace
 
 Status QuestCompositionOptions(std::span<const uint8_t> source, uint16_t base, std::vector<uint16_t>& result) {
+    const QuestFormat& fmt = DetectFormat(source);
     size_t original = 0;
     MH3_RETURN_IF_ERROR(Entry(source, base, original));
     result.clear();
 
-    if (!Composable(source, original))
+    if (!Composable(source, original, fmt))
         return {};
 
     std::vector<size_t> entries;
     MH3_RETURN_IF_ERROR(Entries(source, entries));
 
     for (size_t at : entries)
-        if (Composable(source, at) && source[at + 0x8b] == source[original + 0x8b] && (Word(source, at + 0x310) & 0x30000) == (Word(source, original + 0x310) & 0x30000))
-            result.push_back(Word(source, at + 0x2c) >> 16);
+        if (Composable(source, at, fmt) && source[at + fmt.map] == source[original + fmt.map] &&
+            (Word(source, at + fmt.mode) & 0x30000) == (Word(source, original + fmt.mode) & 0x30000))
+            result.push_back(Word(source, at + fmt.id) >> 16);
     return {};
 }
 
@@ -211,15 +299,16 @@ Status CompositionOptions(const CustomQuest& q, std::vector<uint16_t>& options) 
 
 Status CompositionMaps(const CustomQuest& q, std::vector<uint16_t>& result) {
     const auto source = GameDiscImage().ReadFile(QuestPath(q.set));
+    const QuestFormat& fmt = DetectFormat(source);
     std::array<bool, 6> seen{};
     std::vector<size_t> entries;
     MH3_RETURN_IF_ERROR(Entries(source, entries));
     result.clear();
 
     for (size_t at : entries)
-        if (Composable(source, at) && !seen[source[at + 0x8b]]) {
-            seen[source[at + 0x8b]] = true;
-            result.push_back(Word(source, at + 0x2c) >> 16);
+        if (Composable(source, at, fmt) && !seen[source[at + fmt.map]]) {
+            seen[source[at + fmt.map]] = true;
+            result.push_back(Word(source, at + fmt.id) >> 16);
         }
     return {};
 }
@@ -235,7 +324,7 @@ bool ValidSave(std::span<const uint8_t> bytes, unsigned character) {
 
 std::vector<SaveSlot> ProbeSaves(const std::filesystem::path& user) {
     std::vector<SaveSlot> slots;
-    const auto directory = user / "nand/title/00010000/524d4850/data/nocopy";
+    const auto directory = user / "nand/title/00010000/524d484a/data/nocopy";
     std::array<uint8_t, 0x14000> bytes{};
 
     for (unsigned file = 0; file < 6; ++file) {
@@ -270,15 +359,16 @@ Status EditQuestFile(std::span<const uint8_t> source, const CustomQuest& q, std:
     if (count > (source.size() - 8) / 8)
         return Status::Error("Invalid quest table");
 
+    const QuestFormat& fmt = DetectFormat(source);
     std::vector<uint8_t> edited(source.begin(), source.end());
 
     for (uint32_t i = 0; i < count; ++i) {
         const size_t at = Word(source, 8 + i * 8), size = Word(source, 12 + i * 8);
 
-        if (size < 0x4b8 || at > source.size() || size > source.size() - at)
+        if (size < fmt.entryBytes || at > source.size() || size > source.size() - at)
             return Status::Error("Invalid quest extent");
 
-        if ((Word(source, at + 0x2c) >> 16) != q.base)
+        if ((Word(source, at + fmt.id) >> 16) != q.base)
             continue;
         // Retain the template's maps, spawn tables, supplies and rewards. Only
         // supported hunt/capture objectives may be changed by this editor.
@@ -292,51 +382,48 @@ Status EditQuestFile(std::span<const uint8_t> source, const CustomQuest& q, std:
                 return Status::Error("This monster has no compatible authored placement on the selected map");
 
             MH3_RETURN_IF_ERROR(Entry(source, q.encounter, encounter));
-            std::copy_n(source.begin() + encounter + 0x314, 8, edited.begin() + at + 0x314);
+            std::copy_n(source.begin() + encounter + fmt.slots, 8, edited.begin() + at + fmt.slots);
 
             // Expanded records are the live objective/reward data copied by
             // 803AEF34 to questwork+0x94. Transfer the authored main record.
-            std::copy_n(source.begin() + encounter + 0x394, 0x60, edited.begin() + at + 0x394);
-            std::fill(edited.begin() + at + 0x338, edited.begin() + at + 0x348, 0);
-            std::fill(edited.begin() + at + 0x3f4, edited.begin() + at + 0x4b4, 0);
-            std::fill(edited.begin() + at + 0x8c, edited.begin() + at + 0xde, 0);
+            std::copy_n(source.begin() + encounter + fmt.records, 0x60, edited.begin() + at + fmt.records);
+            std::fill(edited.begin() + at + fmt.objectives + 8, edited.begin() + at + fmt.objectives + 24, 0);
+            std::fill(edited.begin() + at + fmt.records + 0x60, edited.begin() + at + fmt.records + 3 * 0x60, 0);
+            std::fill(edited.begin() + at + fmt.subAStart, edited.begin() + at + fmt.subBEnd, 0);
         }
 
-        const uint32_t objective = Word(source, encounter + 0x330);
+        const uint32_t objective = Word(source, encounter + fmt.objectives);
 
         if (objective != 1 && objective != 0x81)
             return Status::Error("Choose a hunt/capture quest template");
 
-        const uint16_t templateCount = uint16_t(Word(source, encounter + 0x334));
+        const uint16_t templateCount = uint16_t(Word(source, encounter + fmt.objectives + 4));
 
         if (q.count > templateCount)
             return Status::Error("The requested count exceeds the authored monster spawns");
 
-        const auto target = uint16_t(Word(source, encounter + 0x334) >> 16);
-        std::fill(edited.begin() + at, edited.begin() + at + 0x2c, 0);
-        std::copy(q.name.begin(), q.name.end(), edited.begin() + at);
-        edited[at + 0x8a] = q.stars;
+        const auto target = uint16_t(Word(source, encounter + fmt.objectives + 4) >> 16);
+        WriteText(edited, at, 0, fmt.nameEnd, q.name, fmt.jpn);
+        edited[at + fmt.stars] = q.stars;
 
-        for (const size_t objectiveAt : {size_t(0x330), size_t(0x394)}) {
+        for (const size_t objectiveAt : {fmt.objectives, fmt.records}) {
             PutWord(edited, at + objectiveAt, q.capture ? 0x81 : 1);
             PutHalf(edited, at + objectiveAt + 4, target);
             PutHalf(edited, at + objectiveAt + 6, q.count);
         }
 
         if (q.minutes)
-            PutHalf(edited, at + 0x13a, q.minutes);
+            PutHalf(edited, at + fmt.time, q.minutes);
 
-        if (q.capture != (Word(source, at + 0x330) == 0x81)) {
+        if (q.capture != (Word(source, at + fmt.objectives) == 0x81)) {
             const std::string failure = q.capture ? "Reward hits 0, time expires,\nor target is slain." : "Reward hits 0, or time expires.";
-            std::fill(edited.begin() + at + 0x13c, edited.begin() + at + 0x19a, 0);
-            std::copy(failure.begin(), failure.end(), edited.begin() + at + 0x13c);
+            WriteText(edited, at, fmt.failStart, fmt.failEnd, failure, fmt.jpn);
         }
 
         // The template goal text describes its old count/type. Replace it
         // alongside the objective so both game HUD and launcher stay truthful.
         const std::string goal = (q.capture ? "Capture " : "Hunt ") + std::to_string(q.count) + " target monster" + (q.count > 1 ? "s" : "") + " (ID " + std::to_string(target) + ")";
-        std::fill(edited.begin() + at + 0x2e, edited.begin() + at + 0x88, 0);
-        std::copy(goal.begin(), goal.end(), edited.begin() + at + 0x2e);
+        WriteText(edited, at, fmt.goalStart, fmt.goalEnd, goal, fmt.jpn);
         result = std::move(edited);
         return {};
     }
@@ -350,7 +437,7 @@ constexpr uint8_t kCeadeus = 20, kAlatreon = 24, kJhenMohran = 25;
 constexpr std::array<uint8_t, 18> kLargeMonsters{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 14, 15, 16, 18, 19, kCeadeus, kAlatreon, kJhenMohran};
 constexpr std::array<uint8_t, 3> kSwimmers{15, 16, 18}; // the water arena's (their spawn lists' map 12 entries)
 constexpr std::array<uint8_t, 10> kScratchMaps{1, 2, 3, 4, 5, 9, 10, 11, 6, 7};
-constexpr size_t kSlots = 0x314, kObjectives = 0x330, kRecords = 0x394, kRecordBytes = 0x60, kLayout = 0x390;
+constexpr size_t kRecordBytes = 0x60;
 
 // The monster's memory class (0x805A22C8: 3 the bosses, 1 Great Jaggi and
 // Great Baggi, 2 the others): a heap slot of the class holds its files.
@@ -378,18 +465,18 @@ Status StrengthSource(const std::array<std::vector<uint8_t>, 3>& sets, uint8_t m
     unsigned best = ~0u;
 
     for (size_t set = 0; set < sets.size(); ++set) {
+        const auto& file = sets[set];
+        const QuestFormat& fmt = DetectFormat(file);
         std::vector<size_t> entries;
-        MH3_RETURN_IF_ERROR(Entries(sets[set], entries));
+        MH3_RETURN_IF_ERROR(Entries(file, entries));
 
         for (size_t at : entries)
             for (size_t slot = 0; slot < 3; ++slot) {
-                const auto& file = sets[set];
-
-                if (file[at + kSlots + slot * 8] != monster)
+                if (file[at + fmt.slots + slot * 8] != monster)
                     continue;
 
-                const unsigned questRank = Rank(set, file[at + 0x8a]);
-                const unsigned distance = (questRank > rank ? questRank - rank : rank - questRank) * 16 + unsigned(std::abs(int(file[at + 0x8a]) - int(stars)));
+                const unsigned questRank = Rank(set, file[at + fmt.stars]);
+                const unsigned distance = (questRank > rank ? questRank - rank : rank - questRank) * 16 + unsigned(std::abs(int(file[at + fmt.stars]) - int(stars)));
 
                 if (distance >= best)
                     continue;
@@ -398,7 +485,7 @@ Status StrengthSource(const std::array<std::vector<uint8_t>, 3>& sets, uint8_t m
                 found = {set, at, slot, 0};
 
                 for (size_t k = 0; k < 3; ++k)
-                    if ((Word(file, at + kRecords + k * kRecordBytes + 4) >> 16) == monster) {
+                    if ((Word(file, at + fmt.records + k * kRecordBytes + 4) >> 16) == monster) {
                         found.record = k;
                         break;
                     }
@@ -455,18 +542,18 @@ Status ScratchIntruders(uint8_t map, std::vector<IntruderChoice>& choices) {
     choices.clear();
 
     for (const auto& file : DiscQuestFiles()) {
+        const QuestFormat& fmt = DetectFormat(file);
         std::vector<size_t> entries;
         MH3_RETURN_IF_ERROR(Entries(file, entries));
 
         for (const size_t at : entries) {
-            const Intruder intruder{file[at + 0x32c], file[at + 0x32d], file[at + 0x32e], file[at + 0x32f]};
+            const Intruder intruder{file[at + fmt.intruder], file[at + fmt.intruder + 1], file[at + fmt.intruder + 2], file[at + fmt.intruder + 3]};
             const auto same = [&](const IntruderChoice& c) { return c.intruder.table == intruder.table && c.intruder.when == intruder.when && c.intruder.group == intruder.group; };
 
-            if (file[at + 0x8b] != map || !intruder.chance || std::any_of(choices.begin(), choices.end(), same))
+            if (file[at + fmt.map] != map || !intruder.chance || std::any_of(choices.begin(), choices.end(), same))
                 continue;
 
-            const auto name = file.begin() + at;
-            choices.push_back({intruder, std::string(name, std::find(name, name + 0x2c, 0))});
+            choices.push_back({intruder, ReadText(file, at, 0, fmt.nameEnd, fmt.jpn)});
         }
     }
 
@@ -525,12 +612,13 @@ Status ScratchCapture(const CustomQuest& q, bool& supported) {
         bool captured = !monster;
 
         for (const auto& file : sets) {
+            const QuestFormat& fmt = DetectFormat(file);
             std::vector<size_t> entries;
             MH3_RETURN_IF_ERROR(Entries(file, entries));
 
             for (size_t at : entries)
                 for (size_t k = 0; k < 3; ++k)
-                    captured |= Word(file, at + kObjectives + k * 8) == 0x81 && (Word(file, at + kObjectives + k * 8 + 4) >> 16) == monster;
+                    captured |= Word(file, at + fmt.objectives + k * 8) == 0x81 && (Word(file, at + fmt.objectives + k * 8 + 4) >> 16) == monster;
         }
 
         supported &= captured;
@@ -544,17 +632,18 @@ Status ScratchFromTemplate(CustomQuest& q) {
         return {};
 
     const auto file = GameDiscImage().ReadFile(QuestPath(q.set));
+    const QuestFormat& fmt = DetectFormat(file);
     size_t at = 0, placement = 0;
     MH3_RETURN_IF_ERROR(Entry(file, q.base, at));
     MH3_RETURN_IF_ERROR(Entry(file, q.encounter ? q.encounter : q.base, placement));
-    const auto monsters = ScratchMonsters(file[at + 0x8b]);
+    const auto monsters = ScratchMonsters(file[at + fmt.map]);
 
-    if (std::find(monsters.begin(), monsters.end(), file[placement + kSlots]) == monsters.end())
+    if (std::find(monsters.begin(), monsters.end(), file[placement + fmt.slots]) == monsters.end())
         return Status::Error("This template's monster cannot be set up from scratch");
 
-    q.map = file[at + 0x8b];
-    q.monsters = {file[placement + kSlots], 0, 0};
-    q.rank = uint8_t(std::min(Rank(size_t(q.set), file[at + 0x8a]), 2u));
+    q.map = file[at + fmt.map];
+    q.monsters = {file[placement + fmt.slots], 0, 0};
+    q.rank = uint8_t(std::min(Rank(size_t(q.set), file[at + fmt.stars]), 2u));
     q.count = 1;
     q.encounter = 0;
     SetScratchCarrier(q);
@@ -576,25 +665,27 @@ Status ScratchQuestFile(const std::array<std::vector<uint8_t>, 3>& sets, const C
     }
 
     const auto& carrierFile = sets.at(size_t(q.set));
+    const QuestFormat& fmt = DetectFormat(carrierFile);
     size_t at = 0;
     MH3_RETURN_IF_ERROR(Entry(carrierFile, q.base, at));
     std::vector<uint8_t> edited = carrierFile;
     const size_t count = q.monsters[2] ? 3 : q.monsters[1] ? 2 : 1;
-    const uint32_t carrierMode = Word(carrierFile, at + 0x310), carrierObjective = Word(carrierFile, at + kObjectives);
+    const uint32_t carrierMode = Word(carrierFile, at + fmt.mode), carrierObjective = Word(carrierFile, at + fmt.objectives);
     const bool huntCarrier = (carrierMode & 0xF) == 4 || (carrierMode & 0xF) == 5;
     const uint32_t type = q.capture ? 0x81 : carrierObjective == 0x101 ? 0x101 : 1;
 
     // The monsters, their objectives and their reward records; the unused
     // slots, objectives and records empty.
-    std::fill(edited.begin() + at + kSlots, edited.begin() + at + 0x330, 0);
-    std::fill(edited.begin() + at + kObjectives, edited.begin() + at + 0x348, 0);
-    std::fill(edited.begin() + at + kRecords, edited.begin() + at + kRecords + 3 * kRecordBytes, 0);
+    std::fill(edited.begin() + at + fmt.slots, edited.begin() + at + fmt.objectives, 0);
+    std::fill(edited.begin() + at + fmt.objectives, edited.begin() + at + fmt.objectives + 0x18, 0);
+    std::fill(edited.begin() + at + fmt.records, edited.begin() + at + fmt.records + 3 * kRecordBytes, 0);
 
     for (size_t i = 0; i < count; ++i) {
         Source source;
         MH3_RETURN_IF_ERROR(StrengthSource(sets, q.monsters[i], q.rank, q.stars, source));
-        const size_t slot = at + kSlots + i * 8;
-        std::copy_n(sets[source.set].begin() + source.at + kSlots + source.slot * 8, 8, edited.begin() + slot);
+        const QuestFormat& sfmt = DetectFormat(sets[source.set]);
+        const size_t slot = at + fmt.slots + i * 8;
+        std::copy_n(sets[source.set].begin() + source.at + sfmt.slots + source.slot * 8, 8, edited.begin() + slot);
 
         // The spawn record (each its own, QuestPlacement fills a list's empty
         // ones), the count and the size in percent. The second monster that
@@ -627,8 +718,9 @@ Status ScratchQuestFile(const std::array<std::vector<uint8_t>, 3>& sets, const C
     for (size_t k = 0; k < goals.size(); ++k) {
         Source source;
         MH3_RETURN_IF_ERROR(StrengthSource(sets, goals[k].monster, q.rank, q.stars, source));
-        const size_t objective = at + kObjectives + k * 8, record = at + kRecords + k * kRecordBytes;
-        std::copy_n(sets[source.set].begin() + source.at + kRecords + source.record * kRecordBytes, kRecordBytes, edited.begin() + record);
+        const QuestFormat& sfmt = DetectFormat(sets[source.set]);
+        const size_t objective = at + fmt.objectives + k * 8, record = at + fmt.records + k * kRecordBytes;
+        std::copy_n(sets[source.set].begin() + source.at + sfmt.records + source.record * kRecordBytes, kRecordBytes, edited.begin() + record);
 
         for (const size_t to : {objective, record}) {
             PutWord(edited, to, type);
@@ -662,17 +754,13 @@ Status ScratchQuestFile(const std::array<std::vector<uint8_t>, 3>& sets, const C
     if (huntCarrier)
         mode = (mode & ~0xFFu) | (q.capture ? 4 : 5);
 
-    PutWord(edited, at + 0x310, mode);
-    PutWord(edited, at + 0x32c, uint32_t(q.intruder.chance) << 24 | uint32_t(q.intruder.table) << 16 | uint32_t(q.intruder.when) << 8 | q.intruder.group);
-    PutWord(edited, at + kLayout, ScratchLayout(q) ? 4 : MemoryClass(q.monsters[0]) == 3 ? 5 : 2);
+    PutWord(edited, at + fmt.mode, mode);
+    PutWord(edited, at + fmt.intruder, uint32_t(q.intruder.chance) << 24 | uint32_t(q.intruder.table) << 16 | uint32_t(q.intruder.when) << 8 | q.intruder.group);
+    PutWord(edited, at + fmt.layout, ScratchLayout(q) ? 4 : MemoryClass(q.monsters[0]) == 3 ? 5 : 2);
 
     // Its texts: name, goal, no sub-quests, failure, description.
     const auto names = QuestCatalog::MonsterNames();
     const auto name = [&](uint8_t monster) { return monster < names.size() && !names[monster].empty() ? names[monster] : "monster " + std::to_string(monster); };
-    const auto text = [&](size_t from, size_t to, const std::string& value) {
-        std::fill(edited.begin() + at + from, edited.begin() + at + to, 0);
-        std::copy_n(value.begin(), std::min(value.size(), to - from - 1), edited.begin() + at + from);
-    };
 
     const std::string verb = q.capture ? "Capture" : type == 0x101 ? "Slay" : "Hunt";
     std::string targets, lines;
@@ -683,20 +771,20 @@ Status ScratchQuestFile(const std::array<std::vector<uint8_t>, 3>& sets, const C
         lines += (i == 0 ? " " : i + 1 == count ? "\nand " : ",\n") + WithArticle(name(q.monsters[i]));
     }
 
-    text(0, 0x2c, q.name);
-    text(0x2e, 0x88, verb + " " + targets);
-    text(0x8c, 0xb5, "None");
-    text(0xb5, 0xde, "None");
-    text(0x13c, 0x19a, q.capture ? "Reward hits 0, time expires,\nor target is slain." : "Reward hits 0, or time expires.");
-    text(0x1cd, 0x30c, "A quest of your own design.\n" + verb + lines + "\nLocation: " + QuestCatalog::MapName(q.map) + ".");
-    edited[at + 0x8a] = q.stars;
+    WriteText(edited, at, 0, fmt.nameEnd, q.name, fmt.jpn);
+    WriteText(edited, at, fmt.goalStart, fmt.goalEnd, verb + " " + targets, fmt.jpn);
+    WriteText(edited, at, fmt.subAStart, fmt.subAEnd, "None", fmt.jpn);
+    WriteText(edited, at, fmt.subBStart, fmt.subBEnd, "None", fmt.jpn);
+    WriteText(edited, at, fmt.failStart, fmt.failEnd, q.capture ? "Reward hits 0, time expires,\nor target is slain." : "Reward hits 0, or time expires.", fmt.jpn);
+    WriteText(edited, at, fmt.descStart, fmt.descEnd, "A quest of your own design.\n" + verb + lines + "\nLocation: " + QuestCatalog::MapName(q.map) + ".", fmt.jpn);
+    edited[at + fmt.stars] = q.stars;
 
     if (q.minutes)
-        PutHalf(edited, at + 0x13a, q.minutes);
+        PutHalf(edited, at + fmt.time, q.minutes);
 
     // Entry bytes of the creator's own, last.
     std::vector<EntryBytes> patch;
-    MH3_RETURN_IF_ERROR(ParseEntryBytes(q.patch, patch));
+    MH3_RETURN_IF_ERROR(ParseEntryBytes(q.patch, patch, fmt.entryBytes));
 
     for (const auto& bytes : patch)
         std::copy(bytes.bytes.begin(), bytes.bytes.end(), edited.begin() + at + bytes.offset);
@@ -877,42 +965,45 @@ Status LoadCustomQuests(const std::filesystem::path& user, std::vector<CustomQue
 Status ReplaceQuestMonster(QuestCatalog::Set set, uint16_t id, uint8_t monster) {
     auto& disc = GameDiscImage();
     std::vector<uint8_t> edited = disc.ReadFile(QuestPath(set));
+    const QuestFormat& fmt = DetectFormat(edited);
     size_t at = 0;
     MH3_RETURN_IF_ERROR(Entry(edited, id, at));
 
-    if (edited[at + 0x317] != 1 || !edited[at + 0x314])
+    if (edited[at + fmt.slots + 3] != 1 || !edited[at + fmt.slots])
         return Status::Error("The quest has no large monster to replace");
 
-    const uint8_t old = edited[at + 0x314];
-    edited[at + 0x314] = monster;
+    const uint8_t old = edited[at + fmt.slots];
+    edited[at + fmt.slots] = monster;
 
-    for (const size_t objectives : {size_t(0x330), size_t(0x394)})
+    for (const size_t objectives : {fmt.objectives, fmt.records})
         for (size_t k = 0; k < 3; ++k)
             if (Word(edited, at + objectives + 8 * k + 4) >> 16 == old)
                 PutHalf(edited, at + objectives + 8 * k + 4, monster);
 
-    // The field's monster heap slots (+0x390, a layout of 0x805A23F8 + 1): a
+    // The field's monster heap slots (+0x390/+0x294, a layout of 0x805A23F8 + 1): a
     // monster of memory class 3 (0x805A22C8: Ceadeus, Alatreon, Jhen Mohran)
     // loads only into layout 5's class 3 slot.
     if (monster == 20 || monster == 24 || monster == 25)
-        PutWord(edited, at + 0x390, 5);
+        PutWord(edited, at + fmt.layout, 5);
 
-    QuestPlacement::Add(monster, edited[at + 0x8b], edited[at + 0x315]);
+    QuestPlacement::Add(monster, edited[at + fmt.map], edited[at + fmt.slots + 1]);
     std::fprintf(stderr, "MH3 quest %u: large monster %u replaced by %u\n", unsigned(id), unsigned(old), unsigned(monster));
     disc.SetFileOverride(QuestPath(set), std::move(edited));
     return {};
 }
 
 // Development (--quest-small): quest `id`'s small monster spawns (the area
-// spawn tables at +0x4B8: u32 count, u32 header size, u32, then {offset from
-// +0x4B8, size} pairs of 0x30-byte spawns, +0 u32 monster id) made `monster`.
+// spawn tables at +0x4B8/+0x3BC: u32 count, u32 header size, u32, then {offset from
+// +0x4B8/+0x3BC, size} pairs of 0x30-byte spawns, +0 u32 monster id) made `monster`.
 // Only named monsters other than the quest's large ones change; the arena's
 // own kind 40 stays. The arena quest 9000 spawns four Jaggi.
 Status ReplaceQuestSmallMonsters(QuestCatalog::Set set, uint16_t id, uint8_t monster) {
-    constexpr size_t kTables = 0x4B8, kSpawnSize = 0x30;
+    constexpr size_t kSpawnSize = 0x30;
     constexpr uint32_t kNamed = 38; // Bnahabra, the list's last
     auto& disc = GameDiscImage();
     std::vector<uint8_t> edited = disc.ReadFile(QuestPath(set));
+    const QuestFormat& fmt = DetectFormat(edited);
+    const size_t kTables = fmt.entryBytes;
     size_t at = 0;
     MH3_RETURN_IF_ERROR(Entry(edited, id, at));
     const uint32_t tables = at + kTables + 12 <= edited.size() ? Word(edited, at + kTables) : 0;
@@ -938,7 +1029,7 @@ Status ReplaceQuestSmallMonsters(QuestCatalog::Set set, uint16_t id, uint8_t mon
             bool large = false;
 
             for (size_t k = 0; k < 3; ++k)
-                large |= edited[at + 0x314 + 8 * k] == old;
+                large |= edited[at + fmt.slots + 8 * k] == old;
 
             if (old == 0 || old > kNamed || large)
                 continue;
@@ -969,10 +1060,11 @@ Status ReplaceQuestSmallMonsters(QuestCatalog::Set set, uint16_t id, uint8_t mon
 Status PatchQuest(QuestCatalog::Set set, uint16_t id, std::string_view patches) {
     auto& disc = GameDiscImage();
     std::vector<uint8_t> edited = disc.ReadFile(QuestPath(set));
+    const QuestFormat& fmt = DetectFormat(edited);
     size_t at = 0;
     MH3_RETURN_IF_ERROR(Entry(edited, id, at));
     std::vector<EntryBytes> patch;
-    MH3_RETURN_IF_ERROR(ParseEntryBytes(patches, patch));
+    MH3_RETURN_IF_ERROR(ParseEntryBytes(patches, patch, fmt.entryBytes));
 
     for (const auto& bytes : patch) {
         std::copy(bytes.bytes.begin(), bytes.bytes.end(), edited.begin() + at + bytes.offset);
@@ -1009,23 +1101,26 @@ Status ActivateCustomQuest(const CustomQuest& q) {
 Status SupportsCapture(const CustomQuest& q, bool& supported) {
     supported = false;
     const auto templates = GameDiscImage().ReadFile(QuestPath(q.set));
+    const QuestFormat& tfmt = DetectFormat(templates);
     size_t original = 0;
     MH3_RETURN_IF_ERROR(Entry(templates, q.encounter ? q.encounter : q.base, original));
-    const uint16_t target = Word(templates, original + 0x334) >> 16;
+    const uint16_t target = Word(templates, original + tfmt.objectives + 4) >> 16;
 
     if (!target)
         return {};
     // Derive capture support from authored quests, not guessed monster IDs.
     for (const auto set : {QuestCatalog::Set::Village, QuestCatalog::Set::Online, QuestCatalog::Set::Arena}) {
         const auto bytes = GameDiscImage().ReadFile(QuestPath(set));
+        const QuestFormat& fmt = DetectFormat(bytes);
         std::vector<size_t> entries;
         MH3_RETURN_IF_ERROR(Entries(bytes, entries));
 
         for (size_t at : entries)
             for (unsigned i = 0; i < 3; ++i)
-                if (Word(bytes, at + 0x330 + i * 8) == 0x81 && (Word(bytes, at + 0x334 + i * 8) >> 16) == target)
+                if (Word(bytes, at + fmt.objectives + i * 8) == 0x81 && (Word(bytes, at + fmt.objectives + i * 8 + 4) >> 16) == target)
                     for (unsigned slot = 0; slot < 3; ++slot)
-                        if (bytes[at + 0x314 + slot * 8] == target && bytes[at + 0x316 + slot * 8] == templates[original + 0x316] && bytes[at + 0x319 + slot * 8] == templates[original + 0x319]) {
+                        if (bytes[at + fmt.slots + slot * 8] == target && bytes[at + fmt.slots + 2 + slot * 8] == templates[original + tfmt.slots + 2] &&
+                            bytes[at + fmt.slots + 5 + slot * 8] == templates[original + tfmt.slots + 5]) {
                             supported = true;
                             return {};
                         }

@@ -162,7 +162,9 @@ extern "C" void func_802E07A4(CpuContext* ctx);
 extern "C" void MH3_DrawSprite(CpuContext* ctx) {
     PortCheck::Call(ctx, "DrawSprite", func_802E07A4, DrawSprite);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802E07A4, MH3_DrawSprite, "DrawSprite");
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+// REGISTER_NATIVE_FUNCTION_AS(0x802E07A4, MH3_DrawSprite, "DrawSprite");
 
 extern "C" void func_80053BCC(CpuContext* ctx);
 static void SetTextureRectPort(CpuContext* p) {
@@ -188,7 +190,7 @@ static void SetTextureRectChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uin
 extern "C" void MH3_DrawShapeSetTextureRect(CpuContext* ctx) {
     SetTextureRectChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053BCC, MH3_DrawShapeSetTextureRect, "DrawShapeSetTextureRect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80053BCC, MH3_DrawShapeSetTextureRect, "DrawShapeSetTextureRect");
 
 // The matrices go where the original's frame keeps them (r1 - 0x90 + 0x38 and
 // + 8), below the caller's stack pointer.
@@ -220,4 +222,4 @@ static void SetTextureMtxChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t
 extern "C" void MH3_DrawShapeSetTextureMtx(CpuContext* ctx) {
     SetTextureMtxChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053EDC, MH3_DrawShapeSetTextureMtx, "DrawShapeSetTextureMtx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80053EDC, MH3_DrawShapeSetTextureMtx, "DrawShapeSetTextureMtx");

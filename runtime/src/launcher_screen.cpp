@@ -1,5 +1,6 @@
 // The launcher's screen on the native renderer (launcher_screen.h).
 #include "launcher_screen.h"
+#include "diag_log.h"
 #include "fatal.h"
 #include "native_frame_packet.h"
 #include "native_graphics.h"
@@ -112,8 +113,10 @@ void RunOnRenderThread(std::function<void()> task, const std::vector<Rectangle>*
 }
 
 void HandOffScreen() {
+    MH3DiagLog("MH3 diag: launcher handoff\n");
     StopNativeRenderThread();
     OpenNativeAssets();
+    MH3DiagLog("MH3 diag: launcher handed off\n");
 }
 
 #if defined(MH3_DEVELOPMENT) && !defined(__vita__)

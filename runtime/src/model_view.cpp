@@ -127,7 +127,7 @@ mh3_res_status Billboard(void* opaque, uint32_t type, uint32_t id, int uniform, 
         return MH3_RES_OK;
 
     GuestCall game{context.cpu};
-    game(Memory::Read32(0x8056fdf8 + type * 4), {destination, context.models, uint32_t(uniform), context.camera, context.reference, id});
+    game(Memory::Read32(0x8065ABC0 + type * 4), {destination, context.models, uint32_t(uniform), context.camera, context.reference, id});
     return MH3_RES_OK;
 }
 
@@ -184,7 +184,7 @@ void Produce(CpuContext* cpu) {
 }
 } // namespace
 
-extern "C" void func_80071CAC(CpuContext*);
+extern "C" void func_8052ED20(CpuContext*);
 extern "C" void MH3_G3dCalcViewDma(CpuContext* cpu) {
 #ifdef MH3_DEVELOPMENT
     MH3FrameSplitCall(3);
@@ -193,10 +193,10 @@ extern "C" void MH3_G3dCalcViewDma(CpuContext* cpu) {
     const uint32_t count = cpu->gpr[7], reference = cpu->gpr[9];
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("G3dCalcViewDma"))
-        PortCheck::Run(cpu, "G3dCalcViewDma", func_80071CAC, Produce);
+        PortCheck::Run(cpu, "G3dCalcViewDma", func_8052ED20, Produce);
     else
 #endif
         Produce(cpu);
     PublishNativeModelPose(position, normal, environment, count, reference);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80071CAC, MH3_G3dCalcViewDma, "G3dCalcViewDma");
+REGISTER_NATIVE_FUNCTION_AS(0x8052ED20, MH3_G3dCalcViewDma, "G3dCalcViewDma");

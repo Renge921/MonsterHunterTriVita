@@ -143,7 +143,7 @@ option(MH3_PGO_GENERATE "Instrument the build to collect a PGO profile (docs/opt
 set(MH3_PGO_RUNTIME "" CACHE FILEPATH "Profile runtime archive for MH3_PGO_GENERATE when the compiler has none")
 set(MH3_PGO_USE "" CACHE FILEPATH "Indexed clang profile to optimize with (docs/optimizations/cpu/pgo-and-thinlto.md)")
 
-option(MH3_PGO_RELEASE_PROFILE "Release builds optimize with the checked-in profile (pgo/)" ON)
+option(MH3_PGO_RELEASE_PROFILE "Release builds optimize with the checked-in profile (pgo/)" OFF)
 
 if(MH3_PGO_GENERATE AND MH3_PGO_USE)
   message(FATAL_ERROR "MH3_PGO_GENERATE and MH3_PGO_USE are exclusive")
@@ -532,7 +532,7 @@ if(VITA)
   endif()
 
   # newlib's isfinite/isnan/isinf as builtins under clang (not __fpclassifyf calls).
-  target_compile_options(MH3 PRIVATE "$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/vita/newlib_math_builtins.h>")
+  target_compile_options(MH3 PRIVATE "$<$<COMPILE_LANGUAGE:C>:SHELL:-include \"${CMAKE_CURRENT_SOURCE_DIR}/vita/newlib_math_builtins.h\">")
   option(MH3_VITA_FAST_TLS "Use initialized VitaSDK TLS lookup fast paths" ON)
 
   if(MH3_VITA_FAST_TLS)
@@ -542,7 +542,7 @@ if(VITA)
   endif()
 
   # Drop unreferenced sections.
-  target_link_options(MH3 PRIVATE "-Wl,--gc-sections")
+  target_link_options(MH3 PRIVATE "-Wl,--gc-sections" "-Wl,--error-limit=0")
   set_source_files_properties(src/launcher_disc.cpp src/launcher_textures.cpp vita/launcher.cpp PROPERTIES
     INCLUDE_DIRECTORIES "${MH3_AURORA_ROOT}/lib")
   if(MH3_DEVELOPMENT)
@@ -564,7 +564,7 @@ if(VITA)
 
   add_custom_command(OUTPUT "${mh3_adhoc_stub}"
     COMMAND ${VITA_LIBS_GEN} "${CMAKE_CURRENT_SOURCE_DIR}/vita/netctl_adhoc.yml" "${mh3_adhoc_stub_dir}"
-    COMMAND make -s -C "${mh3_adhoc_stub_dir}"
+    COMMAND sh -c "cd \"${mh3_adhoc_stub_dir}\" && for f in *.S; do \"${VITASDK}/bin/arm-vita-eabi-as\" --defsym GEN_WEAK_EXPORTS=0 \"$f\" -o \"\${f%.S}.o\"; done && \"${VITASDK}/bin/arm-vita-eabi-ar\" cru libSceLibNetCtl_stub.a *.o && \"${VITASDK}/bin/arm-vita-eabi-ranlib\" libSceLibNetCtl_stub.a"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vita/netctl_adhoc.yml"
     VERBATIM)
 

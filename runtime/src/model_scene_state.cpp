@@ -120,7 +120,7 @@ void RestoreNativeModelCamera() {
 extern "C" void MH3_RestoreModelCamera(CpuContext*) {
     RestoreNativeModelCamera();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E47B8, MH3_RestoreModelCamera, "RestoreModelCamera");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800E47B8, MH3_RestoreModelCamera);
 
 extern "C" void MH3_CameraProject(CpuContext* cpu) {
     if (!cpu->gpr[4])
@@ -135,7 +135,7 @@ extern "C" void MH3_CameraProject(CpuContext* cpu) {
     StorePreparedCamera(resource, camera, flags);
     StoreFloats(cpu->gpr[4], result.v, 3);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800752BC, MH3_CameraProject, "CameraProject");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800752BC, MH3_CameraProject);
 
 namespace {
 void CameraView(uint32_t resource, uint32_t destination) {
@@ -164,7 +164,7 @@ void ApplyViewport(uint32_t resource) {
     const auto camera = Camera(resource);
     auto y = camera.viewport[1];
 
-    if (Memory::Read8(0x8068a7e0) && !(camera.flags & 256))
+    if (Memory::Read8(0x80870018) && !(camera.flags & 256))
         y -= 0.5f;
 
     SetNativeViewport(camera.viewport[0], y, camera.viewport[2], camera.viewport[3], camera.viewport[4], camera.viewport[5]);
@@ -182,11 +182,11 @@ void ApplyProjection(uint32_t resource) {
 extern "C" void MH3_CameraView(CpuContext* cpu) {
     CameraView(Resource(cpu->gpr[3]), cpu->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800753F8, MH3_CameraView, "CameraView");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800753F8, MH3_CameraView);
 extern "C" void MH3_CameraProjection(CpuContext* cpu) {
     CameraProjection(Resource(cpu->gpr[3]), cpu->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800754A4, MH3_CameraProjection, "CameraProjection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800754A4, MH3_CameraProjection);
 extern "C" void MH3_CameraPrepareProjection(CpuContext* cpu) {
     const uint32_t resource = Resource(cpu->gpr[3]);
     auto camera = Camera(resource);
@@ -196,23 +196,23 @@ extern "C" void MH3_CameraPrepareProjection(CpuContext* cpu) {
     Checked(mh3_camera_prepare_projection(&camera));
     StoreCamera(resource, camera);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80075E3C, MH3_CameraPrepareProjection, "CameraPrepareProjection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80075E3C, MH3_CameraPrepareProjection);
 extern "C" void MH3_CameraApplyViewport(CpuContext* cpu) {
     ApplyViewport(Resource(cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80075740, MH3_CameraApplyViewport, "CameraApplyViewport");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80075740, MH3_CameraApplyViewport);
 extern "C" void MH3_CameraApplyProjection(CpuContext* cpu) {
     ApplyProjection(Resource(cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007580C, MH3_CameraApplyProjection, "CameraApplyProjection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8007580C, MH3_CameraApplyProjection);
 extern "C" void MH3_CameraApplyScissor(CpuContext* cpu) {
     ApplyScissor(Camera(Resource(cpu->gpr[3])));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800758AC, MH3_CameraApplyScissor, "CameraApplyScissor");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800758AC, MH3_CameraApplyScissor);
 extern "C" void MH3_CameraApplyScissorOffset(CpuContext* cpu) {
     ApplyScissor(Camera(Resource(cpu->gpr[3])));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007592C, MH3_CameraApplyScissorOffset, "CameraApplyScissorOffset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8007592C, MH3_CameraApplyScissorOffset);
 
 namespace {
 void FogRange(uint32_t resource, uint16_t width, uint16_t center, const float projection[16]) {
@@ -230,13 +230,13 @@ extern "C" void MH3_FogRange(CpuContext* cpu) {
 
     FogRange(Resource(cpu->gpr[3]), uint16_t(cpu->gpr[4]), uint16_t(cpu->gpr[5]), projection);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007A30C, MH3_FogRange, "FogRange");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8007A30C, MH3_FogRange);
 extern "C" void MH3_FogApply(CpuContext* cpu) {
     mh3_native_fog fog{};
     Checked(mh3_fog_read(Bytes(Resource(cpu->gpr[3]), 48), &fog));
     SetNativeFog(fog);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007A3B8, MH3_FogApply, "FogApply");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8007A3B8, MH3_FogApply);
 extern "C" void MH3_FogSelect(CpuContext* cpu) {
     mh3_native_fog fog{};
     int apply = 0;
@@ -245,7 +245,7 @@ extern "C" void MH3_FogSelect(CpuContext* cpu) {
     if (apply)
         SetNativeFog(fog);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80088200, MH3_FogSelect, "FogSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80088200, MH3_FogSelect);
 
 namespace {
 void ModelLightSetting(uint32_t state, uint32_t setting) {
@@ -255,7 +255,7 @@ void ModelLightSetting(uint32_t state, uint32_t setting) {
         MH3_THROW(std::runtime_error("Native LightSetting capacity exceeds128"));
 
     mh3_matrix34 view{};
-    Checked(mh3_scene_view_matrix(Bytes(0x80688d94, 52 + 32 * 48), &view));
+    Checked(mh3_scene_view_matrix(Bytes(0x80869fe0, 52 + 32 * 48), &view));
 
     // Imported straight into the state's entry (a failed import stops the run).
     auto& entry = light_slots[state];
@@ -270,13 +270,13 @@ void ModelLightSetting(uint32_t state, uint32_t setting) {
 extern "C" void MH3_ModelLightSetting(CpuContext* cpu) {
     ModelLightSetting(cpu->gpr[3], cpu->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008551C, MH3_ModelLightSetting, "ModelLightSetting");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8008551C, MH3_ModelLightSetting);
 
 namespace {
 // G3D's camera state (0x80688D94: u16 flags, the selected index, then 32
 // views, projections, texture and environment matrices), fog state
 // (0x80685D60: flags, the selected index, 32 FogData records) and light state.
-constexpr uint32_t kCameraState = 0x80688d94, kFogState = 0x80685d60, kLightState = 0x80686368;
+constexpr uint32_t kCameraState = 0x80869fe0, kFogState = 0x80866fa0, kLightState = 0x808675b4;
 
 // FloatToU16Gqr3 (80082F7C): psq_st through GQR3, the game's u16 store type:
 // scaled, clamped and truncated.
@@ -397,12 +397,19 @@ extern "C" void MH3_ScnRootSetGlbSettings(CpuContext* cpu) {
 #endif
     SetGlbSettings(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80082D40, MH3_ScnRootSetGlbSettings, "ScnRootSetGlbSettings");
+REGISTER_NATIVE_FUNCTION(0x80535BCC, MH3_ScnRootSetGlbSettings);
 const mh3_native_light_slots& SelectNativeModelLightSet(uint32_t state, uint32_t set_id) {
-    const auto found = light_slots.find(state);
+    auto found = light_slots.find(state);
 
-    if (found == light_slots.end())
-        MH3_THROW(std::runtime_error("LightState selection has no typed import producer"));
+    if (found == light_slots.end()) {
+        // Fallback for unimported LightState in JPN RMHJ08
+        auto& entry = light_slots[state];
+        if (Memory::Contains(state, MH3_LIGHT_STATE_BYTES)) {
+            Checked(mh3_light_state_select(Mutable(state, MH3_LIGHT_STATE_BYTES), set_id, &entry.slots));
+        }
+        SetNativeModelLightSelection(entry.slots, &entry, entry.revision);
+        return entry.slots;
+    }
 
     auto& entry = found->second;
     const auto bytes = Mutable(state, MH3_LIGHT_STATE_BYTES);
@@ -433,12 +440,12 @@ extern "C" void MH3_ModelLightSelect(CpuContext* cpu) {
         destination[3] = slots.ambient.a;
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80085758, MH3_ModelLightSelect, "ModelLightSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80085758, MH3_ModelLightSelect);
 
 void InvalidateNativeModelCaches(uint32_t fields) {
-    const mh3_model_cache_storage storage{Mutable(0x80685480, 1),  Mutable(0x80685500, 2),  Mutable(0x8068530c, 4),  Mutable(0x80796dbc, 4), Mutable(0x80685300, 12),
-                                          Mutable(0x80685504, 12), Mutable(0x80796db4, 1),  Mutable(0x80685510, 32), Mutable(0x80796db8, 4), Mutable(0x80796dc8, 4),
-                                          Mutable(0x80685d60, 4),  Mutable(0x80686378, 28), Mutable(0x80685530, 12), Mutable(0x80796db0, 1)};
+    const mh3_model_cache_storage storage{Mutable(0x808666e0, 1),  Mutable(0x80866760, 2),  Mutable(0x8086656c, 4),  Mutable(0x8089a33c, 4), Mutable(0x80866560, 12),
+                                          Mutable(0x80866758, 12), Mutable(0x8089a334, 1),  Mutable(0x80866770, 32), Mutable(0x8089a338, 4), Mutable(0x8089a348, 4),
+                                          Mutable(0x80866fa0, 4),  Mutable(0x808675c4, 28), Mutable(0x80866790, 12), Mutable(0x8089a330, 1)};
     Checked(mh3_model_cache_invalidate(storage, fields));
 
     // The render thread's deferred preparation mirrors these caches.
@@ -446,7 +453,7 @@ void InvalidateNativeModelCaches(uint32_t fields) {
 
     if (fields & 1024) {
         const uint32_t absent[]{0, 0, 0};
-        StoreNativeModelMatrixSources(0x80685530, absent);
+        StoreNativeModelMatrixSources(0x80866790, absent);
     }
 }
 
@@ -474,11 +481,11 @@ extern "C" void MH3_ModelInvalidate(CpuContext* cpu) {
 
     InvalidateNativeModelCaches(cpu->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800885F4, MH3_ModelInvalidate, "ModelInvalidate");
+REGISTER_NATIVE_FUNCTION(0x8052C0C0, MH3_ModelInvalidate);
 extern "C" void MH3_ModelRenderMode(CpuContext* cpu) {
-    cpu->gpr[3] = 0x8068a7c8;
+    cpu->gpr[3] = 0x8086ba14;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800885E8, MH3_ModelRenderMode, "ModelRenderMode");
+REGISTER_NATIVE_FUNCTION(0x8052C0B4, MH3_ModelRenderMode);
 
 extern "C" void MH3_ModelTextureObject(CpuContext* cpu) {
     const uint32_t info = Resource(cpu->gpr[3]), objects = Resource(cpu->gpr[5]);
@@ -489,7 +496,10 @@ extern "C" void MH3_ModelTextureObject(CpuContext* cpu) {
     Checked(mh3_texture_info_store_source(Mutable(info, 16), source.resource_address, 0));
     Checked(mh3_resource_objects_validate(Mutable(objects, 260), binding.map_id, 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800976C0, MH3_ModelTextureObject, "ModelTextureObject");
+// In RMHJ08, func_8051EB68 is a recompiled guest function taking 4 stack variable pointers
+// (r3=&stack20, r4=&stack16, r5=&stack12, r6=&stack8) and internally invoking GXInitTexObj,
+// so it must NOT be hijacked with MH3_ModelTextureObject (which expects raw resource addresses).
+// REGISTER_NATIVE_FUNCTION(0x8051EB68, MH3_ModelTextureObject);
 extern "C" void MH3_ModelPaletteObject(CpuContext* cpu) {
     const uint32_t info = Resource(cpu->gpr[3]), objects = Resource(cpu->gpr[5]), slot = Memory::Read32(info + 16);
 
@@ -501,7 +511,7 @@ extern "C" void MH3_ModelPaletteObject(CpuContext* cpu) {
     Checked(mh3_texture_info_store_source(Mutable(info, 16), palette.resource_address, 1));
     Checked(mh3_resource_objects_validate(Mutable(objects, 100), slot, 1));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80097990, MH3_ModelPaletteObject, "ModelPaletteObject");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80097990, MH3_ModelPaletteObject);
 
 extern "C" void MH3_ModelTextureReplace(CpuContext* cpu) {
     const uint32_t objects = Resource(cpu->gpr[3]), palettes = Resource(cpu->gpr[4]), result = cpu->gpr[5];
@@ -521,11 +531,11 @@ extern "C" void MH3_ModelTextureReplace(CpuContext* cpu) {
             StoreNativePaletteObject(palettes + 4 + i * 12, ReadNativeResPalette(result + 0x24 + i * 4));
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80069A2C, MH3_ModelTextureReplace, "ModelTextureReplace");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80069A2C, MH3_ModelTextureReplace);
 extern "C" void MH3_ModelTextureSelect(CpuContext* cpu) {
     SelectNativeModelTextureObjects(cpu->gpr[3], Resource(cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80085EAC, MH3_ModelTextureSelect, "ModelTextureSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80085EAC, MH3_ModelTextureSelect);
 void SelectNativeModelTextureObjects(uint32_t state, uint32_t objects) {
     uint8_t changed = 0;
     Checked(mh3_resource_objects_cache(Mutable(state, 257), Bytes(objects, 260), 0, &changed));
@@ -548,7 +558,7 @@ void SelectNativeModelTextureObjects(uint32_t state, uint32_t objects) {
             if (binding.source.width > UINT16_MAX || binding.source.height > UINT16_MAX)
                 MH3_THROW(std::runtime_error("Native G3D texture dimensions exceed coordinate cache"));
 
-            Checked(mh3_texture_scale_size(Mutable(0x8068530c, 36), i, uint16_t(binding.source.width), uint16_t(binding.source.height)));
+            Checked(mh3_texture_scale_size(Mutable(0x8086656c, 36), i, uint16_t(binding.source.width), uint16_t(binding.source.height)));
             PublishNativeModelMapSize(i, uint16_t(binding.source.width), uint16_t(binding.source.height));
         }
     }
@@ -557,7 +567,7 @@ void SelectNativeModelTextureObjects(uint32_t state, uint32_t objects) {
 extern "C" void MH3_ModelPaletteSelect(CpuContext* cpu) {
     SelectNativeModelPaletteObjects(cpu->gpr[3], Resource(cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800860A8, MH3_ModelPaletteSelect, "ModelPaletteSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800860A8, MH3_ModelPaletteSelect);
 void SelectNativeModelPaletteObjects(uint32_t state, uint32_t objects) {
     uint8_t changed = 0;
     Checked(mh3_resource_objects_cache(Mutable(state, 98), Bytes(objects, 100), 1, &changed));
@@ -570,34 +580,34 @@ void SelectNativeModelPaletteObjects(uint32_t state, uint32_t objects) {
             BindNativePalette(i, ReadNativePaletteObject(objects + 4 + i * 12));
     }
 
-    Checked(mh3_texture_cache_palette_changed(Mutable(0x80685380, 257), changed));
+    Checked(mh3_texture_cache_palette_changed(Mutable(0x808665e0, 257), changed));
 }
 
 extern "C" void MH3_ModelDepthCompare(CpuContext* cpu) {
     int apply = 0;
-    Checked(mh3_depth_compare_cache(Mutable(cpu->gpr[3], 5), Mutable(0x80796db0, 1), uint8_t(cpu->gpr[4]) != 0, &apply));
+    Checked(mh3_depth_compare_cache(Mutable(cpu->gpr[3], 5), Mutable(0x8089a330, 1), uint8_t(cpu->gpr[4]) != 0, &apply));
 
     if (apply)
         SetNativeDepthCompareBeforeTexture(uint8_t(cpu->gpr[4]) != 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80085DFC, MH3_ModelDepthCompare, "ModelDepthCompare");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80085DFC, MH3_ModelDepthCompare);
 extern "C" void MH3_ModelTextureInitialize(CpuContext* cpu) {
     InitializeNativeTextureSource(cpu->gpr[3], false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009A784, MH3_ModelTextureInitialize, "ModelTextureInitialize");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8009A784, MH3_ModelTextureInitialize);
 extern "C" void MH3_ModelPaletteInitialize(CpuContext* cpu) {
     InitializeNativeTextureSource(cpu->gpr[3], true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80093AFC, MH3_ModelPaletteInitialize, "ModelPaletteInitialize");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80093AFC, MH3_ModelPaletteInitialize);
 extern "C" void MH3_ModelTextureCopy(CpuContext* cpu) {
     const uint32_t destination = cpu->gpr[4];
     CopyNativeResourceObjects(destination, Resource(cpu->gpr[3]), false);
     cpu->gpr[3] = destination;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80094C00, MH3_ModelTextureCopy, "ModelTextureCopy");
+REGISTER_NATIVE_FUNCTION(0x8051D4B4, MH3_ModelTextureCopy);
 extern "C" void MH3_ModelPaletteCopy(CpuContext* cpu) {
     const uint32_t destination = cpu->gpr[4];
     CopyNativeResourceObjects(destination, Resource(cpu->gpr[3]), true);
     cpu->gpr[3] = destination;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80095114, MH3_ModelPaletteCopy, "ModelPaletteCopy");
+REGISTER_NATIVE_FUNCTION(0x8051D5E8, MH3_ModelPaletteCopy);

@@ -41,15 +41,18 @@
 #include "ppc_runtime.h"
 
 #include <cstdint>
+#include <cstring>
 #include <stdexcept>
 
 namespace {
 
-constexpr uint32_t kR2 = 0x8079FF60u;
-constexpr uint32_t kOne = 0x80798408u;     // 1.0f (r2 - 31576)
-constexpr uint32_t kZero = 0x8079840Cu;    // 0.0f
-constexpr uint32_t kZeroTrans = 0x80798390u; // 0.0f, ChrAnmResult's zero translation
-constexpr uint32_t kDegToFIdx = 0x807983B4u; // 256 / 360 (r2 - 31660)
+constexpr uint32_t kR2 = 0x808A93C0u;
+// RMHJ08: the PAL .sdata2 constants (0x80798xxx) fall in the Japanese build's
+// .bss, so their bit patterns are kept here (bit-exact with PAL).
+constexpr uint32_t kOneBits = 0x3F800000u;       // 1.0f (PAL r2 - 31576)
+constexpr uint32_t kZeroBits = 0u;               // 0.0f (PAL 0x8079840C)
+constexpr uint32_t kZeroTransBits = 0u;          // 0.0f, ChrAnmResult's zero translation (PAL 0x80798390)
+constexpr uint32_t kDegToFIdxBits = 0x3F360B61u; // 256 / 360 (PAL r2 - 31660)
 
 // The node's flags (+0x14) and its parts.
 constexpr uint32_t kNodeFlags = 0x14, kNodeScale = 0x20, kNodeRotation = 0x2C, kNodeTranslation = 0x38;
@@ -72,6 +75,12 @@ void Write32(uint32_t a, uint32_t v) {
 
 float ReadFloat(uint32_t a) {
     return MemoryInline::FlatReadFloat32(a);
+}
+
+float BitsFloat(uint32_t bits) {
+    float f;
+    std::memcpy(&f, &bits, 4);
+    return f;
 }
 
 [[noreturn]] void Panic(const char* what) {
@@ -101,7 +110,7 @@ void Identity(uint32_t m) {
 // AnmChrRotationMtxFromDegrees (0x8008C4E8): MTX34RotXYZFIdx of the degrees
 // times 256 / 360 (fmuls each).
 void RotationFromDegrees(uint32_t m, uint32_t degrees) {
-    const float k = ReadFloat(kDegToFIdx);
+    const float k = BitsFloat(kDegToFIdxBits);
     G3dNative::MtxRotXYZFIdx(m, k * ReadFloat(degrees), k * ReadFloat(degrees + 4), k * ReadFloat(degrees + 8), kR2);
 }
 
@@ -127,7 +136,7 @@ void ChrAnmResult(uint32_t ref, uint32_t result) {
 
     if (nodeFlags & kNodeUnitScale) {
         flags = kFlagScaleOne | kFlagScaleUniform;
-        FillVec3(result + kScale, Read32(kOne));
+        FillVec3(result + kScale, kOneBits);
     } else {
         if (nodeFlags & kNodeUniformScale)
             flags = kFlagScaleUniform;
@@ -177,7 +186,7 @@ void PatchChrAnmResult(uint32_t ref, uint32_t result) {
     // 0x80: the node's scale.
     if (flags & 0x80) {
         if (nodeFlags & kNodeUnitScale) {
-            FillVec3(result + kScale, Read32(kOne));
+            FillVec3(result + kScale, kOneBits);
             flags |= kFlagScaleOne | kFlagScaleUniform;
         } else {
             flags = nodeFlags & kNodeUniformScale ? flags | kFlagScaleUniform : flags & ~kFlagScaleUniform;
@@ -207,7 +216,7 @@ void PatchChrAnmResult(uint32_t ref, uint32_t result) {
     // 0x200: the node's translation.
     if (flags & 0x200) {
         if (nodeFlags & kNodeZeroTrans) {
-            const uint32_t zero = Read32(kZero);
+            const uint32_t zero = kZeroBits;
             Write32(result + kTransZ, zero);
             Write32(result + kTransY, zero);
             Write32(result + kTransX, zero);
@@ -225,7 +234,7 @@ void PatchChrAnmResult(uint32_t ref, uint32_t result) {
 
 void GetTranslation(uint32_t result, uint32_t out) {
     if (Read32(result) & kFlagTransZero) {
-        FillVec3(out, Read32(kZeroTrans));
+        FillVec3(out, kZeroTransBits);
         return;
     }
 
@@ -235,7 +244,7 @@ void GetTranslation(uint32_t result, uint32_t out) {
 }
 
 void SetTranslation(uint32_t result, uint32_t t) {
-    const float zero = ReadFloat(kZeroTrans);
+    const float zero = 0.0f;
     const uint32_t flags = Read32(result);
 
     if (zero == ReadFloat(t) && zero == ReadFloat(t + 4) && zero == ReadFloat(t + 8)) {
@@ -258,7 +267,7 @@ void SetTranslation(uint32_t result, uint32_t t) {
 // (and 2 with an identity rotation and translation, 4) when it is (1, 1, 1),
 // else 0x10 when uniform, 0x2/0x8/0x10 cleared first.
 void SetScale(uint32_t result, uint32_t scale) {
-    const float one = ReadFloat(0x807983A8u); // r2 - 31672
+    const float one = 1.0f; // PAL r2 - 31672
     const float x = ReadFloat(scale), y = ReadFloat(scale + 4), z = ReadFloat(scale + 8);
     uint32_t flags = Read32(result);
 
@@ -330,7 +339,7 @@ void GetRotTrans(uint32_t result, uint32_t out) {
     G3dNative::MtxCopy(result + kMatrix, out);
 
     if (flags & kFlagTransZero) {
-        const uint32_t zero = Read32(0x80798390u); // r2 - 31696
+        const uint32_t zero = kZeroTransBits; // PAL r2 - 31696
         Write32(out + 0x0C, zero);
         Write32(out + 0x1C, zero);
         Write32(out + 0x2C, zero);
@@ -400,35 +409,35 @@ void G3dNative::ChrAnmResultSetTranslation(uint32_t result, uint32_t t) {
         Fn(r3, r4);                                                                                                                                                                                    \
     }
 
-MH3_RESULT_PORT(80098FD0, ResNodeChrAnmResult, ChrAnmResult, r4, 0x4C)
+MH3_RESULT_PORT(8051F584, ResNodeChrAnmResult, ChrAnmResult, r4, 0x4C)
 extern "C" void MH3_ResNodeChrAnmResult(CpuContext* ctx) {
     ResNodeChrAnmResultChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80098FD0, MH3_ResNodeChrAnmResult, "ResNodeChrAnmResult");
+REGISTER_NATIVE_FUNCTION_AS(0x8051F584, MH3_ResNodeChrAnmResult, "ResNodeChrAnmResult");
 
-MH3_RESULT_PORT(80098DC0, ResNodePatchChrAnmResult, PatchChrAnmResult, r4, 0x4C)
+MH3_RESULT_PORT(8051F3E8, ResNodePatchChrAnmResult, PatchChrAnmResult, r4, 0x4C)
 extern "C" void MH3_ResNodePatchChrAnmResult(CpuContext* ctx) {
     ResNodePatchChrAnmResultChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80098DC0, MH3_ResNodePatchChrAnmResult, "ResNodePatchChrAnmResult");
+REGISTER_NATIVE_FUNCTION_AS(0x8051F3E8, MH3_ResNodePatchChrAnmResult, "ResNodePatchChrAnmResult");
 
 MH3_RESULT_PORT(8008E224, ChrAnmResultGetTranslation, GetTranslation, r4, 12)
 extern "C" void MH3_ChrAnmResultGetTranslation(CpuContext* ctx) {
     ChrAnmResultGetTranslationChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008E224, MH3_ChrAnmResultGetTranslation, "ChrAnmResultGetTranslation");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008E224, MH3_ChrAnmResultGetTranslation, "ChrAnmResultGetTranslation");
 
 MH3_RESULT_PORT(8008F1AC, ChrAnmResultSetTranslation, SetTranslation, r3, 0x4C)
 extern "C" void MH3_ChrAnmResultSetTranslation(CpuContext* ctx) {
     ChrAnmResultSetTranslationChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008F1AC, MH3_ChrAnmResultSetTranslation, "ChrAnmResultSetTranslation");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008F1AC, MH3_ChrAnmResultSetTranslation, "ChrAnmResultSetTranslation");
 
 MH3_RESULT_PORT(8008E934, ChrAnmResultSetScale, SetScale, r3, 0x10)
 extern "C" void MH3_ChrAnmResultSetScale(CpuContext* ctx) {
     ChrAnmResultSetScaleChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008E934, MH3_ChrAnmResultSetScale, "ChrAnmResultSetScale");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008E934, MH3_ChrAnmResultSetScale, "ChrAnmResultSetScale");
 
 // SetMtx keeps the scales in its own frame (the original's: r1 - 0x50 + 8).
 static void SetMtxAt(uint32_t r1, uint32_t result, uint32_t m) {
@@ -458,16 +467,16 @@ static void ChrAnmResultSetMtxChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_ChrAnmResultSetMtx(CpuContext* ctx) {
     ChrAnmResultSetMtxChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008F440, MH3_ChrAnmResultSetMtx, "ChrAnmResultSetMtx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008F440, MH3_ChrAnmResultSetMtx, "ChrAnmResultSetMtx");
 
 MH3_RESULT_PORT(8008E46C, ChrAnmResultGetRotTrans, GetRotTrans, r4, 0x30)
 extern "C" void MH3_ChrAnmResultGetRotTrans(CpuContext* ctx) {
     ChrAnmResultGetRotTransChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008E46C, MH3_ChrAnmResultGetRotTrans, "ChrAnmResultGetRotTrans");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008E46C, MH3_ChrAnmResultGetRotTrans, "ChrAnmResultGetRotTrans");
 
 MH3_RESULT_PORT(8008E6FC, ChrAnmResultGetMtx, GetMtx, r4, 0x30)
 extern "C" void MH3_ChrAnmResultGetMtx(CpuContext* ctx) {
     ChrAnmResultGetMtxChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008E6FC, MH3_ChrAnmResultGetMtx, "ChrAnmResultGetMtx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008E6FC, MH3_ChrAnmResultGetMtx, "ChrAnmResultGetMtx");

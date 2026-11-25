@@ -45,21 +45,20 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    Acted = 0x80131DE8,         // (work): marks the enemy as updated this step
-    AfterFrameCheck = 0x8012F990, // em_after_frame_check (work, mode; f1, f2): over the advance just made
-    SetMotionEx = 0x8012F568,   // (work, motion, blend, flags, 1)
-    DemoStart = 0x801461D0,     // (work, 0)
-    DemoEnter = 0x80146200,     // (work)
-    SetScale = 0x80130628,      // (work; f1)
-    JointPosition = 0x8013599C, // get_joint_wpos_em (work, joint, VEC3* out)
-    Effect009 = 0x801049B0,     // eft009_set_pos (kind, VEC3* at, angles*, u8 area; f1 scale)
-    Rumble = 0x80056AB8,        // (work, 0x16, 10)
-    Roar = 0x801293A0,          // (work, 0, 0x16, 5)
-    ToVec3 = 0x8005001C,        // vec_to_mh_vec3 (VEC3* out, Vec* in)
-    RotateY = 0x800510C8,       // rotVecY (VEC3*, angle)
-    Vec3Add = 0x800513DC,       // (out, a, b)
-    Vec3Copy = 0x80041EA4,      // (to, from)
-    ActionDone = 0x80127FAC,    // (work): back to the AI
+    Acted = 0x8016C438,         // (work): marks the enemy as updated this step
+    AfterFrameCheck = 0x80169AC8, // em_after_frame_check (work, mode; f1, f2): over the advance just made
+    SetMotionEx = 0x80168E80,   // (work, motion, blend, flags, 1)
+    DemoStart = 0x801848D4,     // (work, 0)
+    DemoEnter = 0x80184968,     // (work)
+    SetScale = 0x8016A878,      // (work; f1)
+    SetAngles = 0x80184778,     // (work; f1-f3 degrees)
+    JointPosition = 0x801717A0, // get_joint_wpos_em (work, joint, VEC3* out)
+    Effect009 = 0x80043478,     // eft009_set_pos (kind, VEC3* at, angles*, u8 area; f1 scale)
+    Rumble = 0x802934FC,        // (work, 0x16, 10)
+    Roar = 0x8016177C,          // (work, 0, 0x16, 5)
+    ToVec3 = 0x8028A804,        // vec_to_mh_vec3 (VEC3* out, Vec* in)
+    RotateY = 0x8028BD04,       // rotVecY (VEC3*, angle)
+    ActionDone = 0x8015FDDC,    // (work): back to the AI
 };
 
 enum : uint32_t {
@@ -70,17 +69,23 @@ enum : uint32_t {
     kPosition = 0x188, // VEC3
 };
 
-constexpr uint32_t kSpots = 0x805EC570; // Vec[6]: the shells' spots around the monster
+constexpr uint32_t kSpots = 0x8069E878; // Vec[6]: the shells' spots around the monster
 
-constexpr uint32_t kShellTable = 0x80797020; // shell_set_func_ptr: the shell functions' table
+constexpr uint32_t kShellTable = 0x808A0540; // shell_set_func_ptr: the shell functions' table
 constexpr uint32_t kShellSlot = 0x8C;        // (work, 0, VEC3* at, 60; f1 scale)
 
 // The keyframe tables of the demo poses.
-constexpr uint32_t kApproachKeys = 0x805ECEB8;
-constexpr uint32_t kLandKeys = 0x805ECFA8;
-constexpr uint32_t kWalkKeys = 0x805ED210;
-constexpr uint32_t kTurnKeys = 0x805ED420;
-constexpr uint32_t kRiseKeys = 0x805ED510;
+constexpr uint32_t kApproachKeys = 0x8069F1C0;
+constexpr uint32_t kLandKeys = 0x8069F2B0;
+constexpr uint32_t kWalkKeys = 0x8069F518;
+constexpr uint32_t kTurnKeys = 0x8069F728;
+constexpr uint32_t kRiseKeys = 0x8069F818;
+
+void setVec(uint32_t vec, float x, float y, float z) {
+    Memory::WriteFloat32(vec, x);
+    Memory::WriteFloat32(vec + 4, y);
+    Memory::WriteFloat32(vec + 8, z);
+}
 
 void AlatreonIntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x40);
@@ -94,12 +99,6 @@ void AlatreonIntroPort(CpuContext* ctx) {
     const auto reached = [&](uint32_t steps) { return game.Call<Em::DemoReached>({steps}) == 1; };
     const auto pose = [&](uint32_t keys) { game.Call<Em::DemoPose>({work, uint32_t(demo()), keys, 0}); };
     const auto poseAxes = [&](uint32_t keys, uint32_t axes) { game.Call<Em::DemoPoseAxes>({work, uint32_t(demo()), keys, 0, axes, 0}); };
-
-    const auto setVec = [&](uint32_t vec, float x, float y, float z) {
-        Memory::WriteFloat32(vec, x);
-        Memory::WriteFloat32(vec + 4, y);
-        Memory::WriteFloat32(vec + 8, z);
-    };
 
     // An eft009 effect at a joint, 5 above the monster's height.
     const auto jointEffect = [&](float frameAt, uint32_t joint, uint32_t kind, float scale) {
@@ -132,7 +131,7 @@ void AlatreonIntroPort(CpuContext* ctx) {
             em.SetMotion(2, 0, 0);
             game.Call<Em::SetPosition>({work}, {-13940.56f, 4260.0f, -75.42f});
             poseAxes(kApproachKeys, 1);
-            game.Call<Em::SetAngles>({work}, {0.0f, 90.0f, 0.0f});
+            game.Call<SetAngles>({work}, {0.0f, 90.0f, 0.0f});
         }
 
         break;
@@ -188,7 +187,7 @@ void AlatreonIntroPort(CpuContext* ctx) {
         if (reached(0x3D6)) {
             em.NextState();
             em.SetMotion(0x2A, 0, 0x14);
-            game.Call<Em::SetAngles>({work}, {0.0f, 146.6816f, 0.0f});
+            game.Call<SetAngles>({work}, {0.0f, 146.6816f, 0.0f});
         }
 
         break;
@@ -223,7 +222,7 @@ void AlatreonIntroPort(CpuContext* ctx) {
 
         em.SetMotion(0x20, 0, 0);
         game.Call<Em::SetPosition>({work}, {-84.7694f, 250.0058f, -299.5185f});
-        game.Call<Em::SetAngles>({work}, {0.0f, 146.6816f, 0.0f});
+        game.Call<SetAngles>({work}, {0.0f, 146.6816f, 0.0f});
         em.Count(0);
         break;
     }
@@ -279,8 +278,11 @@ void AlatreonMeteorsPort(CpuContext* ctx) {
     const auto shell = [&](uint32_t i) {
         game.Call<ToVec3>({spot, kSpots + 12 * i});
         game.Call<RotateY>({spot, Memory::Read32(work + kYaw)});
-        game.Call<Vec3Add>({sum, work + kPosition, spot});
-        game.Call<Vec3Copy>({shellAt, sum});
+        const float x = Memory::ReadFloat32(work + kPosition) + Memory::ReadFloat32(spot);
+        const float y = Memory::ReadFloat32(work + kPosition + 4) + Memory::ReadFloat32(spot + 4);
+        const float z = Memory::ReadFloat32(work + kPosition + 8) + Memory::ReadFloat32(spot + 8);
+        setVec(sum, x, y, z);
+        setVec(shellAt, x, y, z);
         const uint32_t fn = Memory::Read32(Memory::Read32(kShellTable) + kShellSlot);
         game(fn, {work, 1, shellAt, 60}, {1.0f});
     };
@@ -357,14 +359,14 @@ void AlatreonMeteorsPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_803559F0(CpuContext* ctx);
+extern "C" void func_8011E72C(CpuContext* ctx);
 extern "C" void MH3_AlatreonIntro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AlatreonIntro", func_803559F0, AlatreonIntroPort);
+    PortCheck::Call(ctx, "AlatreonIntro", func_8011E72C, AlatreonIntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803559F0, MH3_AlatreonIntro, "AlatreonIntro");
+REGISTER_NATIVE_FUNCTION_AS(0x8011E72C, MH3_AlatreonIntro, "AlatreonIntro");
 
-extern "C" void func_80353EBC(CpuContext* ctx);
+extern "C" void func_8011CB10(CpuContext* ctx);
 extern "C" void MH3_AlatreonMeteors(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AlatreonMeteors", func_80353EBC, AlatreonMeteorsPort);
+    PortCheck::Call(ctx, "AlatreonMeteors", func_8011CB10, AlatreonMeteorsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80353EBC, MH3_AlatreonMeteors, "AlatreonMeteors");
+REGISTER_NATIVE_FUNCTION_AS(0x8011CB10, MH3_AlatreonMeteors, "AlatreonMeteors");

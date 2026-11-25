@@ -180,7 +180,7 @@ def prepare():
 
 def translate():
     jobs = os.environ.get('TRANSLATE_JOBS', str(os.cpu_count() or 4))
-    run_logged(translator('translate-recursive', '0x80006310', '--project', ROOT / 'build/recomp-analysis.yml',
+    run_logged(translator('translate-recursive', '0x8000403C', '--project', ROOT / 'build/recomp-analysis.yml',
                           '--outdir', GENERATED / 'functions', '--output-metadata', GENERATED / 'translation.json',
                           '--threads', jobs, '--prune-stale'), LOGS / 'translate.log')
 
@@ -189,7 +189,7 @@ def overlays(steps, shared):
     stale = {}
 
     for profile, (name, *_) in PROFILES.items():
-        inputs = digest(shared, DATA / f'files/01/{name}.rso')
+        inputs = digest(shared, DATA / f'files/rel/{name}.rso')
 
         if steps.stale(f'overlay {profile}', inputs, [GENERATED / f'rso_overlays/{profile}.cpp']):
             stale[profile] = inputs

@@ -73,9 +73,9 @@ Status Diagnose(const CpuContext *cpu, std::string &diagnostic) {
 
     // Original804CFFC0..804CFFD8 publishes these before switching stack
     // to the terminal fatal-display function804D0010.
-    Memory::Write32(0x8074FAE8, Memory::Read32(foreground));
-    Memory::Write32(0x8074FAEC, Memory::Read32(background));
-    Memory::Write32(0x8074FAF0, text);
+    Memory::Write32(0x807ABE28, Memory::Read32(foreground));
+    Memory::Write32(0x807ABE2C, Memory::Read32(background));
+    Memory::Write32(0x807ABE30, text);
     return {};
 }
 } // namespace
@@ -102,4 +102,5 @@ extern "C" [[noreturn]] void MH3_OSFatal(CpuContext *cpu) {
     std::fflush(nullptr);
     std::_Exit(EXIT_FAILURE);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804CFE20, MH3_OSFatal, "OSFatal");
+// JPN: 0x8042632C (PAL: 0x804CFE20)
+REGISTER_NATIVE_FUNCTION(0x8042632C, MH3_OSFatal);

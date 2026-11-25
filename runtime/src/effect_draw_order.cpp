@@ -62,10 +62,10 @@ void DrawMtx(CpuContext* cpu, uint32_t manager) {
     GuestFrame frame(cpu, 0x70);
     GuestCall game{cpu};
     const uint32_t global = frame[0x38], local = frame[0x08];
-    game.Call<0x800A9508>({FlatRead32(manager + 0x20), global}); // EmitterCalcGlobalMtx
-    game.Call<0x800AE3C4>({manager, local});                     // ParticleManagerLocalMtx
-    game.Call<0x80088428>({global, global});                     // MtxInverseWrapper
-    game.Call<0x80071120>({0x806969E8, global, local});          // MtxConcatWrapper
+    game.Call<0x804F7528>({FlatRead32(manager + 0x20), global}); // EmitterCalcGlobalMtx
+    game.Call<0x80503088>({manager, local});                     // ParticleManagerLocalMtx
+    game.Call<0x8042F66C>({global, global});                     // MtxInverseWrapper
+    game.Call<0x8042F408>({0x80865DD8, global, local});          // MtxConcatWrapper
 }
 
 void BillboardStrategyDraw(CpuContext* cpu, uint32_t strategy, uint32_t info, uint32_t manager) {
@@ -78,10 +78,10 @@ void BillboardStrategyDraw(CpuContext* cpu, uint32_t strategy, uint32_t info, ui
         MH3_DrawBillboard(cpu);
         break;
     case 1:
-        GuestCall{cpu}.Call<0x800BA8B8>({strategy, info, manager});
+        GuestCall{cpu}.Call<0x8050CD8C>({strategy, info, manager});
         break;
     case 2:
-        GuestCall{cpu}.Call<0x800BB020>({strategy, info, manager});
+        GuestCall{cpu}.Call<0x8050D5D8>({strategy, info, manager});
         break;
     default:
         break;
@@ -99,8 +99,8 @@ void ManagerDraw(CpuContext* cpu, uint32_t manager, uint32_t info) {
     DrawInfoCopy(copy, info);
     const float offset = FlatReadFloat32(resource + 0x9C + 0xB4);
 
-    if (FlatReadFloat32(0x8079856C) != offset) {
-        GuestCall{cpu}.Call<0x800A9508>({FlatRead32(manager + 0x20), matrix}); // EmitterCalcGlobalMtx
+    if (0.0f != offset) {
+        GuestCall{cpu}.Call<0x804F7528>({FlatRead32(manager + 0x20), matrix}); // EmitterCalcGlobalMtx
         // The emitter's position (Vec3Set 0x80041EF0 from its global matrix)
         // becomes the copy's depth anchor (0x800AE2FC).
         FlatWrite32(position, FlatRead32(matrix + 0x0C));
@@ -115,7 +115,7 @@ void ManagerDraw(CpuContext* cpu, uint32_t manager, uint32_t info) {
     const uint32_t strategy = FlatRead32(manager + 0x2C);
     const uint32_t fn = FlatRead32(FlatRead32(strategy) + 0xC);
 
-    if (fn == 0x800B9AE4)
+    if (fn == 0x8050C388)
         BillboardStrategyDraw(cpu, strategy, copy, manager);
     else
         GuestCall{cpu}(fn, {strategy, copy, manager});
@@ -128,7 +128,7 @@ void DrawOrderDraw(CpuContext* cpu, uint32_t effect, uint32_t info) {
         DrawMtx(cpu, m);
         const uint32_t fn = FlatRead32(FlatRead32(m + 0x1C) + 0x1C);
 
-        if (fn == 0x800ADF3C)
+        if (fn == 0x80502DA8)
             ManagerDraw(cpu, m, info);
         else
             GuestCall{cpu}(fn, {m, info});
@@ -142,7 +142,7 @@ void EffectDraw(CpuContext* cpu, uint32_t effect, uint32_t info) {
     const uint32_t order = FlatRead32(effect + 0xA0);
     const uint32_t fn = FlatRead32(FlatRead32(order) + 0x10);
 
-    if (fn == 0x800A3A08)
+    if (fn == 0x804F451C)
         DrawOrderDraw(cpu, effect, info);
     else
         GuestCall{cpu}(fn, {order, effect, info});
@@ -173,38 +173,37 @@ void BillboardStrategyDrawPort(CpuContext* cpu) {
 }
 } // namespace
 
-extern "C" void func_800A51B8(CpuContext* ctx);
+extern "C" void func_804F503C(CpuContext* ctx);
 extern "C" void MH3_EffectDraw(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EffectDraw", func_800A51B8, EffectDrawPort);
+    PortCheck::Call(ctx, "EffectDraw", func_804F503C, EffectDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A51B8, MH3_EffectDraw, "EffectDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x804F503C, MH3_EffectDraw, "EffectDraw");
 
-extern "C" void func_800A3A08(CpuContext* ctx);
+extern "C" void func_804F451C(CpuContext* ctx);
 extern "C" void MH3_DrawOrderDraw(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DrawOrderDraw", func_800A3A08, DrawOrderDrawPort);
+    PortCheck::Call(ctx, "DrawOrderDraw", func_804F451C, DrawOrderDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A3A08, MH3_DrawOrderDraw, "DrawOrderDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x804F451C, MH3_DrawOrderDraw, "DrawOrderDraw");
 
-extern "C" void func_800AE68C(CpuContext* ctx);
+extern "C" void func_80503210(CpuContext* ctx);
 extern "C" void MH3_ParticleManagerDrawMtx(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleManagerDrawMtx", func_800AE68C, DrawMtxPort);
+    PortCheck::Call(ctx, "ParticleManagerDrawMtx", func_80503210, DrawMtxPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AE68C, MH3_ParticleManagerDrawMtx, "ParticleManagerDrawMtx");
+REGISTER_NATIVE_FUNCTION_AS(0x80503210, MH3_ParticleManagerDrawMtx, "ParticleManagerDrawMtx");
 
-extern "C" void func_800ADF3C(CpuContext* ctx);
+extern "C" void func_80502DA8(CpuContext* ctx);
 extern "C" void MH3_ParticleManagerDraw(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleManagerDraw", func_800ADF3C, ManagerDrawPort);
+    PortCheck::Call(ctx, "ParticleManagerDraw", func_80502DA8, ManagerDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800ADF3C, MH3_ParticleManagerDraw, "ParticleManagerDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x80502DA8, MH3_ParticleManagerDraw, "ParticleManagerDraw");
 
-extern "C" void func_800AE308(CpuContext* ctx);
 extern "C" void MH3_DrawInfoCopy(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DrawInfoCopy", func_800AE308, DrawInfoCopyPort);
+    DrawInfoCopyPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AE308, MH3_DrawInfoCopy, "DrawInfoCopy");
+// Inlined into ParticleManagerDraw (0x80502DA8) in RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AE308, MH3_DrawInfoCopy, "DrawInfoCopy");
 
-extern "C" void func_800B9AE4(CpuContext* ctx);
+extern "C" void func_8050C388(CpuContext* ctx);
 extern "C" void MH3_DrawBillboardStrategyDraw(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DrawBillboardStrategyDraw", func_800B9AE4, BillboardStrategyDrawPort);
+    PortCheck::Call(ctx, "DrawBillboardStrategyDraw", func_8050C388, BillboardStrategyDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B9AE4, MH3_DrawBillboardStrategyDraw, "DrawBillboardStrategyDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x8050C388, MH3_DrawBillboardStrategyDraw, "DrawBillboardStrategyDraw");

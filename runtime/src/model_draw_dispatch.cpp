@@ -20,7 +20,7 @@
 
 const mh3_res_memory& MH3NativeResourceMemory();
 namespace {
-constexpr uint32_t Phase = 0x807936b8;
+constexpr uint32_t Phase = 0x8089F4D0;
 std::array<mh3_model_draw_record, MH3_MODEL_SORT_CAPACITY> work;
 [[noreturn, gnu::cold, gnu::noinline]] void CheckedFailed(mh3_res_status status) {
     MH3_THROW(std::runtime_error("Native model draw dispatch failed: " + std::to_string(status)));
@@ -173,7 +173,7 @@ void Draw(CpuContext* cpu, uint32_t resource, uint32_t stream, uint32_t count, u
 
 uint32_t Collect(const Model& model, uint32_t position, uint32_t stream, uint32_t replacement) {
     const mh3_model_draw_collection input{
-        &model.value, model.Stream(stream), &MH3NativeResourceMemory(), replacement ? Bytes(replacement, 64) : mh3_res_span{}, model.Positions(position), Memory::ReadFloat32(0x807982d8)};
+        &model.value, model.Stream(stream), &MH3NativeResourceMemory(), replacement ? Bytes(replacement, 64) : mh3_res_span{}, model.Positions(position), Memory::ReadFloat32(0x808A8E20)};
     uint32_t count = 0;
     Checked(mh3_model_draw_collect(&input, work.data(), work.size(), &count));
     return count;
@@ -202,9 +202,9 @@ struct Sort {
     static int Less(void* user, size_t a, size_t b) {
         auto& s = *static_cast<Sort*>(user);
 
-        if (s.comparator == 0x80079f78 || s.comparator == 0x80079fdc) {
+        if (s.comparator == 0x80531420 || s.comparator == 0x805313e4) {
             const auto first = Record(s, a), second = Record(s, b);
-            return mh3_model_draw_less(&first, &second, s.comparator == 0x80079f78);
+            return mh3_model_draw_less(&first, &second, s.comparator == 0x80531420);
         }
 
         if (!s.cpu)
@@ -244,7 +244,7 @@ size_t Count(uint32_t begin, uint32_t end) {
 struct Pipeline {
     CpuContext* cpu;
     uint32_t reference, position;
-    static void Bind(void*, const uint32_t sources[3]) { StoreNativeModelMatrixSources(0x80685530, sources); }
+    static void Bind(void*, const uint32_t sources[3]) { StoreNativeModelMatrixSources(0x80866790, sources); }
     // 80071c9c waits for HID2's locked-cache DMA count, then a system-call
     // ordering barrier. Native view producers finish synchronously and publish
     // completion before draw; they have no pending locked-cache DMA queue.
@@ -260,7 +260,7 @@ struct Pipeline {
 
         const Model model(resource);
         const uint32_t count = Collect(model, p.position, stream, replacement);
-        Sort sort{p.cpu, G3dScratch(), xlu ? 0x80079f78u : 0x80079fdcu, work.data()};
+        Sort sort{p.cpu, G3dScratch(), xlu ? 0x80531420u : 0x805313e4u, work.data()};
         auto ops = sort.Ops();
         Checked(mh3_model_draw_sort(&ops, 0, count, 0));
         Publish(count);
@@ -354,19 +354,23 @@ struct Scene {
 
         switch (task) {
         case 1:
-            s.call.Call<0x8007D4E0>({owner, argument, options});
+            s.call.Call<0x805370D8>({owner, argument, options});
             break;
         case 2:
-            s.call.Call<0x8007D600>({owner, argument, options});
+            s.call.Call<0x8053A014>({owner, argument, options});
             break;
         case 3:
-            s.call.Call<0x8007DDF8>({owner, argument, options});
+            if (const uint32_t timing = Memory::Read32(owner + 312)) {
+                GuestFrame frame(s.call.cpu, 0x20);
+                Memory::Write32(frame[8], Memory::Read32(owner + 232));
+                s.call.Call<0x8053CAA4>({frame[8], timing, Memory::Read32(owner + 376), Memory::Read32(owner + 380), Memory::Read32(owner + 384)});
+            }
             break;
         case 4:
-            s.call.Call<0x8007FADC>({owner, argument, options});
+            s.call.Call<0x8053742C>({owner, argument, options});
             break;
         case 5:
-            s.call.Call<0x8007F90C>({owner, argument, options});
+            s.call.Call<0x805373F8>({owner, argument, options});
             break;
         case 6:
         case 7: {
@@ -375,10 +379,10 @@ struct Scene {
             break;
         }
         case 8:
-            s.call.Call<0x8007DFFC>({owner, argument, options});
+            s.call.Call<0x805389C0>({owner, argument, options});
             break;
         default:
-            s.call.Call<0x80081A94>({owner, task, argument, options});
+            s.call.Call<0x805349FC>({owner, task, argument, options});
             break;
         }
     }
@@ -443,13 +447,13 @@ extern "C" void MH3_ModelSceneDraw(CpuContext* cpu) {
                     frame.Arg(3), total, s.ms[0], s.ms[1], s.slowTask, s.slowTaskMs, s.ms[2], s.ms[3], s.ms[4], s.ms[5]);
 #endif
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8004978C, MH3_ModelSceneDraw, "ModelSceneDraw");
+// Guest-recompiled in RMHJ08: REGISTER_NATIVE_FUNCTION(0x802C0564, MH3_ModelSceneDraw);
 extern "C" void MH3_ModelSceneOptions(CpuContext* cpu) {
     uint32_t options = 0;
     Checked(mh3_model_scene_options(Bytes(cpu->gpr[3], 0x11c), &options));
     cpu->gpr[3] = options;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049810, MH3_ModelSceneOptions, "ModelSceneOptions");
+// Guest-recompiled in RMHJ08: REGISTER_NATIVE_FUNCTION(0x8053A784, MH3_ModelSceneOptions);
 #ifdef MH3_DEVELOPMENT
 namespace {
 unsigned SceneTaskFamily(uint32_t task) {
@@ -478,42 +482,45 @@ extern "C" void MH3_ModelSceneTask(CpuContext* cpu) {
     auto ops = s.Ops();
     Checked(mh3_model_scene_task(&ops, Bytes(frame.Arg(3), 0x148), frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007DE60, MH3_ModelSceneTask, "ModelSceneTask");
+// 0x805311BC is ModelDrawPipeline in RMHJ08. SceneTask is recompiled:
+// REGISTER_NATIVE_FUNCTION(0x805311BC, MH3_ModelSceneTask);
 extern "C" void MH3_ModelSceneXlu(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     Scene s{{cpu}, frame[0x10]};
     auto ops = s.Ops();
     Checked(mh3_model_scene_xlu(&ops, Bytes(frame.Arg(3), 0x148), frame.Arg(3), frame.Arg(4), frame.Arg(5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007DD1C, MH3_ModelSceneXlu, "ModelSceneXlu");
+// 0x80530AE4 is ModelDrawUnsorted in RMHJ08. SceneXlu is recompiled:
+// REGISTER_NATIVE_FUNCTION(0x80530AE4, MH3_ModelSceneXlu);
 extern "C" void MH3_ModelSceneOpa(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     Scene s{{cpu}, frame[0x10]};
     auto ops = s.Ops();
     Checked(mh3_model_scene_opa(&ops, Bytes(frame.Arg(3), 0x148), frame.Arg(3), frame.Arg(4), frame.Arg(5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007DC40, MH3_ModelSceneOpa, "ModelSceneOpa");
+// 0x80530DE8 is ModelDrawSorted in RMHJ08. SceneOpa is recompiled:
+// REGISTER_NATIVE_FUNCTION(0x80530DE8, MH3_ModelSceneOpa);
 extern "C" void MH3_ModelDrawPipeline(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     const uint32_t sources[3] = {frame.Arg(4), frame.Arg(5), frame.Arg(6)};
     PipelineRun(cpu, frame.Arg(3), sources, frame.Arg(7), frame.Arg(8), frame.Arg(9), frame.Arg(10));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079408, MH3_ModelDrawPipeline, "ModelDrawPipeline");
+REGISTER_NATIVE_FUNCTION_AS(0x805311BC, MH3_ModelDrawPipeline, "ModelDrawPipeline");
 extern "C" void MH3_ModelDrawUnsorted(CpuContext* cpu) {
     const auto reference = cpu->gpr[3], stream = cpu->gpr[4], options = cpu->gpr[5];
     Draw(cpu, Memory::Read32(reference), stream, 0, 0, options, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800786F0, MH3_ModelDrawUnsorted, "ModelDrawUnsorted");
+REGISTER_NATIVE_FUNCTION_AS(0x80530AE4, MH3_ModelDrawUnsorted, "ModelDrawUnsorted");
 extern "C" void MH3_ModelDrawSorted(CpuContext* cpu) {
     const auto reference = cpu->gpr[3], stream = cpu->gpr[4], count = cpu->gpr[5], options = cpu->gpr[6];
     Draw(cpu, Memory::Read32(reference), stream, count, 0, options, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80078EE0, MH3_ModelDrawSorted, "ModelDrawSorted");
+REGISTER_NATIVE_FUNCTION_AS(0x80530DE8, MH3_ModelDrawSorted, "ModelDrawSorted");
 extern "C" void MH3_ModelDrawSortedReplacement(CpuContext* cpu) {
     const auto reference = cpu->gpr[3], stream = cpu->gpr[4], count = cpu->gpr[5], replacement = cpu->gpr[6], options = cpu->gpr[7];
     Draw(cpu, Memory::Read32(reference), stream, count, replacement, options, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007907C, MH3_ModelDrawSortedReplacement, "ModelDrawSortedReplacement");
+REGISTER_NATIVE_FUNCTION_AS(0x80530EF8, MH3_ModelDrawSortedReplacement, "ModelDrawSortedReplacement");
 extern "C" void MH3_ModelDrawCollect(CpuContext* cpu) {
     const uint32_t output = cpu->gpr[3], reference = cpu->gpr[4], position = cpu->gpr[5], stream = cpu->gpr[6], replacement = cpu->gpr[7];
     const uint32_t count = Collect(Model(Memory::Read32(reference)), position, stream, replacement);
@@ -521,28 +528,28 @@ extern "C" void MH3_ModelDrawCollect(CpuContext* cpu) {
     Memory::Write32(output, count);
     cpu->gpr[3] = G3dScratch();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007923C, MH3_ModelDrawCollect, "ModelDrawCollect");
+REGISTER_NATIVE_FUNCTION_AS(0x80531058, MH3_ModelDrawCollect, "ModelDrawCollect");
 extern "C" void MH3_ModelDrawSort(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     Sort s{{cpu}, frame.Arg(3), frame.Arg(5), nullptr};
     auto ops = s.Ops();
     Checked(mh3_model_draw_sort(&ops, 0, Count(frame.Arg(3), frame.Arg(4)), 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079668, MH3_ModelDrawSort, "ModelDrawSort");
+REGISTER_NATIVE_FUNCTION_AS(0x80531484, MH3_ModelDrawSort, "ModelDrawSort");
 extern "C" void MH3_ModelDrawSortRecursive(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     Sort s{{cpu}, frame.Arg(3), Memory::Read32(frame.Arg(5)), nullptr};
     auto ops = s.Ops();
     Checked(mh3_model_draw_sort(&ops, 0, Count(frame.Arg(3), frame.Arg(4)), 1));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079B9C, MH3_ModelDrawSortRecursive, "ModelDrawSortRecursive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80079B9C, MH3_ModelDrawSortRecursive, "ModelDrawSortRecursive");
 extern "C" void MH3_ModelDrawSelectionSort(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     Sort s{{cpu}, frame.Arg(3), Memory::Read32(frame.Arg(5)), nullptr};
     auto ops = s.Ops();
     mh3_model_draw_selection_sort(&ops, 0, Count(frame.Arg(3), frame.Arg(4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8007999C, MH3_ModelDrawSelectionSort, "ModelDrawSelectionSort");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8007999C, MH3_ModelDrawSelectionSort, "ModelDrawSelectionSort");
 extern "C" void MH3_ModelDrawMinimum(CpuContext* cpu) {
     uint32_t result;
     {
@@ -554,7 +561,7 @@ extern "C" void MH3_ModelDrawMinimum(CpuContext* cpu) {
 
     cpu->gpr[3] = result;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079A20, MH3_ModelDrawMinimum, "ModelDrawMinimum");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80079A20, MH3_ModelDrawMinimum, "ModelDrawMinimum");
 extern "C" void MH3_ModelDrawMedian(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x20);
     const uint32_t addresses[3] = {frame.Arg(3), frame.Arg(4), frame.Arg(5)};
@@ -562,7 +569,7 @@ extern "C" void MH3_ModelDrawMedian(CpuContext* cpu) {
     auto ops = s.Ops();
     mh3_model_draw_median(&ops, 0, 1, 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079AAC, MH3_ModelDrawMedian, "ModelDrawMedian");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80079AAC, MH3_ModelDrawMedian, "ModelDrawMedian");
 extern "C" void MH3_ModelDrawSwap(CpuContext* cpu) {
     mh3_model_draw_record a{}, b{};
     const uint32_t first = cpu->gpr[3], second = cpu->gpr[4];
@@ -572,7 +579,7 @@ extern "C" void MH3_ModelDrawSwap(CpuContext* cpu) {
     Checked(mh3_model_draw_record_write(Mutable(first, 12), &a));
     Checked(mh3_model_draw_record_write(Mutable(second, 12), &b));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079ED0, MH3_ModelDrawSwap, "ModelDrawSwap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80079ED0, MH3_ModelDrawSwap, "ModelDrawSwap");
 static void Compare(CpuContext* cpu, bool xlu) {
     mh3_model_draw_record a{}, b{};
     Checked(mh3_model_draw_record_read(Bytes(cpu->gpr[3], 12), &a));
@@ -583,8 +590,8 @@ static void Compare(CpuContext* cpu, bool xlu) {
 extern "C" void MH3_ModelDrawCompareOpa(CpuContext* cpu) {
     Compare(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079FDC, MH3_ModelDrawCompareOpa, "ModelDrawCompareOpa");
+REGISTER_NATIVE_FUNCTION_AS(0x805313E4, MH3_ModelDrawCompareOpa, "ModelDrawCompareOpa");
 extern "C" void MH3_ModelDrawCompareXlu(CpuContext* cpu) {
     Compare(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80079F78, MH3_ModelDrawCompareXlu, "ModelDrawCompareXlu");
+REGISTER_NATIVE_FUNCTION_AS(0x80531420, MH3_ModelDrawCompareXlu, "ModelDrawCompareXlu");

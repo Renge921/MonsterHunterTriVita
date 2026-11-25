@@ -1024,214 +1024,214 @@ extern "C" void func_8050CC00(CpuContext*);
 extern "C" void MH3_ArrayNew(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayNew", func_8050B170, ArrayNewPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B170, MH3_ArrayNew, "ArrayNew");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B170, MH3_ArrayNew, "ArrayNew");
 
 extern "C" void MH3_ArrayFree(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayFree", func_8050B210, ArrayFreePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B210, MH3_ArrayFree, "ArrayFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B210, MH3_ArrayFree, "ArrayFree");
 
 extern "C" void MH3_ArrayLength(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayLength", func_8050B2B0, ArrayLengthPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B2B0, MH3_ArrayLength, "ArrayLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B2B0, MH3_ArrayLength, "ArrayLength");
 
 extern "C" void MH3_ArrayNth(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayNth", func_8050B2C0, ArrayNthPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B2C0, MH3_ArrayNth, "ArrayNth");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B2C0, MH3_ArrayNth, "ArrayNth");
 
 extern "C" void MH3_ArrayAppend(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayAppend", func_8050B2F0, ArrayAppendPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B2F0, MH3_ArrayAppend, "ArrayAppend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B2F0, MH3_ArrayAppend, "ArrayAppend");
 
 extern "C" void MH3_ArrayInsertSorted(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayInsertSorted", func_8050B420, ArrayInsertSortedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B420, MH3_ArrayInsertSorted, "ArrayInsertSorted");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B420, MH3_ArrayInsertSorted, "ArrayInsertSorted");
 
 extern "C" void MH3_ArrayRemoveAt(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayRemoveAt", func_8050B5A0, ArrayRemoveAtPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B5A0, MH3_ArrayRemoveAt, "ArrayRemoveAt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B5A0, MH3_ArrayRemoveAt, "ArrayRemoveAt");
 
 extern "C" void MH3_ArrayDeleteAt(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayDeleteAt", func_8050B650, ArrayDeleteAtPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B650, MH3_ArrayDeleteAt, "ArrayDeleteAt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B650, MH3_ArrayDeleteAt, "ArrayDeleteAt");
 
 extern "C" void MH3_ArrayReplaceAt(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayReplaceAt", func_8050B740, ArrayReplaceAtPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B740, MH3_ArrayReplaceAt, "ArrayReplaceAt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B740, MH3_ArrayReplaceAt, "ArrayReplaceAt");
 
 extern "C" void MH3_ArraySearch(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArraySearch", func_8050B800, ArraySearchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B800, MH3_ArraySearch, "ArraySearch");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B800, MH3_ArraySearch, "ArraySearch");
 
 extern "C" void MH3_ArrayMapBackwards(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayMapBackwards", func_8050B9A0, ArrayMapBackwardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B9A0, MH3_ArrayMapBackwards, "ArrayMapBackwards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B9A0, MH3_ArrayMapBackwards, "ArrayMapBackwards");
 
 extern "C" void MH3_ArrayMapBackwards2(CpuContext* cpu) {
     PortCheck::Call(cpu, "ArrayMapBackwards2", func_8050BA40, ArrayMapBackwards2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BA40, MH3_ArrayMapBackwards2, "ArrayMapBackwards2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BA40, MH3_ArrayMapBackwards2, "ArrayMapBackwards2");
 
 extern "C" void MH3_TableNew2(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableNew2", func_8050BAE0, TableNew2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BAE0, MH3_TableNew2, "TableNew2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BAE0, MH3_TableNew2, "TableNew2");
 
 extern "C" void MH3_TableFree(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableFree", func_8050BB90, TableFreePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BB90, MH3_TableFree, "TableFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BB90, MH3_TableFree, "TableFree");
 
 extern "C" void MH3_TableEnter(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableEnter", func_8050BC10, TableEnterPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BC10, MH3_TableEnter, "TableEnter");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BC10, MH3_TableEnter, "TableEnter");
 
 extern "C" void MH3_TableRemove(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableRemove", func_8050BCC0, TableRemovePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BCC0, MH3_TableRemove, "TableRemove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BCC0, MH3_TableRemove, "TableRemove");
 
 extern "C" void MH3_TableLookup(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableLookup", func_8050BD70, TableLookupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BD70, MH3_TableLookup, "TableLookup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BD70, MH3_TableLookup, "TableLookup");
 
 extern "C" void MH3_TableMap(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableMap", func_8050BE10, TableMapPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BE10, MH3_TableMap, "TableMap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BE10, MH3_TableMap, "TableMap");
 
 extern "C" void MH3_TableMap2(CpuContext* cpu) {
     PortCheck::Call(cpu, "TableMap2", func_8050BE80, TableMap2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BE80, MH3_TableMap2, "TableMap2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BE80, MH3_TableMap2, "TableMap2");
 
 extern "C" void MH3_GsiSocket(CpuContext* cpu) {
     SocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BF00, MH3_GsiSocket, "gsiSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BF00, MH3_GsiSocket, "gsiSocket");
 
 extern "C" void MH3_GsiCloseSocket(CpuContext* cpu) {
     CloseSocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BF40, MH3_GsiCloseSocket, "gsiCloseSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BF40, MH3_GsiCloseSocket, "gsiCloseSocket");
 
 extern "C" void MH3_GsiBind(CpuContext* cpu) {
     BindPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050BF80, MH3_GsiBind, "gsiBind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050BF80, MH3_GsiBind, "gsiBind");
 
 extern "C" void MH3_GsiRecvFrom(CpuContext* cpu) {
     RecvFromPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C000, MH3_GsiRecvFrom, "gsiRecvFrom");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C000, MH3_GsiRecvFrom, "gsiRecvFrom");
 
 extern "C" void MH3_GsiSendTo(CpuContext* cpu) {
     SendToPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C060, MH3_GsiSendTo, "gsiSendTo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C060, MH3_GsiSendTo, "gsiSendTo");
 
 extern "C" void MH3_GsiGetSockName(CpuContext* cpu) {
     GetSockNamePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C0E0, MH3_GsiGetSockName, "gsiGetSockName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C0E0, MH3_GsiGetSockName, "gsiGetSockName");
 
 extern "C" void MH3_GsiInetAddr(CpuContext* cpu) {
     InetAddrPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C140, MH3_GsiInetAddr, "gsiInetAddr");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C140, MH3_GsiInetAddr, "gsiInetAddr");
 
 extern "C" void MH3_GOAGetLastError(CpuContext* cpu) {
     PortCheck::Call(cpu, "GOAGetLastError", func_8050C180, LastSocketErrorPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C180, MH3_GOAGetLastError, "GOAGetLastError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C180, MH3_GOAGetLastError, "GOAGetLastError");
 
 extern "C" void MH3_GSISocketSelect(CpuContext* cpu) {
     SocketSelectPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C190, MH3_GSISocketSelect, "GSISocketSelect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C190, MH3_GSISocketSelect, "GSISocketSelect");
 
 extern "C" void MH3_GsiGetHostByName(CpuContext* cpu) {
     GetHostByNamePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C2C0, MH3_GsiGetHostByName, "gsiGetHostByName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C2C0, MH3_GsiGetHostByName, "gsiGetHostByName");
 
 extern "C" void MH3_CanReceiveOnSocket(CpuContext* cpu) {
     CanReceiveOnSocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C850, MH3_CanReceiveOnSocket, "CanReceiveOnSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C850, MH3_CanReceiveOnSocket, "CanReceiveOnSocket");
 
 extern "C" void MH3_CanSendOnSocket(CpuContext* cpu) {
     CanSendOnSocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C8A0, MH3_CanSendOnSocket, "CanSendOnSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C8A0, MH3_CanSendOnSocket, "CanSendOnSocket");
 
 extern "C" void MH3_GsiGetLocalHost(CpuContext* cpu) {
     GetLocalHostPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050C8F0, MH3_GsiGetLocalHost, "gsiGetLocalHost");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050C8F0, MH3_GsiGetLocalHost, "gsiGetLocalHost");
 
 extern "C" void MH3_IsPrivateIP(CpuContext* cpu) {
     PortCheck::Call(cpu, "IsPrivateIP", func_8050CAD0, IsPrivateIpPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CAD0, MH3_IsPrivateIP, "IsPrivateIP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CAD0, MH3_IsPrivateIP, "IsPrivateIP");
 
 extern "C" void MH3_GsiStartup(CpuContext* cpu) {
     NothingPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CB50, MH3_GsiStartup, "gsiStartup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CB50, MH3_GsiStartup, "gsiStartup");
 
 extern "C" void MH3_GsiCleanup(CpuContext* cpu) {
     NothingPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CB60, MH3_GsiCleanup, "gsiCleanup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CB60, MH3_GsiCleanup, "gsiCleanup");
 
 extern "C" void MH3_CurrentTime(CpuContext* cpu) {
     PortCheck::Call(cpu, "current_time", func_8050CB70, CurrentTimePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CB70, MH3_CurrentTime, "current_time");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CB70, MH3_CurrentTime, "current_time");
 
 extern "C" void MH3_Msleep(CpuContext* cpu) {
     MsleepPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CBC0, MH3_Msleep, "msleep");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CBC0, MH3_Msleep, "msleep");
 
 extern "C" void MH3_GsiMemoryCallbacksSet(CpuContext* cpu) {
     PortCheck::Call(cpu, "gsiMemoryCallbacksSet", func_8050CC00, MemoryCallbacksSetPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CC00, MH3_GsiMemoryCallbacksSet, "gsiMemoryCallbacksSet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CC00, MH3_GsiMemoryCallbacksSet, "gsiMemoryCallbacksSet");
 
 extern "C" void MH3_Gsimalloc(CpuContext* cpu) {
     MallocPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CC20, MH3_Gsimalloc, "gsimalloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CC20, MH3_Gsimalloc, "gsimalloc");
 
 extern "C" void MH3_Gsirealloc(CpuContext* cpu) {
     ReallocPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CC30, MH3_Gsirealloc, "gsirealloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CC30, MH3_Gsirealloc, "gsirealloc");
 
 extern "C" void MH3_Gsifree(CpuContext* cpu) {
     FreePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CC50, MH3_Gsifree, "gsifree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CC50, MH3_Gsifree, "gsifree");
 
 extern "C" void MH3_GSIStartAvailableCheck(CpuContext* cpu) {
     StartAvailableCheckPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CC70, MH3_GSIStartAvailableCheck, "GSIStartAvailableCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CC70, MH3_GSIStartAvailableCheck, "GSIStartAvailableCheck");
 
 extern "C" void MH3_GSIAvailableCheckThink(CpuContext* cpu) {
     AvailableCheckThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CDF0, MH3_GSIAvailableCheckThink, "GSIAvailableCheckThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CDF0, MH3_GSIAvailableCheckThink, "GSIAvailableCheckThink");

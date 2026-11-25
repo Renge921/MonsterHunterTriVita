@@ -494,7 +494,8 @@ void DiscImage::SetFileOverride(const std::string& name, std::vector<uint8_t> by
     if (it == fileEntries.end() || bytes.size() != it->second.second)
         MH3_THROW(std::runtime_error("Quest override must preserve the disc file length"));
 
-    if (name != "05/quest00_eng.bin" && name != "05/quest01_eng.bin" && name != "05/quest03_eng.bin")
+    if (name != "05/quest00_eng.bin" && name != "05/quest01_eng.bin" && name != "05/quest03_eng.bin" &&
+        name != "quest/quest00.bin" && name != "quest/quest01.bin" && name != "quest/quest03.bin")
         MH3_THROW(std::runtime_error("Only quest files may be overridden"));
 
     fileOverrides[it->second.first] = std::move(bytes);

@@ -3530,149 +3530,149 @@ int32_t IntArg(CpuContext* cpu, int n) {
 extern "C" void MH3_NHTTPResetGlobals(CpuContext* cpu) {
     ResetGlobals(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514C38, MH3_NHTTPResetGlobals, "NHTTPi_InitGlobals");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514C38, MH3_NHTTPResetGlobals, "NHTTPi_InitGlobals");
 
 extern "C" void MH3_NHTTPAlloc(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514C68, MH3_NHTTPAlloc, "NHTTPi_Alloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514C68, MH3_NHTTPAlloc, "NHTTPi_Alloc");
 
 extern "C" void MH3_NHTTPFree(CpuContext* cpu) {
     Free(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514CC4, MH3_NHTTPFree, "NHTTPi_Free");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514CC4, MH3_NHTTPFree, "NHTTPi_Free");
 
 extern "C" void MH3_NHTTPSetError(CpuContext* cpu) {
     Write(Arg(cpu, 3) + gError, Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514D08, MH3_NHTTPSetError, "NHTTPi_SetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514D08, MH3_NHTTPSetError, "NHTTPi_SetError");
 
 extern "C" void MH3_NHTTPSetSslError(CpuContext* cpu) {
     Write(Arg(cpu, 3) + gSslError, Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514D10, MH3_NHTTPSetSslError, "NHTTPi_SetSSLError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514D10, MH3_NHTTPSetSslError, "NHTTPi_SetSSLError");
 
 extern "C" void MH3_NHTTPSslErrorOf(CpuContext* cpu) {
     cpu->gpr[3] = Read(Arg(cpu, 3) + gSslError);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514D18, MH3_NHTTPSslErrorOf, "NHTTPi_GetSSLError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514D18, MH3_NHTTPSslErrorOf, "NHTTPi_GetSSLError");
 
 extern "C" void MH3_NHTTPStartupWith(CpuContext* cpu) {
     cpu->gpr[3] = Startup(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514D20, MH3_NHTTPStartupWith, "NHTTPi_Startup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514D20, MH3_NHTTPStartupWith, "NHTTPi_Startup");
 
 extern "C" void MH3_NHTTPCleanupWith(CpuContext* cpu) {
     Cleanup(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514EB0, MH3_NHTTPCleanupWith, "NHTTPi_CleanupAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514EB0, MH3_NHTTPCleanupWith, "NHTTPi_CleanupAsync");
 
 extern "C" void MH3_NHTTPErrorOf(CpuContext* cpu) {
     cpu->gpr[3] = Read(Arg(cpu, 3) + gError);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514FA0, MH3_NHTTPErrorOf, "NHTTPi_GetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514FA0, MH3_NHTTPErrorOf, "NHTTPi_GetError");
 
 extern "C" void MH3_NHTTPAddField(CpuContext* cpu) {
     cpu->gpr[3] = AddField(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514FA8, MH3_NHTTPAddField, "NHTTPi_SetList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514FA8, MH3_NHTTPAddField, "NHTTPi_SetList");
 
 extern "C" void MH3_NHTTPPopHead(CpuContext* cpu) {
     cpu->gpr[3] = PopHead(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805150E4, MH3_NHTTPPopHead, "NHTTPi_PopList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805150E4, MH3_NHTTPPopHead, "NHTTPi_PopList");
 
 extern "C" void MH3_NHTTPAddHeader(CpuContext* cpu) {
     cpu->gpr[3] = AddHeader(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051512C, MH3_NHTTPAddHeader, "NHTTPi_AddHeaderField");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051512C, MH3_NHTTPAddHeader, "NHTTPi_AddHeaderField");
 
 extern "C" void MH3_NHTTPAddPost(CpuContext* cpu) {
     cpu->gpr[3] = AddPost(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051514C, MH3_NHTTPAddPost, "NHTTPi_AddPostDataAscii");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051514C, MH3_NHTTPAddPost, "NHTTPi_AddPostDataAscii");
 
 extern "C" void MH3_NHTTPQueueInit(CpuContext* cpu) {
     Write(Arg(cpu, 3), 0);
     Write(Arg(cpu, 3) + 4, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805152D8, MH3_NHTTPQueueInit, "NHTTPi_InitRequestQueue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805152D8, MH3_NHTTPQueueInit, "NHTTPi_InitRequestQueue");
 
 extern "C" void MH3_NHTTPQueueAdd(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(QueueAdd(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805152E8, MH3_NHTTPQueueAdd, "NHTTPi_AddRequestQueue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805152E8, MH3_NHTTPQueueAdd, "NHTTPi_AddRequestQueue");
 
 extern "C" void MH3_NHTTPQueueRemove(CpuContext* cpu) {
     cpu->gpr[3] = QueueRemove(cpu, Arg(cpu, 3), Arg(cpu, 4), IntArg(cpu, 5)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805153B4, MH3_NHTTPQueueRemove, "NHTTPi_CancelRequestQueue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805153B4, MH3_NHTTPQueueRemove, "NHTTPi_CancelRequestQueue");
 
 extern "C" void MH3_NHTTPQueueClear(CpuContext* cpu) {
     QueueClear(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805154D0, MH3_NHTTPQueueClear, "NHTTPi_AllCancelRequestQueue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805154D0, MH3_NHTTPQueueClear, "NHTTPi_AllCancelRequestQueue");
 
 extern "C" void MH3_NHTTPQueuePop(CpuContext* cpu) {
     cpu->gpr[3] = PopHead(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515524, MH3_NHTTPQueuePop, "NHTTPi_GetRequestQueue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515524, MH3_NHTTPQueuePop, "NHTTPi_GetRequestQueue");
 
 extern "C" void MH3_NHTTPMutexReset(CpuContext* cpu) {
     Write(Arg(cpu, 3) + 0x18, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515528, MH3_NHTTPMutexReset, "NHTTPi_InitMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515528, MH3_NHTTPMutexReset, "NHTTPi_InitMutex");
 
 extern "C" void MH3_NHTTPMutexSetup(CpuContext* cpu) {
     MutexSetup(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515534, MH3_NHTTPMutexSetup, "NHTTPi_SetupMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515534, MH3_NHTTPMutexSetup, "NHTTPi_SetupMutex");
 
 extern "C" void MH3_NHTTPMutexEnd(CpuContext*) {
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515574, MH3_NHTTPMutexEnd, "NHTTPi_EndMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515574, MH3_NHTTPMutexEnd, "NHTTPi_EndMutex");
 
 extern "C" void MH3_NHTTPLock(CpuContext* cpu) {
     Lock(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515578, MH3_NHTTPLock, "NHTTPi_LockMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515578, MH3_NHTTPLock, "NHTTPi_LockMutex");
 
 extern "C" void MH3_NHTTPUnlock(CpuContext* cpu) {
     Unlock(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051557C, MH3_NHTTPUnlock, "NHTTPi_UnlockMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051557C, MH3_NHTTPUnlock, "NHTTPi_UnlockMutex");
 
 extern "C" void MH3_NHTTPWorkerStart(CpuContext* cpu) {
     WorkerStart(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515580, MH3_NHTTPWorkerStart, "NHTTPi_CreateThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515580, MH3_NHTTPWorkerStart, "NHTTPi_CreateThread");
 
 extern "C" void MH3_NHTTPWorkerStop(CpuContext* cpu) {
     WorkerStop(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515614, MH3_NHTTPWorkerStop, "NHTTPi_DestroyThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515614, MH3_NHTTPWorkerStop, "NHTTPi_DestroyThread");
 
 extern "C" void MH3_NHTTPWorkerWait(CpuContext* cpu) {
     WorkerWait(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051565C, MH3_NHTTPWorkerWait, "NHTTPi_IdleThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051565C, MH3_NHTTPWorkerWait, "NHTTPi_IdleThread");
 
 extern "C" void MH3_NHTTPWorkerWake(CpuContext* cpu) {
     WorkerWake(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515684, MH3_NHTTPWorkerWake, "NHTTPi_WakeupThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515684, MH3_NHTTPWorkerWake, "NHTTPi_WakeupThread");
 
 extern "C" void MH3_NHTTPCheckThread(CpuContext* cpu) {
     CheckThread(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515690, MH3_NHTTPCheckThread, "NHTTPi_CheckCurrentThread");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515690, MH3_NHTTPCheckThread, "NHTTPi_CheckCurrentThread");
 
 extern "C" void MH3_NHTTPWorkerEntry(CpuContext* cpu) {
     Worker(cpu);
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515728, MH3_NHTTPWorkerEntry, "NHTTPi_ThreadEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515728, MH3_NHTTPWorkerEntry, "NHTTPi_ThreadEntry");
 
 extern "C" void MH3_NHTTPFindLine(CpuContext* cpu) {
     const uint32_t colonOut = Arg(cpu, 6), eolOut = Arg(cpu, 7);
@@ -3687,78 +3687,78 @@ extern "C" void MH3_NHTTPFindLine(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(answer);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051574C, MH3_NHTTPFindLine, "NHTTPi_FindLine");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051574C, MH3_NHTTPFindLine, "NHTTPi_FindLine");
 
 extern "C" void MH3_NHTTPSkipSpaces(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SkipSpaces(Arg(cpu, 3), IntArg(cpu, 4), IntArg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515944, MH3_NHTTPSkipSpaces, "NHTTPi_SkipSpace");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515944, MH3_NHTTPSkipSpaces, "NHTTPi_SkipSpace");
 
 extern "C" void MH3_NHTTPMatchToken(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(MatchToken(Arg(cpu, 3), IntArg(cpu, 4), IntArg(cpu, 5), Arg(cpu, 6), int8_t(Arg(cpu, 7))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515A3C, MH3_NHTTPMatchToken, "NHTTPi_CompareToken");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515A3C, MH3_NHTTPMatchToken, "NHTTPi_CompareToken");
 
 extern "C" void MH3_NHTTPCopyHeader(CpuContext* cpu) {
     cpu->gpr[3] = CopyHeader(cpu, Arg(cpu, 3), Arg(cpu, 4), IntArg(cpu, 5), Arg(cpu, 6)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515C2C, MH3_NHTTPCopyHeader, "NHTTPi_LoadFromHdrRecvBuf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515C2C, MH3_NHTTPCopyHeader, "NHTTPi_LoadFromHdrRecvBuf");
 
 extern "C" void MH3_NHTTPAtLeast(CpuContext* cpu) {
     cpu->gpr[3] = AtLeast(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515D70, MH3_NHTTPAtLeast, "NHTTPi_IsBodyBufFull");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515D70, MH3_NHTTPAtLeast, "NHTTPi_IsBodyBufFull");
 
 extern "C" void MH3_NHTTPRecvRest(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(RecvRest(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515D8C, MH3_NHTTPRecvRest, "NHTTPi_RecvBuf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515D8C, MH3_NHTTPRecvRest, "NHTTPi_RecvBuf");
 
 extern "C" void MH3_NHTTPRecvAtMost(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(RecvAtMost(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), IntArg(cpu, 7), Arg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515DAC, MH3_NHTTPRecvAtMost, "NHTTPi_RecvBufN");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515DAC, MH3_NHTTPRecvAtMost, "NHTTPi_RecvBufN");
 
 extern "C" void MH3_NHTTPCurrentReset(CpuContext* cpu) {
     Write(Arg(cpu, 3), 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515DE8, MH3_NHTTPCurrentReset, "NHTTPi_InitRequestInfo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515DE8, MH3_NHTTPCurrentReset, "NHTTPi_InitRequestInfo");
 
 extern "C" void MH3_NHTTPCreateRequestWith(CpuContext* cpu) {
     cpu->gpr[3] = CreateRequest(cpu, Arg(cpu, 3), Arg(cpu, 4), IntArg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8), Arg(cpu, 9), Arg(cpu, 10));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80515DF4, MH3_NHTTPCreateRequestWith, "NHTTPi_CreateRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80515DF4, MH3_NHTTPCreateRequestWith, "NHTTPi_CreateRequest");
 
 extern "C" void MH3_NHTTPDiscardRequest(CpuContext* cpu) {
     DiscardRequest(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051641C, MH3_NHTTPDiscardRequest, "NHTTPi_DeleteRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051641C, MH3_NHTTPDiscardRequest, "NHTTPi_DeleteRequest");
 
 extern "C" void MH3_NHTTPFreeRequest(CpuContext* cpu) {
     FreeRequest(cpu, Arg(cpu, 3), Arg(cpu, 4));
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516520, MH3_NHTTPFreeRequest, "NHTTPi_DestroyRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516520, MH3_NHTTPFreeRequest, "NHTTPi_DestroyRequest");
 
 extern "C" void MH3_NHTTPQueue(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Queue(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805165F8, MH3_NHTTPQueue, "NHTTPi_SendRequestAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805165F8, MH3_NHTTPQueue, "NHTTPi_SendRequestAsync");
 
 extern "C" void MH3_NHTTPCancelWith(CpuContext* cpu) {
     cpu->gpr[3] = Cancel(cpu, Arg(cpu, 3), IntArg(cpu, 4)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805166B8, MH3_NHTTPCancelWith, "NHTTPi_CancelRequestAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805166B8, MH3_NHTTPCancelWith, "NHTTPi_CancelRequestAsync");
 
 extern "C" void MH3_NHTTPCancelAll(CpuContext* cpu) {
     CancelAll(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051677C, MH3_NHTTPCancelAll, "NHTTPi_AllCancelRequestAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051677C, MH3_NHTTPCancelAll, "NHTTPi_AllCancelRequestAsync");
 
 extern "C" void MH3_NHTTPFreeResponse(CpuContext* cpu) {
     FreeResponse(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516824, MH3_NHTTPFreeResponse, "NHTTPi_DestroyResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516824, MH3_NHTTPFreeResponse, "NHTTPi_DestroyResponse");
 
 extern "C" void MH3_NHTTPFindField(CpuContext* cpu) {
     const uint32_t startOut = Arg(cpu, 5);
@@ -3768,72 +3768,72 @@ extern "C" void MH3_NHTTPFindField(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(answer);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805168F0, MH3_NHTTPFindField, "NHTTPi_FindHeaderValue");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805168F0, MH3_NHTTPFindField, "NHTTPi_FindHeaderValue");
 
 extern "C" void MH3_NHTTPSocketAlive(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SocketAlive(cpu, IntArg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516A24, MH3_NHTTPSocketAlive, "NHTTPi_CheckSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516A24, MH3_NHTTPSocketAlive, "NHTTPi_CheckSocket");
 
 extern "C" void MH3_NHTTPOpenSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(OpenSocket(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516A7C, MH3_NHTTPOpenSocket, "NHTTPi_SocSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516A7C, MH3_NHTTPOpenSocket, "NHTTPi_SocSocket");
 
 extern "C" void MH3_NHTTPCloseSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(CloseSocket(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516B50, MH3_NHTTPCloseSocket, "NHTTPi_SocClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516B50, MH3_NHTTPCloseSocket, "NHTTPi_SocClose");
 
 extern "C" void MH3_NHTTPConnect(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Connect(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516BBC, MH3_NHTTPConnect, "NHTTPi_SocConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516BBC, MH3_NHTTPConnect, "NHTTPi_SocConnect");
 
 extern "C" void MH3_NHTTPSslConnect(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SslConnect(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516C7C, MH3_NHTTPSslConnect, "NHTTPi_SocSSLConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516C7C, MH3_NHTTPSslConnect, "NHTTPi_SocSSLConnect");
 
 extern "C" void MH3_NHTTPBufferedRecv(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(BufferedRecv(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), IntArg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516E2C, MH3_NHTTPBufferedRecv, "NHTTPi_SocRecvBuffered");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516E2C, MH3_NHTTPBufferedRecv, "NHTTPi_SocRecvBuffered");
 
 extern "C" void MH3_NHTTPRecv(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Recv(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), IntArg(cpu, 7), Arg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80516F38, MH3_NHTTPRecv, "NHTTPi_SocRecv");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80516F38, MH3_NHTTPRecv, "NHTTPi_SocRecv");
 
 extern "C" void MH3_NHTTPAlignedSend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AlignedSend(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517014, MH3_NHTTPAlignedSend, "NHTTPi_SocSendAligned");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517014, MH3_NHTTPAlignedSend, "NHTTPi_SocSendAligned");
 
 extern "C" void MH3_NHTTPSend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Send(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805171AC, MH3_NHTTPSend, "NHTTPi_SocSend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805171AC, MH3_NHTTPSend, "NHTTPi_SocSend");
 
 extern "C" void MH3_NHTTPShutdownSocket(CpuContext* cpu) {
     ShutdownSocket(cpu, Arg(cpu, 3), IntArg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517258, MH3_NHTTPShutdownSocket, "NHTTPi_SocCancel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517258, MH3_NHTTPShutdownSocket, "NHTTPi_SocCancel");
 
 extern "C" void MH3_NHTTPResolveHost(CpuContext* cpu) {
     cpu->gpr[3] = ResolveHost(cpu, Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805172AC, MH3_NHTTPResolveHost, "NHTTPi_Resolve");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805172AC, MH3_NHTTPResolveHost, "NHTTPi_Resolve");
 
 extern "C" void MH3_NHTTPMemcpy(CpuContext* cpu) {
     InvokeIndirectCpu(Memcpy, cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517320, MH3_NHTTPMemcpy, "NHTTPi_memcpy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517320, MH3_NHTTPMemcpy, "NHTTPi_memcpy");
 
 extern "C" void MH3_NHTTPStrlen(CpuContext* cpu) {
     cpu->gpr[3] = StrLen(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517324, MH3_NHTTPStrlen, "NHTTPi_strlen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517324, MH3_NHTTPStrlen, "NHTTPi_strlen");
 
 extern "C" void MH3_NHTTPStrcmp(CpuContext* cpu) {
     uint32_t a = Arg(cpu, 3), b = Arg(cpu, 4);
@@ -3849,94 +3849,94 @@ extern "C" void MH3_NHTTPStrcmp(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(diff);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517328, MH3_NHTTPStrcmp, "NHTTPi_strcmp");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517328, MH3_NHTTPStrcmp, "NHTTPi_strcmp");
 
 extern "C" void MH3_NHTTPMemclear(CpuContext* cpu) {
     Clear(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051732C, MH3_NHTTPMemclear, "NHTTPi_memclr");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051732C, MH3_NHTTPMemclear, "NHTTPi_memclr");
 
 extern "C" void MH3_NHTTPCaseCompare(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(CaseCompare(Arg(cpu, 3), Arg(cpu, 4), IntArg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517338, MH3_NHTTPCaseCompare, "NHTTPi_strnicmp");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517338, MH3_NHTTPCaseCompare, "NHTTPi_strnicmp");
 
 extern "C" void MH3_NHTTPEncodedLength(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(EncodedLength(Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517404, MH3_NHTTPEncodedLength, "NHTTPi_encodeUrlLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517404, MH3_NHTTPEncodedLength, "NHTTPi_encodeUrlLength");
 
 extern "C" void MH3_NHTTPEncodedLengthN(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(EncodedLength(Arg(cpu, 3), IntArg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517474, MH3_NHTTPEncodedLengthN, "NHTTPi_encodeUrlLengthN");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517474, MH3_NHTTPEncodedLengthN, "NHTTPi_encodeUrlLengthN");
 
 extern "C" void MH3_NHTTPEncodeChar(CpuContext* cpu) {
     cpu->gpr[3] = EncodeChar(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805174E8, MH3_NHTTPEncodeChar, "NHTTPi_encodeUrlChar");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805174E8, MH3_NHTTPEncodeChar, "NHTTPi_encodeUrlChar");
 
 extern "C" void MH3_NHTTPParseHex(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ParseHex(Arg(cpu, 3), IntArg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517588, MH3_NHTTPParseHex, "NHTTPi_strToHex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517588, MH3_NHTTPParseHex, "NHTTPi_strToHex");
 
 extern "C" void MH3_NHTTPParseDecimal(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ParseDecimal(Arg(cpu, 3), IntArg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805176AC, MH3_NHTTPParseDecimal, "NHTTPi_strToInt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805176AC, MH3_NHTTPParseDecimal, "NHTTPi_strToInt");
 
 extern "C" void MH3_NHTTPDecimal(CpuContext* cpu) {
     cpu->gpr[3] = Decimal(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051774C, MH3_NHTTPDecimal, "NHTTPi_intToStr");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051774C, MH3_NHTTPDecimal, "NHTTPi_intToStr");
 
 extern "C" void MH3_NHTTPTokenCompare(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(TokenCompare(Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805178C8, MH3_NHTTPTokenCompare, "NHTTPi_compareTokenN");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805178C8, MH3_NHTTPTokenCompare, "NHTTPi_compareTokenN");
 
 extern "C" void MH3_NHTTPParseDigits(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ParseDigits(Arg(cpu, 3), IntArg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051797C, MH3_NHTTPParseDigits, "NHTTPi_strToPort");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051797C, MH3_NHTTPParseDigits, "NHTTPi_strToPort");
 
 extern "C" void MH3_NHTTPContains(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Contains(Arg(cpu, 3), IntArg(cpu, 4), Arg(cpu, 5), IntArg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517A0C, MH3_NHTTPContains, "NHTTPi_memfind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517A0C, MH3_NHTTPContains, "NHTTPi_memfind");
 
 extern "C" void MH3_NHTTPBase64(CpuContext* cpu) {
     cpu->gpr[3] = Base64(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517AB8, MH3_NHTTPBase64, "NHTTPi_Base64Encode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517AB8, MH3_NHTTPBase64, "NHTTPi_Base64Encode");
 
 extern "C" void MH3_NHTTPWorkerQueueReset(CpuContext* cpu) {
     Write(Arg(cpu, 3) + wQueueReady, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517C94, MH3_NHTTPWorkerQueueReset, "NHTTPi_InitThreadInfo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517C94, MH3_NHTTPWorkerQueueReset, "NHTTPi_InitThreadInfo");
 
 extern "C" void MH3_NHTTPWorkerQueueSet(CpuContext* cpu) {
     Write(Arg(cpu, 3) + wQueueReady, 1);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517CA0, MH3_NHTTPWorkerQueueSet, "NHTTPi_SetThreadQueueReady");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517CA0, MH3_NHTTPWorkerQueueSet, "NHTTPi_SetThreadQueueReady");
 
 extern "C" void MH3_NHTTPWorkerQueueReady(CpuContext* cpu) {
     cpu->gpr[3] = Read(Arg(cpu, 3) + wQueueReady);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517CAC, MH3_NHTTPWorkerQueueReady, "NHTTPi_IsThreadQueueReady");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517CAC, MH3_NHTTPWorkerQueueReady, "NHTTPi_IsThreadQueueReady");
 
 extern "C" void MH3_NHTTPHeaderEnd(CpuContext* cpu) {
     const uint32_t at = Arg(cpu, 3);
     const uint8_t ring[4] = {Memory::Read8(at), Memory::Read8(at + 1), Memory::Read8(at + 2), Memory::Read8(at + 3)};
     cpu->gpr[3] = HeaderEnd(ring, Arg(cpu, 4)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517CB4, MH3_NHTTPHeaderEnd, "NHTTPi_CheckHeaderEnd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517CB4, MH3_NHTTPHeaderEnd, "NHTTPi_CheckHeaderEnd");
 
 extern "C" void MH3_NHTTPBufferedSend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(BufferedSend(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), IntArg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517D7C, MH3_NHTTPBufferedSend, "NHTTPi_SendToBuffer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517D7C, MH3_NHTTPBufferedSend, "NHTTPi_SendToBuffer");
 
 extern "C" void MH3_NHTTPPostLength(CpuContext* cpu) {
     const uint32_t totalAt = Arg(cpu, 6);
@@ -3945,127 +3945,127 @@ extern "C" void MH3_NHTTPPostLength(CpuContext* cpu) {
     Write(totalAt, uint32_t(total));
     cpu->gpr[3] = answer ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517E5C, MH3_NHTTPPostLength, "NHTTPi_GetPostContentLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517E5C, MH3_NHTTPPostLength, "NHTTPi_GetPostContentLength");
 
 extern "C" void MH3_NHTTPPostSend(CpuContext* cpu) {
     cpu->gpr[3] = PostSend(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8), IntArg(cpu, 9));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80517F60, MH3_NHTTPPostSend, "NHTTPi_SendPostDataStream");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80517F60, MH3_NHTTPPostSend, "NHTTPi_SendPostDataStream");
 
 extern "C" void MH3_NHTTPHasRoom(CpuContext* cpu) {
     cpu->gpr[3] = HasRoom(cpu, Arg(cpu, 3), Arg(cpu, 4)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805180F0, MH3_NHTTPHasRoom, "NHTTPi_CheckBodyBuf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805180F0, MH3_NHTTPHasRoom, "NHTTPi_CheckBodyBuf");
 
 extern "C" void MH3_NHTTPSendText(CpuContext* cpu) {
     cpu->gpr[3] = SendText(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805181BC, MH3_NHTTPSendText, "NHTTPi_SendBuffer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805181BC, MH3_NHTTPSendText, "NHTTPi_SendBuffer");
 
 extern "C" void MH3_NHTTPProxyConnect(CpuContext* cpu) {
     cpu->gpr[3] = ProxyConnect(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518268, MH3_NHTTPProxyConnect, "NHTTPi_SendProxyConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518268, MH3_NHTTPProxyConnect, "NHTTPi_SendProxyConnect");
 
 extern "C" void MH3_NHTTPProxyAnswer(CpuContext* cpu) {
     cpu->gpr[3] = ProxyAnswer(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518510, MH3_NHTTPProxyAnswer, "NHTTPi_RecvProxyConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518510, MH3_NHTTPProxyAnswer, "NHTTPi_RecvProxyConnect");
 
 extern "C" void MH3_NHTTPSendFields(CpuContext* cpu) {
     cpu->gpr[3] = SendFields(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518708, MH3_NHTTPSendFields, "NHTTPi_SendHeaderList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518708, MH3_NHTTPSendFields, "NHTTPi_SendHeaderList");
 
 extern "C" void MH3_NHTTPSendRawPost(CpuContext* cpu) {
     cpu->gpr[3] = SendRawPost(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518800, MH3_NHTTPSendRawPost, "NHTTPi_SendPostDataRaw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518800, MH3_NHTTPSendRawPost, "NHTTPi_SendPostDataRaw");
 
 extern "C" void MH3_NHTTPSendMultipart(CpuContext* cpu) {
     cpu->gpr[3] = SendMultipart(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518988, MH3_NHTTPSendMultipart, "NHTTPi_SendPostDataBinary");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518988, MH3_NHTTPSendMultipart, "NHTTPi_SendPostDataBinary");
 
 extern "C" void MH3_NHTTPSendForm(CpuContext* cpu) {
     cpu->gpr[3] = SendForm(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518D2C, MH3_NHTTPSendForm, "NHTTPi_SendPostDataAscii");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518D2C, MH3_NHTTPSendForm, "NHTTPi_SendPostDataAscii");
 
 extern "C" void MH3_NHTTPFinish(CpuContext* cpu) {
     Finish(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80518FF0, MH3_NHTTPFinish, "NHTTPi_ThreadReqEnd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80518FF0, MH3_NHTTPFinish, "NHTTPi_ThreadReqEnd");
 
 extern "C" void MH3_NHTTPNext(CpuContext* cpu) {
     cpu->gpr[3] = Next(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80519170, MH3_NHTTPNext, "NHTTPi_ThreadGetNextRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80519170, MH3_NHTTPNext, "NHTTPi_ThreadGetNextRequest");
 
 extern "C" void MH3_NHTTPResolve(CpuContext* cpu) {
     cpu->gpr[3] = Resolve(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80519228, MH3_NHTTPResolve, "NHTTPi_ThreadHostAddrProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80519228, MH3_NHTTPResolve, "NHTTPi_ThreadHostAddrProc");
 
 extern "C" void MH3_NHTTPOpen(CpuContext* cpu) {
     cpu->gpr[3] = Open(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051937C, MH3_NHTTPOpen, "NHTTPi_ThreadConnectProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051937C, MH3_NHTTPOpen, "NHTTPi_ThreadConnectProc");
 
 extern "C" void MH3_NHTTPTunnel(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Tunnel(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80519538, MH3_NHTTPTunnel, "NHTTPi_ThreadProxyProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80519538, MH3_NHTTPTunnel, "NHTTPi_ThreadProxyProc");
 
 extern "C" void MH3_NHTTPSendRequest(CpuContext* cpu) {
     cpu->gpr[3] = SendRequest(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051968C, MH3_NHTTPSendRequest, "NHTTPi_ThreadSendProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051968C, MH3_NHTTPSendRequest, "NHTTPi_ThreadSendProc");
 
 extern "C" void MH3_NHTTPReceiveHeader(CpuContext* cpu) {
     cpu->gpr[3] = ReceiveHeader(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80519B28, MH3_NHTTPReceiveHeader, "NHTTPi_ThreadRecvHeaderProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80519B28, MH3_NHTTPReceiveHeader, "NHTTPi_ThreadRecvHeaderProc");
 
 extern "C" void MH3_NHTTPParseHeader(CpuContext* cpu) {
     cpu->gpr[3] = ParseHeader(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80519D14, MH3_NHTTPParseHeader, "NHTTPi_ThreadParseHeaderProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80519D14, MH3_NHTTPParseHeader, "NHTTPi_ThreadParseHeaderProc");
 
 extern "C" void MH3_NHTTPReceiveBody(CpuContext* cpu) {
     cpu->gpr[3] = ReceiveBody(cpu, Arg(cpu, 3)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051A044, MH3_NHTTPReceiveBody, "NHTTPi_ThreadRecvBodyProc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051A044, MH3_NHTTPReceiveBody, "NHTTPi_ThreadRecvBodyProc");
 
 extern "C" void MH3_NHTTPWorker(CpuContext* cpu) {
     Worker(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051A634, MH3_NHTTPWorker, "NHTTPi_ThreadExecute");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051A634, MH3_NHTTPWorker, "NHTTPi_ThreadExecute");
 
 extern "C" void MH3_NHTTPCreateConnection(CpuContext* cpu) {
     cpu->gpr[3] = CreateConnection(cpu, Arg(cpu, 3), IntArg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051A838, MH3_NHTTPCreateConnection, "NHTTPi_CreateConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051A838, MH3_NHTTPCreateConnection, "NHTTPi_CreateConnection");
 
 extern "C" void MH3_NHTTPStartConnection(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(StartConnection(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051A980, MH3_NHTTPStartConnection, "NHTTPi_StartConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051A980, MH3_NHTTPStartConnection, "NHTTPi_StartConnection");
 
 extern "C" void MH3_NHTTPBody(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Body(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AA0C, MH3_NHTTPBody, "NHTTPi_GetBodyBuffer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AA0C, MH3_NHTTPBody, "NHTTPi_GetBodyBuffer");
 
 extern "C" void MH3_NHTTPUserParam(CpuContext* cpu) {
     cpu->gpr[3] = UserParam(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AAA8, MH3_NHTTPUserParam, "NHTTPi_GetUserParam");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AAA8, MH3_NHTTPUserParam, "NHTTPi_GetUserParam");
 
 extern "C" void MH3_NHTTPConnectionError(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ErrorOf(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AB1C, MH3_NHTTPConnectionError, "NHTTPi_GetConnectionError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AB1C, MH3_NHTTPConnectionError, "NHTTPi_GetConnectionError");
 
 extern "C" void MH3_NHTTPStartup(CpuContext* cpu) {
     const uint32_t alloc = Arg(cpu, 3), free = Arg(cpu, 4), priority = Arg(cpu, 5);
@@ -4073,32 +4073,32 @@ extern "C" void MH3_NHTTPStartup(CpuContext* cpu) {
     RegisterVersion(cpu, kStartupVersionDone, kStartupVersion);
     cpu->gpr[3] = Startup(cpu, globals, alloc, free, priority) ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AB68, MH3_NHTTPStartup, "NHTTPStartup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AB68, MH3_NHTTPStartup, "NHTTPStartup");
 
 extern "C" void MH3_NHTTPCleanupAsync(CpuContext* cpu) {
     Cleanup(cpu, Globals(), Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051ABF4, MH3_NHTTPCleanupAsync, "NHTTPCleanupAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051ABF4, MH3_NHTTPCleanupAsync, "NHTTPCleanupAsync");
 
 extern "C" void MH3_NHTTPGetError(CpuContext* cpu) {
     cpu->gpr[3] = Read(Globals() + gError);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AC28, MH3_NHTTPGetError, "NHTTPGetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AC28, MH3_NHTTPGetError, "NHTTPGetError");
 
 extern "C" void MH3_NHTTPGetSSLError(CpuContext* cpu) {
     cpu->gpr[3] = Read(Globals() + gSslError);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AC4C, MH3_NHTTPGetSSLError, "NHTTPGetSSLError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AC4C, MH3_NHTTPGetSSLError, "NHTTPGetSSLError");
 
 extern "C" void MH3_NHTTPDispatch(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Dispatch(cpu, Arg(cpu, 3), IntArg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AC70, MH3_NHTTPDispatch, "NHTTPi_ConnectionCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AC70, MH3_NHTTPDispatch, "NHTTPi_ConnectionCallback");
 
 extern "C" void MH3_NHTTPCreateRequestEx(CpuContext* cpu) {
     cpu->gpr[3] = CreateRequestEx(cpu, Arg(cpu, 3), IntArg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8), Arg(cpu, 9), Arg(cpu, 10));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AE54, MH3_NHTTPCreateRequestEx, "NHTTPi_CreateRequestEx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AE54, MH3_NHTTPCreateRequestEx, "NHTTPi_CreateRequestEx");
 
 extern "C" void MH3_NHTTPCreateRequest(CpuContext* cpu) {
     const uint32_t url = Arg(cpu, 3), buffer = Arg(cpu, 5), size = Arg(cpu, 6), callback = Arg(cpu, 7), param = Arg(cpu, 8);
@@ -4106,28 +4106,28 @@ extern "C" void MH3_NHTTPCreateRequest(CpuContext* cpu) {
     RegisterVersion(cpu, kCreateVersionDone, kCreateVersion);
     cpu->gpr[3] = CreateRequestEx(cpu, url, method, buffer, size, callback, param, 0, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AF24, MH3_NHTTPCreateRequest, "NHTTPCreateRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AF24, MH3_NHTTPCreateRequest, "NHTTPCreateRequest");
 
 extern "C" void MH3_NHTTPAddHeaderField(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddBeforeStart(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), false));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051AFA8, MH3_NHTTPAddHeaderField, "NHTTPAddHeaderField");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051AFA8, MH3_NHTTPAddHeaderField, "NHTTPAddHeaderField");
 
 extern "C" void MH3_NHTTPAddPostDataAscii(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddBeforeStart(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), true));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B06C, MH3_NHTTPAddPostDataAscii, "NHTTPAddPostDataAscii");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B06C, MH3_NHTTPAddPostDataAscii, "NHTTPAddPostDataAscii");
 
 extern "C" void MH3_NHTTPSendRequestAsync(CpuContext* cpu) {
     const uint32_t connection = Connections(cpu, Globals() + gMutex, Arg(cpu, 3), kByRequest);
     cpu->gpr[3] = !connection || StartConnection(cpu, connection) != 0 ? 0xFFFFFFFF : Read(connection + cId);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B130, MH3_NHTTPSendRequestAsync, "NHTTPSendRequestAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B130, MH3_NHTTPSendRequestAsync, "NHTTPSendRequestAsync");
 
 extern "C" void MH3_NHTTPCancelRequestAsync(CpuContext* cpu) {
     cpu->gpr[3] = Cancel(cpu, Globals(), IntArg(cpu, 3)) ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B18C, MH3_NHTTPCancelRequestAsync, "NHTTPCancelRequestAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B18C, MH3_NHTTPCancelRequestAsync, "NHTTPCancelRequestAsync");
 
 extern "C" void MH3_NHTTPDestroyResponse(CpuContext* cpu) {
     const uint32_t mutex = Globals() + gMutex;
@@ -4141,7 +4141,7 @@ extern "C" void MH3_NHTTPDestroyResponse(CpuContext* cpu) {
         Free(cpu, connection);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B1CC, MH3_NHTTPDestroyResponse, "NHTTPDestroyResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B1CC, MH3_NHTTPDestroyResponse, "NHTTPDestroyResponse");
 
 extern "C" void MH3_NHTTPGetBodyAll(CpuContext* cpu) {
     const uint32_t bufferOut = Arg(cpu, 4);
@@ -4156,13 +4156,13 @@ extern "C" void MH3_NHTTPGetBodyAll(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(answer);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B250, MH3_NHTTPGetBodyAll, "NHTTPGetBodyAll");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B250, MH3_NHTTPGetBodyAll, "NHTTPGetBodyAll");
 
 extern "C" void MH3_NHTTPGetResultCode(CpuContext* cpu) {
     const uint32_t response = ResponseOrSelf(cpu, Globals() + gMutex, Arg(cpu, 3));
     cpu->gpr[3] = response && Read(response + pHeaderDone) ? Read(response + pStatus) : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B2B8, MH3_NHTTPGetResultCode, "NHTTPGetResultCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B2B8, MH3_NHTTPGetResultCode, "NHTTPGetResultCode");
 
 extern "C" void MH3_NHTTPSetVerifyOption(CpuContext* cpu) {
     const uint32_t option = Arg(cpu, 4);
@@ -4173,17 +4173,17 @@ extern "C" void MH3_NHTTPSetVerifyOption(CpuContext* cpu) {
 
     cpu->gpr[3] = request ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B318, MH3_NHTTPSetVerifyOption, "NHTTPSetVerifyOption");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B318, MH3_NHTTPSetVerifyOption, "NHTTPSetVerifyOption");
 
 extern "C" void MH3_NHTTPSetProxy(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetProxy(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B374, MH3_NHTTPSetProxy, "NHTTPSetProxy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B374, MH3_NHTTPSetProxy, "NHTTPSetProxy");
 
 extern "C" void MH3_NHTTPSetProxyDefault(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetProxyDefault(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B4E4, MH3_NHTTPSetProxyDefault, "NHTTPSetProxyDefault");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B4E4, MH3_NHTTPSetProxyDefault, "NHTTPSetProxyDefault");
 
 extern "C" void MH3_NHTTPSetRootCADefault(CpuContext* cpu) {
     const uint32_t request = RequestOrSelf(cpu, Globals() + gMutex, Arg(cpu, 3));
@@ -4196,7 +4196,7 @@ extern "C" void MH3_NHTTPSetRootCADefault(CpuContext* cpu) {
 
     cpu->gpr[3] = request ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B60C, MH3_NHTTPSetRootCADefault, "NHTTPSetRootCADefault");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B60C, MH3_NHTTPSetRootCADefault, "NHTTPSetRootCADefault");
 
 extern "C" void MH3_NHTTPSetClientCertDefault(CpuContext* cpu) {
     const uint32_t request = RequestOrSelf(cpu, Globals() + gMutex, Arg(cpu, 3));
@@ -4212,128 +4212,128 @@ extern "C" void MH3_NHTTPSetClientCertDefault(CpuContext* cpu) {
 
     cpu->gpr[3] = request ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B66C, MH3_NHTTPSetClientCertDefault, "NHTTPSetClientCertDefault");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B66C, MH3_NHTTPSetClientCertDefault, "NHTTPSetClientCertDefault");
 
 extern "C" void MH3_NHTTPWakeup(CpuContext* cpu) {
     Wakeup(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B6DC, MH3_NHTTPWakeup, "NHTTPi_NotifyCompletion");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B6DC, MH3_NHTTPWakeup, "NHTTPi_NotifyCompletion");
 
 extern "C" void MH3_NHTTPConnections(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), IntArg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B758, MH3_NHTTPConnections, "NHTTPi_ConnectionList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B758, MH3_NHTTPConnections, "NHTTPi_ConnectionList");
 
 extern "C" void MH3_NHTTPPushConnection(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), kPush) ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B868, MH3_NHTTPPushConnection, "NHTTPi_AddConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B868, MH3_NHTTPPushConnection, "NHTTPi_AddConnection");
 
 extern "C" void MH3_NHTTPRemoveConnection(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), kRemove) ? 0 : 0xFFFFFFFF;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B898, MH3_NHTTPRemoveConnection, "NHTTPi_RemoveConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B898, MH3_NHTTPRemoveConnection, "NHTTPi_RemoveConnection");
 
 extern "C" void MH3_NHTTPRequestOf(CpuContext* cpu) {
     cpu->gpr[3] = RequestOf(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B8C8, MH3_NHTTPRequestOf, "NHTTPi_ConnectionRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B8C8, MH3_NHTTPRequestOf, "NHTTPi_ConnectionRequest");
 
 extern "C" void MH3_NHTTPResponseOf(CpuContext* cpu) {
     cpu->gpr[3] = ResponseOf(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B900, MH3_NHTTPResponseOf, "NHTTPi_ConnectionResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B900, MH3_NHTTPResponseOf, "NHTTPi_ConnectionResponse");
 
 extern "C" void MH3_NHTTPByRequest(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), kByRequest);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B938, MH3_NHTTPByRequest, "NHTTPi_FindConnectionByRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B938, MH3_NHTTPByRequest, "NHTTPi_FindConnectionByRequest");
 
 extern "C" void MH3_NHTTPByResponse(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), kByResponse);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B940, MH3_NHTTPByResponse, "NHTTPi_FindConnectionByResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B940, MH3_NHTTPByResponse, "NHTTPi_FindConnectionByResponse");
 
 extern "C" void MH3_NHTTPByConnection(CpuContext* cpu) {
     cpu->gpr[3] = Connections(cpu, Arg(cpu, 3), Arg(cpu, 4), kByConnection);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B948, MH3_NHTTPByConnection, "NHTTPi_FindConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B948, MH3_NHTTPByConnection, "NHTTPi_FindConnection");
 
 extern "C" void MH3_NHTTPRequestOrSelf(CpuContext* cpu) {
     cpu->gpr[3] = RequestOrSelf(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B950, MH3_NHTTPRequestOrSelf, "NHTTPi_HandleRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B950, MH3_NHTTPRequestOrSelf, "NHTTPi_HandleRequest");
 
 extern "C" void MH3_NHTTPResponseOrSelf(CpuContext* cpu) {
     cpu->gpr[3] = ResponseOrSelf(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B994, MH3_NHTTPResponseOrSelf, "NHTTPi_HandleResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B994, MH3_NHTTPResponseOrSelf, "NHTTPi_HandleResponse");
 
 extern "C" void MH3_NHTTPConnectionCount(CpuContext* cpu) {
     cpu->gpr[3] = ConnectionCount();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B9D8, MH3_NHTTPConnectionCount, "NHTTPi_ConnectionCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B9D8, MH3_NHTTPConnectionCount, "NHTTPi_ConnectionCount");
 
 extern "C" void MH3_NHTTPPostCallback(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(PostCallback(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051B9F8, MH3_NHTTPPostCallback, "NHTTPi_PostDataCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051B9F8, MH3_NHTTPPostCallback, "NHTTPi_PostDataCallback");
 
 extern "C" void MH3_NHTTPGrowCallback(CpuContext* cpu) {
     BufferCallback(cpu, Arg(cpu, 3), Arg(cpu, 4), 2);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BAE0, MH3_NHTTPGrowCallback, "NHTTPi_BodyBufCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BAE0, MH3_NHTTPGrowCallback, "NHTTPi_BodyBufCallback");
 
 extern "C" void MH3_NHTTPBodyDoneCallback(CpuContext* cpu) {
     BufferCallback(cpu, Arg(cpu, 3), Arg(cpu, 4), 3);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BBF8, MH3_NHTTPBodyDoneCallback, "NHTTPi_BodyDoneCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BBF8, MH3_NHTTPBodyDoneCallback, "NHTTPi_BodyDoneCallback");
 
 extern "C" void MH3_NHTTPComplete(CpuContext* cpu) {
     Complete(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BD10, MH3_NHTTPComplete, "NHTTPi_CompleteCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BD10, MH3_NHTTPComplete, "NHTTPi_CompleteCallback");
 
 extern "C" void MH3_NHTTPGlobals(CpuContext* cpu) {
     cpu->gpr[3] = Globals();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BD68, MH3_NHTTPGlobals, "NHTTPi_GetSystemInfoP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BD68, MH3_NHTTPGlobals, "NHTTPi_GetSystemInfoP");
 
 extern "C" void MH3_NHTTPGlobalsSelf(CpuContext*) {
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDD0, MH3_NHTTPGlobalsSelf, "NHTTPi_GetBgnEndInfoP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDD0, MH3_NHTTPGlobalsSelf, "NHTTPi_GetBgnEndInfoP");
 
 extern "C" void MH3_NHTTPQueueOf(CpuContext* cpu) {
     cpu->gpr[3] += gQueue;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDD4, MH3_NHTTPQueueOf, "NHTTPi_GetReqInfoP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDD4, MH3_NHTTPQueueOf, "NHTTPi_GetReqInfoP");
 
 extern "C" void MH3_NHTTPCurrentOf(CpuContext* cpu) {
     cpu->gpr[3] += gCurrent;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDDC, MH3_NHTTPCurrentOf, "NHTTPi_GetReqP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDDC, MH3_NHTTPCurrentOf, "NHTTPi_GetReqP");
 
 extern "C" void MH3_NHTTPWorkerOf(CpuContext* cpu) {
     cpu->gpr[3] += gWorker;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDE4, MH3_NHTTPWorkerOf, "NHTTPi_GetThreadInfoP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDE4, MH3_NHTTPWorkerOf, "NHTTPi_GetThreadInfoP");
 
 extern "C" void MH3_NHTTPMutexOf(CpuContext* cpu) {
     cpu->gpr[3] += gMutex;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDEC, MH3_NHTTPMutexOf, "NHTTPi_GetMutexInfoP");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDEC, MH3_NHTTPMutexOf, "NHTTPi_GetMutexInfoP");
 
 extern "C" void MH3_NHTTPSetProgress(CpuContext* cpu) {
     SetProgress(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BDF4, MH3_NHTTPSetProgress, "NHTTPi_SetContentLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BDF4, MH3_NHTTPSetProgress, "NHTTPi_SetContentLength");
 
 extern "C" void MH3_NHTTPProgress(CpuContext* cpu) {
     cpu->gpr[3] = Progress(Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BE04, MH3_NHTTPProgress, "NHTTPi_GetContentLength");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BE04, MH3_NHTTPProgress, "NHTTPi_GetContentLength");
 
 extern "C" void MH3_NHTTPResetConnections(CpuContext* cpu) {
     ResetConnections(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BE1C, MH3_NHTTPResetConnections, "NHTTPi_InitConnectionList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BE1C, MH3_NHTTPResetConnections, "NHTTPi_InitConnectionList");

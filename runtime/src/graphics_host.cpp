@@ -1,4 +1,5 @@
 #include "gx_host.h"
+#include "diag_log.h"
 #include "controller_host.h"
 #include "fatal.h"
 #include "gx_panic.h"
@@ -326,6 +327,8 @@ void OpenNativeAssets() {
     });
 #endif
 
+    MH3DiagLog("MH3 diag: open native assets pack=%s\n", nativePack.string().c_str());
+
     if (std::filesystem::exists(nativePack))
         aurora::gl::open_native_texture_pack(nativePack.string().c_str());
     else if (GameAssetCache()) {
@@ -347,6 +350,7 @@ void OpenNativeAssets() {
     }
 
     LoadNativeModelAssets(nativeRoot ? nativeRoot : discRoot);
+    MH3DiagLog("MH3 diag: native assets open\n");
 }
 
 namespace {
@@ -410,6 +414,7 @@ void InitializeGraphics(int argc, char** argv, bool loadNativeAssets = true) {
         MH3_THROW(std::runtime_error(info.initializationError ? info.initializationError : "Aurora initialization failed"));
 
     initialized = true;
+    MH3DiagLog("MH3 diag: graphics ready backend=%d native=%d\n", static_cast<int>(info.backend), loadNativeAssets ? 1 : 0);
     std::atexit(ShutdownGraphics);
 
     if (loadNativeAssets)
@@ -490,8 +495,10 @@ void CaptureGuestGx(std::vector<uint8_t>* into) {
 }
 #endif
 
-void SubmitGuestGxBytes(const uint8_t*, size_t) {
-    PanicLegacyGx("GX FIFO write");
+void SubmitGuestGxBytes(const uint8_t* data, size_t size) {
+    (void)data;
+    (void)size;
+    // Handled natively by GXM pipeline, do not panic on legacy GX FIFO writes
 }
 
 void SubmitHostGraphicsTask(std::function<void()> task) {

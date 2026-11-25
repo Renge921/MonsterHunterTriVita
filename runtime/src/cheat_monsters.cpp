@@ -96,7 +96,7 @@ extern "C" void MH3_MonsterHealthAdd(CpuContext* ctx) {
         Memory::Write32(monster + kHealth, uint32_t(floor));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8011E6BC, MH3_MonsterHealthAdd, "MonsterHealthAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8011E6BC, MH3_MonsterHealthAdd, "MonsterHealthAdd");
 
 // 0x80132004 (monster, s32 health): the maximum health, health times the
 // quest's factor (0x801260A8), and again for multiplayer (0x803B4F2C,
@@ -114,7 +114,7 @@ extern "C" void MH3_CheatMonsterMaxHealth(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80132004, MH3_CheatMonsterMaxHealth, "CheatMonsterMaxHealth");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80132004, MH3_CheatMonsterMaxHealth, "CheatMonsterMaxHealth");
 
 // 0x8012F4D8 (monster): the motion speed, ... * +0x7BC * +0x7C0. Monster
 // speed modifier (C2 at US 0x8012F4D8, EU 0x8012F53C) sets +0x7C0 first.
@@ -127,7 +127,7 @@ extern "C" void MH3_CheatMonsterSpeed(CpuContext* ctx) {
     func_8012F4D8(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8012F4D8, MH3_CheatMonsterSpeed, "CheatMonsterSpeed");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012F4D8, MH3_CheatMonsterSpeed, "CheatMonsterSpeed");
 
 // 0x801308BC (monster, s16 gain): the rage gauge. Its top is the monster
 // data's table (0x80126098: +0xA0, then +0x28) entry 0, else 600; the gain is
@@ -180,7 +180,9 @@ extern "C" void MH3_RageGaugeAdd(CpuContext* ctx) {
     Memory::Write16(monster + kRage, uint16_t(top));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x801308BC, MH3_RageGaugeAdd, "RageGaugeAdd");
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+// REGISTER_NATIVE_FUNCTION_AS(0x801308BC, MH3_RageGaugeAdd, "RageGaugeAdd");
 
 // 0x80130B24 (monster): while enraged, the rage time counts down; at 0 the
 // rage ends (0x8012D204, then 0x801308A8). Monsters have regen during rage
@@ -214,7 +216,7 @@ extern "C" void MH3_CheatRageTime(CpuContext* ctx) {
     func_80130B24(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80130B24, MH3_CheatRageTime, "CheatRageTime");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80130B24, MH3_CheatRageTime, "CheatRageTime");
 
 // 0x80130BD0 (monster, s16 change, max): the stamina. Infinite monster
 // stamina (US 0x80130C64, EU 0x80130CC8: the sum's store dropped) keeps it
@@ -228,7 +230,7 @@ extern "C" void MH3_CheatMonsterStamina(CpuContext* ctx) {
     func_80130BD0(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80130BD0, MH3_CheatMonsterStamina, "CheatMonsterStamina");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80130BD0, MH3_CheatMonsterStamina, "CheatMonsterStamina");
 
 // 0x80131E24 and 0x80131EF0 (monster): two countdowns (+0x818, +0x81A),
 // paused while +0x1E8 or +0x1E9 is 1. Ghost world (US 0x80131DEA/0x80131EB6,
@@ -251,13 +253,13 @@ extern "C" void MH3_MonsterCountdown818(CpuContext* ctx) {
     CountDown(ctx->gpr[3], kHidden1);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80131E24, MH3_MonsterCountdown818, "MonsterCountdown818");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80131E24, MH3_MonsterCountdown818, "MonsterCountdown818");
 
 extern "C" void MH3_MonsterCountdown81A(CpuContext* ctx) {
     CountDown(ctx->gpr[3], kHidden2);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80131EF0, MH3_MonsterCountdown81A, "MonsterCountdown81A");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80131EF0, MH3_MonsterCountdown81A, "MonsterCountdown81A");
 
 // 0x80137434 (monster): sets the model's material colours, scaled by +0x1D4
 // (enemy_step.cpp). Ghost world (C2 at US 0x80137478, EU 0x801374DC) makes it
@@ -272,7 +274,7 @@ extern "C" void MH3_CheatMonsterColour(CpuContext* ctx) {
     PortCheck::Call(ctx, "MonsterColours", func_80137434, MH3_MonsterColoursPort);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80137434, MH3_CheatMonsterColour, "CheatMonsterColour");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80137434, MH3_CheatMonsterColour, "CheatMonsterColour");
 
 // 0x8013369C (monster): 1 while it shows on the map (+0x810 above 0). Show
 // all monsters on the map (US 0x80133638, EU 0x8013369C) reads 2.
@@ -281,7 +283,7 @@ extern "C" void MH3_MonsterOnMap(CpuContext* ctx) {
     ctx->gpr[3] = shown > 0;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8013369C, MH3_MonsterOnMap, "MonsterOnMap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013369C, MH3_MonsterOnMap, "MonsterOnMap");
 
 // 0x80137980 (monster): a monster's step; while running, after its senses
 // (0x801382A0) the spawn state +0x17 picks what follows, 0 (in play) marking
@@ -305,7 +307,7 @@ extern "C" void MH3_CheatMonsterStep(CpuContext* ctx) {
         Memory::Write8(monster + kSpawn, 0);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80137980, MH3_CheatMonsterStep, "CheatMonsterStep");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80137980, MH3_CheatMonsterStep, "CheatMonsterStep");
 
 // 0x803C4878: 1 while an event scene (state 4, the byte 0x806D4FA0) plays.
 // Monster can't see you is in the port of its caller 0x801382A0
@@ -315,7 +317,7 @@ extern "C" void MH3_CheatEventDemoState4(CpuContext* ctx) {
     ctx->gpr[3] = MemoryInline::FlatRead8(0x806D4FA0) == 4 ? 1 : 0;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803C4878, MH3_CheatEventDemoState4, "CheatEventDemoState4");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803C4878, MH3_CheatEventDemoState4, "CheatEventDemoState4");
 
 // The quest's large monster entries: Boss/s mod, Set boss/s size to and Set
 // boss/s level to (US 0x803AEB7C/BAC/BB4, EU 0x803AEBE0/C10/C18) are in the

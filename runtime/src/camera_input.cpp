@@ -36,7 +36,7 @@
 namespace {
 
 enum : uint32_t {
-    kSystem = 0x8065AA60,  // system_w
+    kSystem = 0x80768AA8,  // system_w
     kCameraFrozen = 0x2A,  // u8 system_w: no camera input (event)
     kFlags = 0x49C,        // u8 camera: bit 0 inverts yaw, bit 1 pitch
     kPitchTarget = 0x64,   // s32 (s16 angle)
@@ -70,19 +70,19 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    CameraUsable = 0x802BE2F0,  // (PLW) -> 1 when the stick may move the camera
-    CameraMode = 0x802B7880,    // (camera work) -> 0 in the normal follow mode
-    OptionConfig = 0x803BED04,  // get_option_cfg (player, option) -> u8
-    TargetHeld = 0x8027A304,    // (PLW, 0) -> 1: swing behind while targeting
-    SwingBack = 0x802B6C30,     // (f1 lo, f2 hi, f3 gain; r3 u16 gap) -> s16 turn this step
-    PlStickLevel = 0x8026F96C,  // (PLW, stick) -> 0 when the stick is near the middle
-    CameraSurfaced = 0x802B79E4, // (PLW) -> 1 swimming at the surface
-    CameraUnderwater = 0x802BE0EC, // () -> 1 the camera below the water line
+    CameraUsable = 0x803764D4,     // (PLW) -> 1 when the stick may move the camera
+    CameraMode = 0x8036F6FC,       // (camera work) -> 0 in the normal follow mode
+    OptionConfig = 0x802CAC4C,     // get_option_cfg (player, option) -> u8
+    TargetHeld = 0x8034A580,       // (PLW, 0) -> 1: swing behind while targeting
+    SwingBack = 0x8036EA9C,        // (f1 lo, f2 hi, f3 gain; r3 u16 gap) -> s16 turn this step
+    PlStickLevel = 0x8033D48C,     // (PLW, stick) -> 0 when the stick is near the middle
+    CameraSurfaced = 0x8036F858,   // (PLW) -> 1 swimming at the surface
+    CameraUnderwater = 0x803762A0, // () -> 1 the camera below the water line
 };
 
-constexpr uint32_t kSwingLo = 0x8079C9F0, kSwingHi = 0x8079C9F4, kSwingGain = 0x8079C9F8; // f32
-constexpr uint32_t kFloatZero = 0x8079C998;                                                // f32 0.0
-constexpr uint32_t kPitchRampSteps = 0x8079CA10;                                           // f32 20.0
+constexpr uint32_t kSwingLo = 0x808A7750, kSwingHi = 0x808A7754, kSwingGain = 0x808A7758; // f32
+constexpr uint32_t kFloatZero = 0x808A76F8;                                                // f32 0.0
+constexpr uint32_t kPitchRampSteps = 0x808A7770;                                           // f32 20.0
 
 bool Command(uint32_t plw, uint32_t bit) {
     return (Memory::Read32(plw + kPlwCommands) >> bit) & 1;
@@ -394,23 +394,23 @@ static void CameraAngleEasePort(CpuContext* ctx) {
     ctx->gpr[3] = uint32_t(int32_t(std::lround(perTick * elapsed) - std::lround(perTick * (elapsed - s))));
 }
 
-extern "C" void func_802B6864(CpuContext* ctx);
+extern "C" void func_8036E6E0(CpuContext* ctx);
 extern "C" void MH3_CameraYawInput(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CameraYawInput", func_802B6864, CameraYawInputPort);
+    PortCheck::Call(ctx, "CameraYawInput", func_8036E6E0, CameraYawInputPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B6864, MH3_CameraYawInput, "CameraYawInput");
+REGISTER_NATIVE_FUNCTION_AS(0x8036E6E0, MH3_CameraYawInput, "CameraYawInput");
 
-extern "C" void func_802B6D30(CpuContext* ctx);
+extern "C" void func_8036EB98(CpuContext* ctx);
 extern "C" void MH3_CameraPitchInput(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CameraPitchInput", func_802B6D30, CameraPitchInputPort);
+    PortCheck::Call(ctx, "CameraPitchInput", func_8036EB98, CameraPitchInputPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B6D30, MH3_CameraPitchInput, "CameraPitchInput");
+REGISTER_NATIVE_FUNCTION_AS(0x8036EB98, MH3_CameraPitchInput, "CameraPitchInput");
 
-extern "C" void func_802BDC90(CpuContext* ctx);
+extern "C" void func_80375DA4(CpuContext* ctx);
 extern "C" void MH3_CameraAngleEase(CpuContext* ctx) {
     if (PortCheck::Enabled("CameraAngleEase")) [[unlikely]]
-        PortCheck::RunPure(ctx, "CameraAngleEase", PortCheck::Returns::Gpr3, func_802BDC90, CameraAngleEasePort);
+        PortCheck::RunPure(ctx, "CameraAngleEase", PortCheck::Returns::Gpr3, func_80375DA4, CameraAngleEasePort);
     else
         CameraAngleEasePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BDC90, MH3_CameraAngleEase, "CameraAngleEase");
+REGISTER_NATIVE_FUNCTION_AS(0x80375DA4, MH3_CameraAngleEase, "CameraAngleEase");

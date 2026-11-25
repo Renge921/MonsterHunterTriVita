@@ -8,8 +8,8 @@
 //              owner's virtual +0xC; byte 0x806A51B0 cleared
 //   0x800D854C ShellSlotsUpdate(obj): the object's 32 shell slots (0x50
 //              bytes from +0x3C; u8 live +0, kind +1, state +2): kinds 3 and
-//              4 advance (0x800D8F0C) in states 2 (kind 3 only), 3 and 4,
-//              then ShellSlotUpdate (0x800D9348) and ShellSlotFinish
+//              4 advance (0x802B087C) in states 2 (kind 3 only), 3 and 4,
+//              then ShellSlotUpdate (0x802B0CDC) and ShellSlotFinish
 //              (0x800D8468)
 //   0x800D8614 ShellSlotsUpdate2(obj, ...): the same (the 3D sources' kinds
 //              9-12)
@@ -63,7 +63,7 @@ void WriteFloat(uint32_t a, float v) {
     MemoryInline::FlatWriteFloat32(a, v);
 }
 
-constexpr uint32_t kEffectObjects = 0x806A4570u;
+constexpr uint32_t kEffectObjects = 0x80732C80u;
 
 // Memos of the loops' indirect calls (GuestCall::CallAt, VirtualAt).
 const RawDispatchRecord* effectObjectMemo = nullptr;
@@ -127,7 +127,7 @@ void TraceEffectObjects() {
 
         if (seen.insert(uint64_t(callback) << 16 | kind).second)
             std::fprintf(stderr, "MH3 effect object: callback %08x kind %u type %u state %u index %d tick %u\n", callback, kind >> 8, kind & 0xFF,
-                         MemoryInline::FlatRead8(entry + 5), int(i), Read32(0x8065AA6Cu));
+                         MemoryInline::FlatRead8(entry + 5), int(i), Read32(0x80768AB4u));
     }
 
     if (now - lastPrint < 900)
@@ -149,6 +149,7 @@ void EffectObjectsUpdate(CpuContext* ctx) {
     GuestCall game{ctx};
     const uint32_t manager = Read32(kEffectObjects + 4);
 
+    game.Call<0x8050373C>();
     if (!manager)
         return;
 
@@ -156,7 +157,7 @@ void EffectObjectsUpdate(CpuContext* ctx) {
     if (traced) [[unlikely]]
         TraceEffectObjects();
 #endif
-    game.Call<0x800F9608>({manager});
+    game.Call<0x80037D38>({manager});
     MemoryInline::FlatWrite8(kEffectObjects + 0xC40, 0);
 
     for (int32_t i = 0; i < int32_t(Read32(kEffectObjects + 0xC)); ++i) {
@@ -189,14 +190,23 @@ void ShellSlots(CpuContext* ctx, bool advance) {
 
         if (advance) {
             if (kind == 3 && MemoryInline::FlatRead8(slot + 2) == 2)
-                game.Call<0x800D8F0C>({obj, slot});
+                game.Call<0x802B087C>({obj, slot});
 
             if (uint8_t(MemoryInline::FlatRead8(slot + 2) + 253) <= 1) // state 3 or 4
-                game.Call<0x800D8F0C>({obj, slot});
+                game.Call<0x802B087C>({obj, slot});
         }
 
-        game.Call<0x800D9348>({obj, slot}); // ShellSlotUpdate
-        game.Call<0x800D8468>({slot});      // ShellSlotFinish
+        game.Call<0x802B0CDC>({obj, slot}); // ShellSlotUpdate
+        switch (MemoryInline::FlatRead8(slot + 2)) {
+        case 1:
+            game.Call<0x802B0284>({slot});
+            break;
+        case 2:
+        case 3:
+        case 4:
+            game.Call<0x802B0588>({slot});
+            break;
+        }
     }
 }
 
@@ -213,15 +223,15 @@ void FieldObjectsUpdate(CpuContext* ctx) {
     GuestCall game{ctx};
     const uint32_t phase = frame.Arg(3) & 0xFF;
 
-    for (int32_t i = 0; i < int32_t(Read32(0x806AFB1Cu)); ++i) {
-        const uint32_t object = Read32(0x806AFB20u) + uint32_t(i) * 0x10C;
+    for (int32_t i = 0; i < int32_t(Read32(0x8076AD2Cu)); ++i) {
+        const uint32_t object = Read32(0x8076AD30u) + uint32_t(i) * 0x10C;
 
         if (!MemoryInline::FlatRead8(object) || MemoryInline::FlatRead8(object + 0x108) != phase)
             continue;
 
         game.CallAt(fieldObjectMemo, Read32(object + 0xF8), {object});
-        game.Call<0x8029F040>({object + 0x5C});
-        game.Call<0x8029F070>({object + 0xB8});
+        game.Call<0x801B1C30>({object + 0x5C});
+        game.Call<0x801B1C60>({object + 0xB8});
     }
 }
 
@@ -235,23 +245,24 @@ void FieldObjectDraw(CpuContext* ctx) {
         if (model != Read32(Read32(ch + 0x10C) + 4))
             return;
 
-        game.Call<0x8007F130>({Read32(0x8079B2E0u - 17580), model}); // ScnRootPushBack
+        const uint32_t root = Read32(0x808A04CCu);
+        game.Virtual<0x34>(root, {Read32(root + 0xE4), model}); // ScnRootPushBack
     }
 
-    if (!MemoryInline::FlatRead8(object + 1) || MemoryInline::FlatRead8(object + 8) != (game.Call<0x802AFCE8>() & 0xFF))
+    if (!MemoryInline::FlatRead8(object + 1) || MemoryInline::FlatRead8(object + 8) != (game.Call<0x8037D338>() & 0xFF))
         return;
 
     if (mode == 0)
-        game.Call<0x800E3BF0>({1, MemoryInline::FlatRead8(ch + 0x35), model, 0, 0, 0, 0}); // PrimRequest
+        game.Call<0x802A191C>({1, MemoryInline::FlatRead8(ch + 0x35), model, 0, 0, 0, 0}); // PrimRequest
     else if (mode == 1)
-        game.Call<0x800E3BF0>({1, 1, ch, 2, 0, 0, 0});
+        game.Call<0x802A191C>({1, 1, ch, 2, 0, 0, 0});
 }
 
 void CapsuleSetup(uint32_t seg, uint32_t out) {
     for (uint32_t k = 0; k < 0x1C; k += 4)
         MemoryInline::FlatWrite32(out + k, Read32(seg + k)); // p0, p1, radius
 
-    const float half = ReadFloat(0x8079C7D0u); // 0.5f (r2 - 14224)
+    const float half = 0.5f;
 
     for (uint32_t k = 0; k < 12; k += 4) {
         WriteFloat(out + 0x1C + k, ReadFloat(seg + 0xC + k) - ReadFloat(seg + k));
@@ -267,43 +278,43 @@ uint32_t OffsetOrNull(uint32_t ref, uint32_t offset) {
 
 } // namespace
 
-extern "C" void func_800F8E08(CpuContext* ctx);
+extern "C" void func_80037450(CpuContext* ctx);
 extern "C" void MH3_EffectObjectsUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EffectObjectsUpdate", func_800F8E08, EffectObjectsUpdate);
+    PortCheck::Call(ctx, "EffectObjectsUpdate", func_80037450, EffectObjectsUpdate);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800F8E08, MH3_EffectObjectsUpdate, "EffectObjectsUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x80037450, MH3_EffectObjectsUpdate, "EffectObjectsUpdate");
 
-extern "C" void func_800D854C(CpuContext* ctx);
+extern "C" void func_802AFE8C(CpuContext* ctx);
 extern "C" void MH3_ShellSlotsUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ShellSlotsUpdate", func_800D854C, ShellSlotsUpdate);
+    PortCheck::Call(ctx, "ShellSlotsUpdate", func_802AFE8C, ShellSlotsUpdate);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D854C, MH3_ShellSlotsUpdate, "ShellSlotsUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x802AFE8C, MH3_ShellSlotsUpdate, "ShellSlotsUpdate");
 
-extern "C" void func_800D8614(CpuContext* ctx);
+extern "C" void func_802AFF9C(CpuContext* ctx);
 extern "C" void MH3_ShellSlotsUpdate2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ShellSlotsUpdate2", func_800D8614, ShellSlotsUpdate);
+    PortCheck::Call(ctx, "ShellSlotsUpdate2", func_802AFF9C, ShellSlotsUpdate);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D8614, MH3_ShellSlotsUpdate2, "ShellSlotsUpdate2");
+REGISTER_NATIVE_FUNCTION_AS(0x802AFF9C, MH3_ShellSlotsUpdate2, "ShellSlotsUpdate2");
 
-extern "C" void func_800D8794(CpuContext* ctx);
+extern "C" void func_802B01B4(CpuContext* ctx);
 extern "C" void MH3_ShellSlotsRefresh(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ShellSlotsRefresh", func_800D8794, ShellSlotsRefresh);
+    PortCheck::Call(ctx, "ShellSlotsRefresh", func_802B01B4, ShellSlotsRefresh);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D8794, MH3_ShellSlotsRefresh, "ShellSlotsRefresh");
+REGISTER_NATIVE_FUNCTION_AS(0x802B01B4, MH3_ShellSlotsRefresh, "ShellSlotsRefresh");
 
-extern "C" void func_802AAE40(CpuContext* ctx);
+extern "C" void func_8036266C(CpuContext* ctx);
 extern "C" void MH3_FieldObjectsUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "FieldObjectsUpdate", func_802AAE40, FieldObjectsUpdate);
+    PortCheck::Call(ctx, "FieldObjectsUpdate", func_8036266C, FieldObjectsUpdate);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AAE40, MH3_FieldObjectsUpdate, "FieldObjectsUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8036266C, MH3_FieldObjectsUpdate, "FieldObjectsUpdate");
 
-extern "C" void func_802AAF88(CpuContext* ctx);
+extern "C" void func_803627BC(CpuContext* ctx);
 extern "C" void MH3_FieldObjectDraw(CpuContext* ctx) {
-    PortCheck::Call(ctx, "FieldObjectDraw", func_802AAF88, FieldObjectDraw);
+    PortCheck::Call(ctx, "FieldObjectDraw", func_803627BC, FieldObjectDraw);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AAF88, MH3_FieldObjectDraw, "FieldObjectDraw");
+REGISTER_NATIVE_FUNCTION_AS(0x803627BC, MH3_FieldObjectDraw, "FieldObjectDraw");
 
-extern "C" void func_8028F5BC(CpuContext* ctx);
+extern "C" void func_801A0F20(CpuContext* ctx);
 static void CapsuleSetupPort(CpuContext* p) {
     CapsuleSetup(p->gpr[3], p->gpr[4]);
 }
@@ -313,10 +324,10 @@ static void CapsuleSetupChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint3
     if (PortCheck::Enabled("CapsuleSetup")) [[unlikely]] {
         CpuContext* c = TryGetCpuContext();
         c->gpr[1] = r1;
-        c->gpr[2] = 0x8079FF60u;
+        c->gpr[2] = 0x808A93C0u;
         c->gpr[3] = r3;
         c->gpr[4] = r4;
-        PortCheck::RunOutput(c, "CapsuleSetup", func_8028F5BC, CapsuleSetupPort, {{r4, 0x38}});
+        PortCheck::RunOutput(c, "CapsuleSetup", func_801A0F20, CapsuleSetupPort, {{r4, 0x38}});
         return;
     }
 #endif
@@ -326,9 +337,9 @@ static void CapsuleSetupChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint3
 extern "C" void MH3_CapsuleSetup(CpuContext* ctx) {
     CapsuleSetupChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028F5BC, MH3_CapsuleSetup, "CapsuleSetup");
+REGISTER_NATIVE_FUNCTION_AS(0x801A0F20, MH3_CapsuleSetup, "CapsuleSetup");
 
-extern "C" void func_80099418(CpuContext* ctx);
+extern "C" void func_8051F064(CpuContext* ctx);
 static void OffsetOrNullPort(CpuContext* p) {
     p->gpr[3] = OffsetOrNull(p->gpr[3], p->gpr[4]);
 }
@@ -340,7 +351,7 @@ static uint32_t OffsetOrNullChecked([[maybe_unused]] uint32_t r1, uint32_t r3, u
         c->gpr[1] = r1;
         c->gpr[3] = r3;
         c->gpr[4] = r4;
-        PortCheck::RunPure(c, "ResOffsetOrNull", PortCheck::Returns::Gpr3, func_80099418, OffsetOrNullPort);
+        PortCheck::RunPure(c, "ResOffsetOrNull", PortCheck::Returns::Gpr3, func_8051F064, OffsetOrNullPort);
         return c->gpr[3];
     }
 #endif
@@ -350,4 +361,4 @@ static uint32_t OffsetOrNullChecked([[maybe_unused]] uint32_t r1, uint32_t r3, u
 extern "C" void MH3_ResOffsetOrNull(CpuContext* ctx) {
     ctx->gpr[3] = OffsetOrNullChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80099418, MH3_ResOffsetOrNull, "ResOffsetOrNull");
+REGISTER_NATIVE_FUNCTION_AS(0x8051F064, MH3_ResOffsetOrNull, "ResOffsetOrNull");

@@ -1,5 +1,5 @@
-// Loading screen, RMHP08. C reconstruction of the "Now Loading" letter
-// animation (0x800D09E4), which DrawHud (0x800D10B0) calls once per frame
+// Loading screen, RMHJ08 (PAL: 0x800D09E4). C reconstruction of the "Now Loading"
+// letter animation (0x802BDCF0), which DrawHud (0x802BE28C) calls once per frame
 // while the loading screen is up.
 //
 // The letters hop in one after another from the left, hold, then hop out from
@@ -24,25 +24,24 @@
 
 namespace {
 
-// Loading work (0x806977A0). Per letter i: s16 frame of its hop at +0x64 + 2i,
-// s16 slide at +0x7A + 2i, s16 height at +0x90 + 2i, s32 tilt at +0x08 + 4i.
-constexpr uint32_t kLoading = 0x806977A0;
+// Loading work (0x80767868 in RMHJ08, PAL: 0x806977A0). Per letter i:
+// s16 frame of its hop at +0x60 + 2i, s16 slide at +0x74 + 2i,
+// s16 height at +0x88 + 2i, s32 tilt at +0x08 + 4i.
+constexpr uint32_t kLoading = 0x80767868;
 enum : uint32_t {
     kPhase = 0x02,   // u8: 0 hop in, 1 hold, 2 hop out, 3 hold
     kLead = 0x03,    // s8: last letter that has started its hop
     kLanded = 0x04,  // s8: letters whose hop has finished
     kCounter = 0x06, // s16: frames in this phase (hold: frames left)
     kTilt = 0x08,
-    kHop = 0x64,
-    kSlide = 0x7A,
-    kHeight = 0x90,
+    kHop = 0x60,
+    kSlide = 0x74,
+    kHeight = 0x88,
 };
 
-constexpr uint32_t kLanguage = 0x8065AA69; // u8 (System_w +9)
-constexpr int32_t kLetterCounts = -0x7AC0; // r13: u8 letters per language
 constexpr int32_t kHopStep = 8, kTiltStep = 1820;
 constexpr int16_t kHoldFrames = 4;
-constexpr uint32_t kMaxLetters = 11;
+constexpr uint32_t kMaxLetters = 10;
 
 int8_t S8(uint32_t o) {
     return int8_t(Memory::Read8(kLoading + o));
@@ -254,25 +253,20 @@ struct Animation {
 
 Animation animation;
 
-void LoadingLetters(CpuContext* ctx) {
-    const uint32_t letters = Memory::Read8(ctx->gpr[13] + uint32_t(kLetterCounts) + Memory::Read8(kLanguage));
-
-    if (letters == 0 || letters > kMaxLetters)
-        return;
-
-    animation.Step(letters, GameStep::Scale());
+void LoadingLetters(CpuContext* /*ctx*/) {
+    animation.Step(kMaxLetters, GameStep::Scale());
 }
 
 } // namespace
 
-extern "C" void func_800D09E4(CpuContext* ctx);
+extern "C" void func_802BDCF0(CpuContext* ctx);
 
 extern "C" void MH3_LoadingLetters(CpuContext* ctx) {
-    PortCheck::Call(ctx, "LoadingLetters", func_800D09E4, LoadingLetters);
+    PortCheck::Call(ctx, "LoadingLetters", func_802BDCF0, LoadingLetters);
 
     // The loading screen absorbs the area's first-sight work: resolve the
     // draw tables of the models loaded so far.
     PrepareNativeModelDrawTables();
     NoteNativeLoadingFrame();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D09E4, MH3_LoadingLetters, "LoadingLetters");
+REGISTER_NATIVE_FUNCTION_AS(0x802BDCF0, MH3_LoadingLetters, "LoadingLetters");

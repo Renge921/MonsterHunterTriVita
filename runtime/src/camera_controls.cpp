@@ -63,32 +63,30 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    FollowState = 0x8027A3A4,  // (PLW) -> 1 when the camera may follow
-    CameraBusy = 0x802BE450,   // () -> 1
-    CameraLocked = 0x802BE480, // () -> 1
-    CameraAiming = 0x802B9618, // () -> 1
-    TargetHeld = 0x8027A304,   // (PLW, 0) -> 1
-    CameraEvent = 0x802B7A1C,
-    CameraView = 0x802B8BCC,   // () -> s8 view
-    ActionCheck = 0x8026FECC,  // Pl_act_ck (PLW, u8 kind, u16 action) -> 1
-    FrameCheck = 0x8026A378,   // Pl_frame_check (PLW, n; f1, f2) -> 1
-    CameraManager = 0x802BED34, // (r3) -> the camera
-    CameraPosition = 0x802BDD44, // get_camera_pos (VEC3*)
-    RotY = 0x800510C8,         // rotVecY (VEC3*, angle)
-    VecAdd = 0x800513DC,       // (out, a, b)
-    VecCopy = 0x80041EA4,      // (to, from) -> to
+    FollowState = 0x8034A61C,  // (PLW) -> 1 when the camera may follow
+    CameraBusy = 0x80376638,   // () -> 1
+    CameraLocked = 0x80376668, // () -> 1
+    DemoBusy = 0x8038CD84,     // () -> u8 != 0 when event demo / camera blocked
+    TargetHeld = 0x8034A580,   // (PLW, 0) -> 1
+    CameraEvent = 0x8036F890,
+    ActionCheck = 0x8033DC3C,  // Pl_act_ck (PLW, u8 kind, u16 action) -> 1
+    FrameCheck = 0x803385D4,   // Pl_frame_check (PLW, n; f1, f2) -> 1
+    CameraManager = 0x80377164, // (r3) -> the camera
+    GetTargetWork = 0x802AF770, // () -> current target work*
+    GetActorPos = 0x80532454,   // (work_ptr*, VEC3* out)
+    RotY = 0x8028BD04,          // rotVecY (VEC3*, angle)
 };
 
-constexpr uint32_t kCameraBlocked = 0x806D4FA0; // u8: > 1 no camera input
-constexpr uint32_t kRows = 0x805D03A8;          // distance rows, 28 bytes
-constexpr uint32_t kRowsSwimming = 0x805D0488;
+constexpr uint32_t kCameraBlocked = 0x807863D0; // u8: > 1 no camera input
+constexpr uint32_t kRows = 0x806E2128;          // distance rows, 28 bytes
+constexpr uint32_t kRowsSwimming = 0x806E2208;
 constexpr uint32_t kRowRidingMid = kRows + 140;
-constexpr uint32_t kZero = 0x8079C998;          // f32 0
-constexpr uint32_t kSurface = 0x8079CA2C;       // f32: the surfaced height
-constexpr uint32_t kFull = 0x8079CA08;          // f32 65536
-constexpr uint32_t kSwingScale = 0x8079CA0C;    // f32 c
-constexpr uint32_t kFrameEvent0 = 0x8079C9E0;   // f32 frames
-constexpr uint32_t kFrameEvent1 = 0x8079CA30;
+constexpr uint32_t kZero = 0x808A76F8;          // f32 0
+constexpr uint32_t kSurface = 0x808A778C;       // f32: the surfaced height
+constexpr uint32_t kFull = 0x808A7768;          // f32 65536
+constexpr uint32_t kSwingScale = 0x808A776C;    // f32 c
+constexpr uint32_t kFrameEvent0 = 0x808A7740;   // f32 frames
+constexpr uint32_t kFrameEvent1 = 0x808A7790;
 
 float F(uint32_t address) {
     return Memory::ReadFloat32(address);
@@ -165,16 +163,17 @@ static void CameraUsablePort(CpuContext* ctx) {
         GuestCall game{ctx};
         const uint32_t plw = frame.Arg(3);
 
-        // The callees take no arguments; r3 carries the last result, as there.
         uint32_t r3 = game.Call<CameraBusy>({plw});
+        const auto cameraAiming = [&]() { return int8_t(Memory::Read8(game.Call<CameraManager>({0}) + 0x118)) > 0; };
+        const auto cameraView = [&]() { return int8_t(Memory::Read8(game.Call<CameraManager>({0}) + 0x9C)); };
 
-        if (r3 == 1 || Memory::Read8(kCameraBlocked) > 1 || (r3 = game.Call<CameraLocked>({0})) == 1 || (r3 = game.Call<CameraAiming>({r3})) == 1 ||
-            Memory::Read8(plw + kPlwNoCamera) != 0 || game.Call<TargetHeld>({plw, 0}) == 1 || (r3 = game.Call<CameraEvent>({plw, 1})) == 1) {
+        if (r3 == 1 || (game.Call<DemoBusy>({0}) & 0xFF) != 0 || game.Call<CameraLocked>({0}) == 1 || cameraAiming() ||
+            Memory::Read8(plw + kPlwNoCamera) != 0 || game.Call<TargetHeld>({plw, 0}) == 1 || game.Call<CameraEvent>({plw, 1}) == 1) {
             usable = 0;
-        } else if (int8_t((r3 = game.Call<CameraView>({r3}))) == 0 || int8_t((r3 = game.Call<CameraView>({r3}))) == 1) {
+        } else if (cameraView() == 0 || cameraView() == 1) {
             usable = 0;
         } else {
-            usable = int8_t(game.Call<CameraView>({r3})) != 3;
+            usable = cameraView() != 3;
         }
     }
 
@@ -247,14 +246,20 @@ static void CameraTargetModePort(CpuContext* ctx) {
     Memory::Write32(offset + 4, Memory::Read32(row + 4));
     Memory::Write32(offset + 8, Memory::Read32(row + 8));
     game.Call<RotY>({offset, Memory::Read32(camera + kYawTarget)});
-    game.Call<VecAdd>({eye, plw + kPlwPosition, offset});
-    game.Call<VecCopy>({camera + kEye, game.Call<VecCopy>({camera + kEyeWanted, eye})});
+    for (uint32_t k = 0; k < 3; ++k) {
+        Memory::WriteFloat32(eye + 4 * k, F(plw + kPlwPosition + 4 * k) + F(offset + 4 * k));
+        const uint32_t w = Memory::Read32(eye + 4 * k);
+        Memory::Write32(camera + kEyeWanted + 4 * k, w);
+        Memory::Write32(camera + kEye + 4 * k, w);
+    }
 
-    for (uint32_t k = 0; k < 3; ++k)
+    for (uint32_t k = 0; k < 3; ++k) {
         Memory::Write32(rowTarget + 4 * k, Memory::Read32(row + 12 + 4 * k));
-
-    game.Call<VecAdd>({target, plw + kPlwPosition, rowTarget});
-    game.Call<VecCopy>({camera + kTarget, game.Call<VecCopy>({camera + kTargetWanted, target})});
+        Memory::WriteFloat32(target + 4 * k, F(plw + kPlwPosition + 4 * k) + F(rowTarget + 4 * k));
+        const uint32_t w = Memory::Read32(target + 4 * k);
+        Memory::Write32(camera + kTargetWanted + 4 * k, w);
+        Memory::Write32(camera + kTarget + 4 * k, w);
+    }
 
     for (uint32_t k = 0; k < 18; ++k)
         Memory::Write32(camera + kShakes + 4 * k, zero);
@@ -276,8 +281,9 @@ static void CameraUnderwaterPort(CpuContext* ctx) {
         const uint32_t camera = game.Call<CameraManager>({frame.Arg(3)});
 
         if (Memory::Read16(camera + 0x4F4) & 7) {
-            game.Call<CameraPosition>({frame[8]});
-            under = F(frame[8] + 4) < F(kZero);
+            Memory::Write32(frame[8], game.Call<GetTargetWork>({}));
+            game.Call<GetActorPos>({frame[8], frame[12]});
+            under = F(frame[12] + 4) < F(kZero);
         }
     }
 
@@ -319,26 +325,26 @@ static void PlStickLevelPort(CpuContext* ctx) {
             name##Port(ctx); \
     }
 
-MH3_CAMERA_PURE(802B6C30, CameraSwingBack)
-REGISTER_NATIVE_FUNCTION_AS(0x802B6C30, MH3_CameraSwingBack, "CameraSwingBack");
+MH3_CAMERA_PURE(8036EA9C, CameraSwingBack)
+REGISTER_NATIVE_FUNCTION_AS(0x8036EA9C, MH3_CameraSwingBack, "CameraSwingBack");
 
-MH3_CAMERA_PORT(802B8AF0, CameraFollowMode)
-REGISTER_NATIVE_FUNCTION_AS(0x802B8AF0, MH3_CameraFollowMode, "CameraFollowMode");
+MH3_CAMERA_PORT(80370950, CameraFollowMode)
+REGISTER_NATIVE_FUNCTION_AS(0x80370950, MH3_CameraFollowMode, "CameraFollowMode");
 
-MH3_CAMERA_PORT(802BE2F0, CameraUsable)
-REGISTER_NATIVE_FUNCTION_AS(0x802BE2F0, MH3_CameraUsable, "CameraUsable");
+MH3_CAMERA_PORT(803764D4, CameraUsable)
+REGISTER_NATIVE_FUNCTION_AS(0x803764D4, MH3_CameraUsable, "CameraUsable");
 
-MH3_CAMERA_PORT(802B7A1C, CameraEvent)
-REGISTER_NATIVE_FUNCTION_AS(0x802B7A1C, MH3_CameraEvent, "CameraEvent");
+MH3_CAMERA_PORT(8036F890, CameraEvent)
+REGISTER_NATIVE_FUNCTION_AS(0x8036F890, MH3_CameraEvent, "CameraEvent");
 
-MH3_CAMERA_PORT(802B8C4C, CameraTargetMode)
-REGISTER_NATIVE_FUNCTION_AS(0x802B8C4C, MH3_CameraTargetMode, "CameraTargetMode");
+MH3_CAMERA_PORT(80370A80, CameraTargetMode)
+REGISTER_NATIVE_FUNCTION_AS(0x80370A80, MH3_CameraTargetMode, "CameraTargetMode");
 
-MH3_CAMERA_PURE(802B79E4, CameraSurfaced)
-REGISTER_NATIVE_FUNCTION_AS(0x802B79E4, MH3_CameraSurfaced, "CameraSurfaced");
+MH3_CAMERA_PURE(8036F858, CameraSurfaced)
+REGISTER_NATIVE_FUNCTION_AS(0x8036F858, MH3_CameraSurfaced, "CameraSurfaced");
 
-MH3_CAMERA_PURE(802BE0EC, CameraUnderwater)
-REGISTER_NATIVE_FUNCTION_AS(0x802BE0EC, MH3_CameraUnderwater, "CameraUnderwater");
+MH3_CAMERA_PURE(803762A0, CameraUnderwater)
+REGISTER_NATIVE_FUNCTION_AS(0x803762A0, MH3_CameraUnderwater, "CameraUnderwater");
 
-MH3_CAMERA_PURE(8026F96C, PlStickLevel)
-REGISTER_NATIVE_FUNCTION_AS(0x8026F96C, MH3_PlStickLevel, "PlStickLevel");
+MH3_CAMERA_PURE(8033D48C, PlStickLevel)
+REGISTER_NATIVE_FUNCTION_AS(0x8033D48C, MH3_PlStickLevel, "PlStickLevel");

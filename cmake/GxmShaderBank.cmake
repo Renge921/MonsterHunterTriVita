@@ -19,6 +19,16 @@ set(PSP2CGC "$ENV{PSP2CGC}" CACHE FILEPATH "Absolute path to Sony's psp2cgc.exe"
 function(mh3_gxm_shader_bank target xxhash_dir)
   set(root "${MH3_GXM_SHADER_BANK_ROOT}")
   set(dir "${CMAKE_BINARY_DIR}/gxm-shader-bank")
+
+  # If pre-generated shader bank files are present, reuse them directly.
+  if(EXISTS "${dir}/shader_bank.bin" AND EXISTS "${dir}/shader_bank_tables.cpp" AND EXISTS "${dir}/shader_bank.S")
+    message(STATUS "Using prebuilt GXM shader bank in ${dir}")
+    target_sources(${target} PRIVATE "${dir}/shader_bank_tables.cpp" "${dir}/shader_bank.S")
+    set_source_files_properties("${dir}/shader_bank_tables.cpp" PROPERTIES INCLUDE_DIRECTORIES "${root}/aurora-main/lib/gxm")
+    set_source_files_properties("${dir}/shader_bank.S" PROPERTIES OBJECT_DEPENDS "${dir}/shader_bank.bin")
+    return()
+  endif()
+
   find_program(MH3_HOST_CXX NAMES clang++-21 clang++ c++ REQUIRED)
   find_program(MH3_ZSTD zstd REQUIRED)
   find_program(MH3_DOCKER docker REQUIRED)

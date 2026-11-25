@@ -1111,17 +1111,17 @@ uint32_t Arg(CpuContext* cpu, int n) {
 extern "C" void MH3_DWCBase64Encode(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Base64Encode(Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805076D0, MH3_DWCBase64Encode, "DWC_Base64Encode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805076D0, MH3_DWCBase64Encode, "DWC_Base64Encode");
 
 extern "C" void MH3_DWCBase64Decode(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Base64Decode(Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507860, MH3_DWCBase64Decode, "DWC_Base64Decode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507860, MH3_DWCBase64Decode, "DWC_Base64Decode");
 
 extern "C" void MH3_DWCSetError(CpuContext* cpu) {
     SetError(Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507B10, MH3_DWCSetError, "DWCi_SetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507B10, MH3_DWCSetError, "DWCi_SetError");
 
 // DWC_Init(environment, game name, authentication server, alloc, free).
 extern "C" void MH3_DWCInit(CpuContext* cpu) {
@@ -1139,7 +1139,7 @@ extern "C" void MH3_DWCInit(CpuContext* cpu) {
     ConsoleFriendCode(cpu);
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507B30, MH3_DWCInit, "DWC_Init");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507B30, MH3_DWCInit, "DWC_Init");
 
 extern "C" void MH3_DWCShutdown(CpuContext* cpu) {
     GuestCall call{cpu};
@@ -1148,34 +1148,34 @@ extern "C" void MH3_DWCShutdown(CpuContext* cpu) {
     FreeList(cpu);
     Write(kInitialized, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507C30, MH3_DWCShutdown, "DWC_Shutdown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507C30, MH3_DWCShutdown, "DWC_Shutdown");
 
 extern "C" void MH3_DWCSetMemFunc(CpuContext* cpu) {
     Write(kAllocFunction, Arg(cpu, 3));
     Write(kFreeFunction, Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507C90, MH3_DWCSetMemFunc, "DWC_SetMemFunc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507C90, MH3_DWCSetMemFunc, "DWC_SetMemFunc");
 
 extern "C" void MH3_DWCAlloc(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, Arg(cpu, 3), Arg(cpu, 4), 0x20);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507CA0, MH3_DWCAlloc, "DWC_Alloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507CA0, MH3_DWCAlloc, "DWC_Alloc");
 
 extern "C" void MH3_DWCAllocEx(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507D10, MH3_DWCAllocEx, "DWC_AllocEx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507D10, MH3_DWCAllocEx, "DWC_AllocEx");
 
 extern "C" void MH3_DWCFree(CpuContext* cpu) {
     Free(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507D70, MH3_DWCFree, "DWC_Free");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507D70, MH3_DWCFree, "DWC_Free");
 
 // GameSpy's allocator (gsiMemoryCallbacksSet), kind 9.
 extern "C" void MH3_DWCGsMalloc(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, 9, Arg(cpu, 3), 0x20);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507D90, MH3_DWCGsMalloc, "DWCi_GsMalloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507D90, MH3_DWCGsMalloc, "DWCi_GsMalloc");
 
 extern "C" void MH3_DWCGsRealloc(CpuContext* cpu) {
     const uint32_t old = Arg(cpu, 3), size = Arg(cpu, 4);
@@ -1190,17 +1190,17 @@ extern "C" void MH3_DWCGsRealloc(CpuContext* cpu) {
 
     cpu->gpr[3] = block;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507E00, MH3_DWCGsRealloc, "DWCi_GsRealloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507E00, MH3_DWCGsRealloc, "DWCi_GsRealloc");
 
 extern "C" void MH3_DWCGsFree(CpuContext* cpu) {
     Free(cpu, 9, Arg(cpu, 3), 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507ED0, MH3_DWCGsFree, "DWCi_GsFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507ED0, MH3_DWCGsFree, "DWCi_GsFree");
 
 extern "C" void MH3_DWCGsMemalign(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, 9, Arg(cpu, 4), Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507F00, MH3_DWCGsMemalign, "DWCi_GsMemalign");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507F00, MH3_DWCGsMemalign, "DWCi_GsMemalign");
 
 // DWC_Printf(level, format, ...) from translated code: the arguments where
 // the variadic call left them.
@@ -1217,7 +1217,7 @@ extern "C" void MH3_DWCPrintf(CpuContext* cpu) {
 
     PrintWith(cpu, gprs, (cpu->cr & kCrFloatArgs) ? fprs : nullptr, cpu->gpr[1] + 8);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80507F70, MH3_DWCPrintf, "DWC_Printf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80507F70, MH3_DWCPrintf, "DWC_Printf");
 
 // DWC's memcpy.
 extern "C" void MH3_DWCCopy(CpuContext* cpu) {
@@ -1226,31 +1226,31 @@ extern "C" void MH3_DWCCopy(CpuContext* cpu) {
     if (bytes && to != from)
         std::memmove(Memory::GetPointer(to, bytes), Memory::GetPointer(from, bytes), bytes);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805082C0, MH3_DWCCopy, "DWCi_Copy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805082C0, MH3_DWCCopy, "DWCi_Copy");
 
 extern "C" void MH3_DWCGetConsoleFriendCode(CpuContext* cpu) {
     const uint64_t code = ConsoleFriendCode(cpu);
     cpu->gpr[3] = uint32_t(code >> 32);
     cpu->gpr[4] = uint32_t(code);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80508CB0, MH3_DWCGetConsoleFriendCode, "DWC_GetConsoleFriendCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80508CB0, MH3_DWCGetConsoleFriendCode, "DWC_GetConsoleFriendCode");
 
 extern "C" void MH3_DWCFreeList(CpuContext* cpu) {
     FreeList(cpu);
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80508DD0, MH3_DWCFreeList, "DWCi_FreeList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80508DD0, MH3_DWCFreeList, "DWCi_FreeList");
 
 extern "C" void MH3_DWCAuthInit(CpuContext* cpu) {
     AuthInit(cpu, Arg(cpu, 3));
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80508E20, MH3_DWCAuthInit, "DWCi_Auth_Init");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80508E20, MH3_DWCAuthInit, "DWCi_Auth_Init");
 
 extern "C" void MH3_DWCAuthStart(CpuContext* cpu) {
     cpu->gpr[3] = AuthStart(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80508EB0, MH3_DWCAuthStart, "DWCi_Auth_Start");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80508EB0, MH3_DWCAuthStart, "DWCi_Auth_Start");
 
 // The service locator (svcloc) for `svc`, with the given allocator.
 extern "C" void MH3_DWCSvlStart(CpuContext* cpu) {
@@ -1262,32 +1262,32 @@ extern "C" void MH3_DWCSvlStart(CpuContext* cpu) {
     Write(Work() + kWorkMode, 2);
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509070, MH3_DWCSvlStart, "DWCi_Svl_Start");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509070, MH3_DWCSvlStart, "DWCi_Svl_Start");
 
 extern "C" void MH3_DWCAuthProcess(CpuContext* cpu) {
     AuthProcess(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805090F0, MH3_DWCAuthProcess, "DWCi_Auth_Process");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805090F0, MH3_DWCAuthProcess, "DWCi_Auth_Process");
 
 extern "C" void MH3_DWCAuthIdle(CpuContext* cpu) {
     cpu->gpr[3] = AuthIdle();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509800, MH3_DWCAuthIdle, "DWCi_Auth_IsIdle");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509800, MH3_DWCAuthIdle, "DWCi_Auth_IsIdle");
 
 extern "C" void MH3_DWCAuthSucceeded(CpuContext* cpu) {
     cpu->gpr[3] = Read(kAuthResult) == 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509850, MH3_DWCAuthSucceeded, "DWCi_Auth_Succeeded");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509850, MH3_DWCAuthSucceeded, "DWCi_Auth_Succeeded");
 
 extern "C" void MH3_DWCAuthResult(CpuContext* cpu) {
     cpu->gpr[3] = Read(kAuthResult);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509870, MH3_DWCAuthResult, "DWCi_Auth_GetResult");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509870, MH3_DWCAuthResult, "DWCi_Auth_GetResult");
 
 extern "C" void MH3_DWCSvlData(CpuContext* cpu) {
     cpu->gpr[3] = kSvlData;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509880, MH3_DWCSvlData, "DWCi_Svl_GetResult");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509880, MH3_DWCSvlData, "DWCi_Svl_GetResult");
 
 // NHTTP's allocator: the login work's, kind 13 (r5 keeps the work, as the
 // original leaves it there).
@@ -1295,47 +1295,47 @@ extern "C" void MH3_DWCNhttpAlloc(CpuContext* cpu) {
     const uint32_t size = Arg(cpu, 3);
     cpu->gpr[3] = GuestCall{cpu}(Read(Work() + kWorkAlloc), {13, size, Work()});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80509890, MH3_DWCNhttpAlloc, "DWCi_NhttpAlloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80509890, MH3_DWCNhttpAlloc, "DWCi_NhttpAlloc");
 
 extern "C" void MH3_DWCNhttpFree(CpuContext* cpu) {
     const uint32_t block = Arg(cpu, 3);
     GuestCall{cpu}(Read(Work() + kWorkFree), {13, block, 0, Work()});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805098B0, MH3_DWCNhttpFree, "DWCi_NhttpFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805098B0, MH3_DWCNhttpFree, "DWCi_NhttpFree");
 
 // NAND's callback: (result, block).
 extern "C" void MH3_DWCNandDone(CpuContext* cpu) {
     Write(Work() + kWorkNandDone, 1);
     Write(Work() + kWorkNandResult, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805098D0, MH3_DWCNandDone, "DWCi_NandDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805098D0, MH3_DWCNandDone, "DWCi_NandDone");
 
 extern "C" void MH3_DWCAuthRequest(CpuContext* cpu) {
     SendAuthRequest(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7), Arg(cpu, 8));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805098F0, MH3_DWCAuthRequest, "DWCi_Auth_SendRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805098F0, MH3_DWCAuthRequest, "DWCi_Auth_SendRequest");
 
 extern "C" void MH3_DWCAuthAnswer(CpuContext* cpu) {
     AuthAnswer(cpu, Arg(cpu, 3), Arg(cpu, 4));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050A430, MH3_DWCAuthAnswer, "DWCi_Auth_Answer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050A430, MH3_DWCAuthAnswer, "DWCi_Auth_Answer");
 
 extern "C" void MH3_DWCAuthEnd(CpuContext* cpu) {
     EndAuth(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050AD90, MH3_DWCAuthEnd, "DWCi_Auth_EndProcess");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050AD90, MH3_DWCAuthEnd, "DWCi_Auth_EndProcess");
 
 extern "C" void MH3_DWCNandStepDone(CpuContext* cpu) {
     NandStepDone(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050ADF0, MH3_DWCNandStepDone, "DWCi_Auth_NandStepDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050ADF0, MH3_DWCNandStepDone, "DWCi_Auth_NandStepDone");
 
 // The login before the online menus (DWC_LoginAsync's account check).
 extern "C" void MH3_DWCCheckStart(CpuContext* cpu) {
     Write(kSvlState, 4);
     AuthStart(cpu, 0x807967F8, 0x807967FC, 0, 0, DwcAlloc, DwcFree);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050AF20, MH3_DWCCheckStart, "DWC_CheckStart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050AF20, MH3_DWCCheckStart, "DWC_CheckStart");
 
 // Its step: 2 running, 3 done, 4 failed (the error set), 5 canceled.
 extern "C" void MH3_DWCCheckProcess(CpuContext* cpu) {
@@ -1367,18 +1367,18 @@ extern "C" void MH3_DWCCheckProcess(CpuContext* cpu) {
 
     cpu->gpr[3] = result;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050AF50, MH3_DWCCheckProcess, "DWC_CheckProcess");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050AF50, MH3_DWCCheckProcess, "DWC_CheckProcess");
 
 extern "C" void MH3_DWCSvlReset(CpuContext* cpu) {
     Write(kSvlResult, 0);
     cpu->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B010, MH3_DWCSvlReset, "DWC_SvlInit");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B010, MH3_DWCSvlReset, "DWC_SvlInit");
 
 extern "C" void MH3_DWCSvlCleanup(CpuContext*) {
     Write(kSvlResult, 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B020, MH3_DWCSvlCleanup, "DWC_SvlCleanup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B020, MH3_DWCSvlCleanup, "DWC_SvlCleanup");
 
 // DWC_SvlGetTokenAsync(svc, result).
 extern "C" void MH3_DWCSvlGetToken(CpuContext* cpu) {
@@ -1389,9 +1389,9 @@ extern "C" void MH3_DWCSvlGetToken(CpuContext* cpu) {
     cpu->gpr[5] = DwcFree;
     MH3_DWCSvlStart(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B030, MH3_DWCSvlGetToken, "DWC_SvlGetTokenAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B030, MH3_DWCSvlGetToken, "DWC_SvlGetTokenAsync");
 
 extern "C" void MH3_DWCSvlProcess(CpuContext* cpu) {
     cpu->gpr[3] = SvlProcess(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050B050, MH3_DWCSvlProcess, "DWC_SvlProcess");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050B050, MH3_DWCSvlProcess, "DWC_SvlProcess");

@@ -451,4 +451,4 @@ extern "C" void func_80475880(CpuContext* ctx);
 extern "C" void MH3_AudioReverb(CpuContext* ctx) {
     PortCheck::Call(ctx, "AudioReverb", func_80475880, AudioReverb);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80475880, MH3_AudioReverb, "AudioReverb");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80475880, MH3_AudioReverb, "AudioReverb");

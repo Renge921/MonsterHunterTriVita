@@ -197,35 +197,35 @@ MH3_ACCESSOR2(80097F7C, ResDicAtOffset14, DicAtOffset14)
 extern "C" void MH3_EmitterResBody(CpuContext* ctx) {
     ctx->gpr[3] = EmitterResBodyChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A8C5C, MH3_EmitterResBody, "EmitterResBody");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800A8C5C, MH3_EmitterResBody, "EmitterResBody");
 extern "C" void MH3_ResEmitterNumPtclTrack(CpuContext* ctx) {
     ctx->gpr[3] = ResEmitterNumPtclTrackChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AD294, MH3_ResEmitterNumPtclTrack, "ResEmitterNumPtclTrack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AD294, MH3_ResEmitterNumPtclTrack, "ResEmitterNumPtclTrack");
 extern "C" void MH3_ResEmitterNumPtclInitTrack(CpuContext* ctx) {
     ctx->gpr[3] = ResEmitterNumPtclInitTrackChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800ADED8, MH3_ResEmitterNumPtclInitTrack, "ResEmitterNumPtclInitTrack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800ADED8, MH3_ResEmitterNumPtclInitTrack, "ResEmitterNumPtclInitTrack");
 extern "C" void MH3_ResEmitterPtclTrackTable(CpuContext* ctx) {
     ctx->gpr[3] = ResEmitterPtclTrackTableChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800ADEB4, MH3_ResEmitterPtclTrackTable, "ResEmitterPtclTrackTable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800ADEB4, MH3_ResEmitterPtclTrackTable, "ResEmitterPtclTrackTable");
 extern "C" void MH3_ResEmitterGetPtclTrack(CpuContext* ctx) {
     ctx->gpr[3] = ResEmitterGetPtclTrackChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800ADE30, MH3_ResEmitterGetPtclTrack, "ResEmitterGetPtclTrack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800ADE30, MH3_ResEmitterGetPtclTrack, "ResEmitterGetPtclTrack");
 extern "C" void MH3_ResRefChecked(CpuContext* ctx) {
     ctx->gpr[3] = ResRefCheckedChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80070124, MH3_ResRefChecked, "ResRefChecked");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80070124, MH3_ResRefChecked, "ResRefChecked");
 extern "C" void MH3_ResOffsetToPtr(CpuContext* ctx) {
     ctx->gpr[3] = ResOffsetToPtrChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80097DFC, MH3_ResOffsetToPtr, "ResOffsetToPtr");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80097DFC, MH3_ResOffsetToPtr, "ResOffsetToPtr");
 extern "C" void MH3_ResDicAtOffset14(CpuContext* ctx) {
     ctx->gpr[3] = ResDicAtOffset14Checked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80097F7C, MH3_ResDicAtOffset14, "ResDicAtOffset14");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80097F7C, MH3_ResDicAtOffset14, "ResDicAtOffset14");
 
 // Ports that write guest memory, checked with RunOutput; r3 is returned as
 // it came.
@@ -260,22 +260,22 @@ MH3_STORE2(80062978, StoreAlignedPtr, StoreAligned(r3, r4), r3, 4)
 extern "C" void MH3_StoreAlignedPtr(CpuContext* ctx) {
     StoreAlignedPtrChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80062978, MH3_StoreAlignedPtr, "StoreAlignedPtr");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80062978, MH3_StoreAlignedPtr, "StoreAlignedPtr");
 
 MH3_STORE2(8005D210, StoreAlignedPtr2, StoreAligned(r3, r4), r3, 4)
 extern "C" void MH3_StoreAlignedPtr2(CpuContext* ctx) {
     StoreAlignedPtr2Checked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005D210, MH3_StoreAlignedPtr2, "StoreAlignedPtr2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8005D210, MH3_StoreAlignedPtr2, "StoreAlignedPtr2");
 
 MH3_STORE2(80041EA4, Vec3Copy, Vec3Copy(r3, r4), r3, 12)
 extern "C" void MH3_Vec3Copy(CpuContext* ctx) {
     Vec3CopyChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80041EA4, MH3_Vec3Copy, "Vec3Copy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80041EA4, MH3_Vec3Copy, "Vec3Copy");
 
 MH3_STORE2(80050D04, VectorSubtractWrapper, VecSubtract(r3, r4, r5), r3, 12)
 extern "C" void MH3_VectorSubtractWrapper(CpuContext* ctx) {
     VectorSubtractWrapperChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050D04, MH3_VectorSubtractWrapper, "VectorSubtractWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050D04, MH3_VectorSubtractWrapper, "VectorSubtractWrapper");

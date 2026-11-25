@@ -199,19 +199,19 @@ void ResetAllChecked(uint32_t r1, uint32_t r3) {
 extern "C" void MH3_PrimReset(CpuContext* ctx) {
     ResetEntryChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3CF4, MH3_PrimReset, "PrimReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E3CF4, MH3_PrimReset, "PrimReset");
 
 extern "C" void MH3_PrimAlloc(CpuContext* ctx) {
     ctx->gpr[3] = AllocChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3C80, MH3_PrimAlloc, "PrimAlloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E3C80, MH3_PrimAlloc, "PrimAlloc");
 
 extern "C" void MH3_PrimResetGroup(CpuContext* ctx) {
     ResetGroupChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3D20, MH3_PrimResetGroup, "PrimResetGroup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E3D20, MH3_PrimResetGroup, "PrimResetGroup");
 
 extern "C" void MH3_PrimInitAll(CpuContext* ctx) {
     ResetAllChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3DA4, MH3_PrimInitAll, "prim_init_all");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E3DA4, MH3_PrimInitAll, "prim_init_all");

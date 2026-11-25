@@ -40,6 +40,28 @@ uint64_t motionFrame = 0;
 
 // Off while the launcher's menus take the mouse (SetMouseLook).
 std::atomic<bool> mouseLook{true};
+std::atomic<bool> fastForward{false};
+
+void HandleFastForwardToggle(ClassicControllerSample& sample) {
+    static bool prevCombo = false;
+    static bool suppressMinus = false;
+    const bool hasL = (sample.buttons & MH3_CL_L) != 0;
+    const bool hasMinus = (sample.buttons & MH3_CL_MINUS) != 0;
+    const bool combo = hasL && hasMinus;
+
+    if (combo && !prevCombo) {
+        fastForward.store(!fastForward.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        suppressMinus = true;
+    }
+
+    if (!hasMinus)
+        suppressMinus = false;
+
+    if (suppressMinus)
+        sample.buttons &= ~uint16_t(MH3_CL_MINUS);
+
+    prevCombo = combo;
+}
 #if defined(MH3_HAS_AURORA) && !defined(__vita__)
 // The window's mouse capture (relative mode): `freed` while Left Alt frees the
 // cursor, `swallow` the click that captured it until its button is let go.
@@ -246,6 +268,7 @@ ClassicControllerSample ReadHostController() {
         RecordInput(sample);
     } else {
         sample = ReadLiveController();
+        HandleFastForwardToggle(sample);
         RecordInput(sample);
     }
 
@@ -328,6 +351,14 @@ void SetMouseLook(bool enabled) {
     // (mh3-web.js).
     MAIN_THREAD_ASYNC_EM_ASM({ Module['mh3MouseLook'] = $0 != 0; }, enabled);
 #endif
+}
+
+bool FastForwardEnabled() {
+    return fastForward.load(std::memory_order_relaxed);
+}
+
+void SetFastForwardEnabled(bool enabled) {
+    fastForward.store(enabled, std::memory_order_relaxed);
 }
 
 bool MouseInvertY() {

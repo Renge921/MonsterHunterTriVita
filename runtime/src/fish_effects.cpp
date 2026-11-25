@@ -34,16 +34,8 @@
 #include <algorithm>
 #include <cstdint>
 
-extern "C" void func_8034027C(CpuContext* ctx);
-extern "C" void MH3_FishTurnToward(CpuContext* ctx) {
-    const int32_t rate = int32_t(ctx->gpr[5]);
-
-    if (rate > 0 && rate < 0x8000)
-        ctx->gpr[5] = uint32_t(GameStep::Share(rate));
-
-    func_8034027C(ctx);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8034027C, MH3_FishTurnToward, "FishTurnToward");
+// FishTurnToward (PAL 0x8034027C) was inlined into JPN FishSwim (0x8006F274).
+// Wait: remove PAL func_8034027C extern/hook on RMHJ08.
 
 namespace {
 
@@ -56,13 +48,33 @@ using MemoryInline::FlatWrite32;
 using MemoryInline::FlatWrite8;
 using MemoryInline::FlatWriteFloat32;
 
-constexpr uint32_t kEffectObjects = 0x806A4570u; // +0xC count, +0x10 array of 0x48-byte objects
-constexpr uint32_t kSpeeds = 0x805E81A0u;        // f32 by the fish's kind (+8)
-constexpr uint32_t kZero = 0x8079D780u;          // 0.0f
-constexpr uint32_t kSpeedScale = 0x8079D7A0u;    // a new swim's speed: this times kSpeeds[kind]
-constexpr uint32_t kBaitReach = 0x8079D7A4u;     // distance within which a fish takes a bait
-constexpr uint32_t kSpeedFall = 0x8079D7A8u;     // the swim speed's change per step
-constexpr uint32_t kTurnScale = 0x8079D7ACu;     // the next turn's length: steps times 2k - kSpeeds[kind]
+constexpr uint32_t kEffectObjects = 0x80732C80u; // +0xC count, +0x10 array of 0x48-byte objects
+constexpr uint32_t kSpeeds = 0x806840D0u;        // f32 by the fish's kind (+8)
+constexpr uint32_t kZero = 0x808A1E20u;          // 0.0f
+constexpr uint32_t kSpeedScale = 0x808A1E40u;    // a new swim's speed: this times kSpeeds[kind]
+constexpr uint32_t kBaitReach = 0x808A1E44u;     // distance within which a fish takes a bait
+constexpr uint32_t kSpeedFall = 0x808A1E48u;     // the swim speed's change per step
+constexpr uint32_t kTurnScale = 0x808A1E4Cu;     // the next turn's length: steps times 2k - kSpeeds[kind]
+
+uint32_t AngleBetween(GuestCall& game, uint32_t from, uint32_t to) {
+    return game.Call<0x8028B624>({}, {double(FlatReadFloat32(from)), double(FlatReadFloat32(from + 8)),
+                                      double(FlatReadFloat32(to)), double(FlatReadFloat32(to + 8))}) &
+           0xFFFFu;
+}
+
+void TurnToward(uint32_t angleAddr, uint32_t targetAddr, int32_t rate) {
+    if (rate > 0 && rate < 0x8000)
+        rate = GameStep::Share(rate);
+
+    const uint32_t target = FlatRead32(targetAddr) & 0xFFFFu;
+    FlatWrite32(targetAddr, target);
+
+    const uint32_t angle = FlatRead32(angleAddr);
+    const uint32_t diff = (target - angle) & 0xFFFFu;
+    const int32_t dist = int32_t(diff) < 0x8000 ? int32_t(diff) : int32_t((-diff) & 0xFFFFu);
+    const int32_t step = dist < rate ? dist : rate;
+    FlatWrite32(angleAddr, int32_t(diff) >= 0x8000 ? angle - uint32_t(step) : angle + uint32_t(step));
+}
 
 // 0x8034048C (fish, mode) FishFindBait: the bait this fish can take (an
 // effect object of kind 0x22 whose +2 is not 1), or 0. The first such bait
@@ -96,8 +108,8 @@ uint32_t FindBait(CpuContext* ctx, uint32_t first) {
             return 0;
 
         const int32_t kind = int8_t(FlatRead8(data + 0x58));
-        FlatWrite8(fish + 8, uint8_t(game.Call<0x803402F0>({FlatRead32(bait + 0x30), uint32_t(kind), fish})));
-        const uint8_t need = uint8_t(game.Call<0x803425E0>({fish, bait}));
+        FlatWrite8(fish + 8, uint8_t(game.Call<0x8006ECA4>({FlatRead32(bait + 0x30), uint32_t(kind), fish})));
+        const uint8_t need = uint8_t(game.Call<0x80071158>({fish, bait}));
         const uint32_t hunter = FlatRead32(bait + 0x30);
 
         if (mode == 0) {
@@ -111,11 +123,11 @@ uint32_t FindBait(CpuContext* ctx, uint32_t first) {
                 return 0;
         }
 
-        if (game.Call<0x8026FE38>({hunter}) != 1 || !FlatRead8(fish + 8)) // PlMasterCheck
+        if (game.Call<0x8033DBA4>({hunter}) != 1 || !FlatRead8(fish + 8)) // PlMasterCheck
             continue;
 
         if (mode == 0)
-            FlatWrite32(data + 0x40, game.Call<0x80340248>({fish + 0x18, bait + 0x18}));
+            FlatWrite32(data + 0x40, AngleBetween(game, fish + 0x18, bait + 0x18));
 
         return bait;
     }
@@ -161,7 +173,7 @@ void FishSwimPort(CpuContext* ctx) {
     const uint32_t data = FlatRead32(fish + 0x38);
     const uint32_t ticks = GameStep::Ticks();
     const double s = GameStep::Scale();
-    const uint32_t bait = game.Call<0x8034048C>({fish, 0}); // FishFindBait
+    const uint32_t bait = game.Call<0x8006EE64>({fish, 0}); // FishFindBait
     bool taking = false;
 
     if (const uint8_t sub = FlatRead8(fish + 7); sub == 0) {
@@ -175,8 +187,8 @@ void FishSwimPort(CpuContext* ctx) {
             FlatWrite32(data + 0x48, 0x100);
 
             if (!bait) {
-                const uint32_t toward = game.Call<0x80340248>({fish + 0x18, data + 8});
-                const uint32_t roll = game.Call<0x800CEF20>({1}); // Rand
+                const uint32_t toward = AngleBetween(game, fish + 0x18, data + 8);
+                const uint32_t roll = game.Call<0x802BC314>({1}); // Rand
                 FlatWrite32(data + 0x40, toward + ((roll & 0xF) << 11) - 0x4000);
             }
 
@@ -184,7 +196,7 @@ void FishSwimPort(CpuContext* ctx) {
         }
 
         EaseTurnRate(data, 0x20, ticks);
-        game.Call<0x8034027C>({data + 0x50, data + 0x40, FlatRead32(data + 0x44)}); // FishTurnToward
+        TurnToward(data + 0x50, data + 0x40, int32_t(FlatRead32(data + 0x44)));
         FlatWrite8(data + 0x5F, 0);
     } else if (sub == 1) {
         // The step's move: (0, 0, speed) turned by the fish's angles.
@@ -196,8 +208,8 @@ void FishSwimPort(CpuContext* ctx) {
         for (uint32_t i = 0; i < 12; i += 4)
             FlatWrite32(angles + i, FlatRead32(data + 0x4C + i));
 
-        game.Call<0x80050914>({angles, mtx});          // cpSetRotMatrix
-        game.Call<0x80501C48>({move, mtx, forward});   // MTX34MultVecSR
+        game.Call<0x8028B0C4>({angles, mtx});          // cpSetRotMatrix
+        game.Call<0x8053DB6C>({move, mtx, forward});   // MTX34MultVecSR
 
         for (uint32_t i = 0; i < 12; i += 4)
             FlatWriteFloat32(fish + 0x18 + i, FlatReadFloat32(fish + 0x18 + i) + FlatReadFloat32(move + i));
@@ -213,7 +225,7 @@ void FishSwimPort(CpuContext* ctx) {
         uint32_t near = 0;
 
         if (bait) {
-            game.Call<0x80050FE4>({fish + 0x18, bait + 0x18}); // the distance, in f1
+            game.Call<0x8028BC04>({fish + 0x18, bait + 0x18}); // the distance, in f1
 
             if (ctx->fpr[1].d < double(FlatReadFloat32(kBaitReach))) {
                 FlatWrite8(bait + 8, FlatRead8(bait + 8) | 1);
@@ -238,7 +250,7 @@ void FishSwimPort(CpuContext* ctx) {
 
         if (speed <= FlatReadFloat32(kZero) && !taking) {
             FlatWrite8(fish + 7, 0);
-            const int32_t steps = int32_t(game.Call<0x800CEF20>({1}) & 0xFFFF) % 20 + 10; // Rand
+            const int32_t steps = int32_t(game.Call<0x802BC314>({1}) & 0xFFFF) % 20 + 10; // Rand
             const float k = FlatReadFloat32(kTurnScale);
             const float scale = k - (FlatReadFloat32(kSpeeds + FlatRead8(fish + 8) * 4u) - k);
             FlatWrite32(fish + 0xC, uint32_t(int32_t(float(steps) * scale)));
@@ -246,15 +258,16 @@ void FishSwimPort(CpuContext* ctx) {
         }
 
         EaseTurnRate(data, 0x100, ticks);
-        game.Call<0x8034027C>({data + 0x50, data + 0x40, FlatRead32(data + 0x44)}); // FishTurnToward
+        TurnToward(data + 0x50, data + 0x40, int32_t(FlatRead32(data + 0x44)));
     }
 
     // A hunter close by (in its hit sphere, data +0x30 around data +8) who is
     // in the water or moving.
-    const uint32_t hunter = game.Call<0x800CFAF4>({2}) + uint32_t(int32_t(int8_t(game.Call<0x800CF3E8>()))) * 0xB20; // get_move_work_adrs, MyPlayerIndex
+    const uint32_t hunter = game.Call<0x802BCF94>({2}) + uint32_t(int32_t(int8_t(game.Call<0x802BC844>()))) * 0xB20; // get_move_work_adrs, MyPlayerIndex
+    const bool specialBait = FlatRead8(hunter + 0xA) == 0 && uint16_t(FlatRead16(hunter + 0xC) - 0x3Fu) <= 4u;
 
-    if (game.Call<0x803405F8>({hunter}) == 0 && (FlatRead8(hunter + 9) == 3 || (FlatRead16(hunter + 0x5A4) & 2)) &&
-        game.Call<0x8028F680>({hunter + 0x3C, data + 8}, {double(FlatReadFloat32(data + 0x30))}) == 1) { // HitPointSphere
+    if (!specialBait && (FlatRead8(hunter + 9) == 3 || (FlatRead16(hunter + 0x5A4) & 2)) &&
+        game.Call<0x801A1008>({hunter + 0x3C, data + 8}, {double(FlatReadFloat32(data + 0x30))}) == 1) { // HitPointSphere
         Flee(fish);
         FlatWrite8(data + 0x5B, 0);
         FlatWrite16(data + 0x5C, 0xFFFF);
@@ -270,7 +283,7 @@ void FishSwimPort(CpuContext* ctx) {
         }
     }
 
-    const uint32_t seen = game.Call<0x8034048C>({fish, 1}); // FishFindBait
+    const uint32_t seen = game.Call<0x8006EE64>({fish, 1}); // FishFindBait
 
     if (FlatRead8(fish + 8) == 3) {
         Flee(fish);
@@ -284,14 +297,14 @@ void FishSwimPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8034048C(CpuContext* ctx);
+extern "C" void func_8006EE64(CpuContext* ctx);
 extern "C" void MH3_FishFindBait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "FishFindBait", func_8034048C, FishFindBaitPort);
+    PortCheck::Call(ctx, "FishFindBait", func_8006EE64, FishFindBaitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8034048C, MH3_FishFindBait, "FishFindBait");
+REGISTER_NATIVE_FUNCTION_AS(0x8006EE64, MH3_FishFindBait, "FishFindBait");
 
-extern "C" void func_803408B4(CpuContext* ctx);
+extern "C" void func_8006F274(CpuContext* ctx);
 extern "C" void MH3_FishSwim(CpuContext* ctx) {
-    PortCheck::Call(ctx, "FishSwim", func_803408B4, FishSwimPort);
+    PortCheck::Call(ctx, "FishSwim", func_8006F274, FishSwimPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803408B4, MH3_FishSwim, "FishSwim");
+REGISTER_NATIVE_FUNCTION_AS(0x8006F274, MH3_FishSwim, "FishSwim");

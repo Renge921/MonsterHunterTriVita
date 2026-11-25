@@ -17,9 +17,6 @@
 #include "msaa.h"
 #include "ssaa.h"
 #include "language.h"
-#include "language_import.h"
-#include "language_pack.h"
-#include "rom_image.h"
 #include "system_keyboard.h"
 #include "../src/net/adhoc.h"
 #include "../src/net/online.h"
@@ -959,19 +956,6 @@ void Draw(Font& font, const std::string& title, const std::vector<std::string>& 
     Wait(8000);
 }
 
-std::filesystem::path japaneseDisc;
-
-// The Japanese disc may lie in the languages folder too.
-void FindJapaneseDisc(const std::filesystem::path& directory) {
-    std::error_code error;
-    std::filesystem::directory_iterator entries(directory, error);
-
-    for (; !error && entries != std::filesystem::directory_iterator(); entries.increment(error))
-        if (const auto extension = entries->path().extension(); extension == ".iso" || extension == ".rvz" || extension == ".wia")
-            if (std::string game; RomImage::Identify(entries->path(), game).ok() && game == "RMHJ08")
-                japaneseDisc = entries->path();
-}
-
 // Runs work on a worker; the screen shows its steps.
 Status WorkScreen(Font& font, const std::string& heading, const std::function<Status(const std::function<void(const std::string&)>&)>& work) {
     std::mutex mutex;
@@ -1014,125 +998,6 @@ Status WorkScreen(Font& font, const std::string& heading, const std::function<St
     return result;
 }
 
-std::filesystem::file_time_type Modified(const std::filesystem::path& file) {
-    std::error_code error;
-    const auto time = std::filesystem::last_write_time(file, error);
-    return error ? std::filesystem::file_time_type::min() : time;
-}
-
-// The languages the launcher finds, imported when their pack is missing,
-// older than a file it comes from or made by an older import whose
-// replacement files differ (LanguagePack::Outdated): the Japanese disc and every translation
-// file in the languages folder, the template too, so a new or edited file is
-// in the Language row at the next start. Of files with one code the newest
-// counts, and the template yields to any other. The first language new here
-// becomes the game's when `choose`, Japanese before translations, but not
-// the template, which is English until it is translated. Gives what it did, for a message; empty when nothing was due.
-std::string ImportLanguages(Font& font, const std::filesystem::path& gameData, bool choose) {
-    struct Found {
-        std::filesystem::path file, font;
-        std::string code;
-    };
-
-    std::vector<Found> found;
-    std::string report;
-    const auto note = [&](const std::string& line) { report += (report.empty() ? "" : "\n") + line; };
-
-    if (!japaneseDisc.empty())
-        found.push_back({japaneseDisc, {}, "ja"});
-
-    const auto directory = LanguagePack::Directory(gameData);
-    std::vector<std::filesystem::path> files;
-    std::error_code error;
-    std::filesystem::directory_iterator entries(directory, error);
-
-    for (; !error && entries != std::filesystem::directory_iterator(); entries.increment(error))
-        if (entries->path().extension() == ".json")
-            files.push_back(entries->path());
-
-    std::sort(files.begin(), files.end());
-
-    for (const auto& file : files) {
-        std::ifstream in(file, std::ios::binary);
-        const std::string text((std::istreambuf_iterator<char>(in)), {});
-        LanguageImport::Translation translation;
-
-        if (const Status parsed = LanguageImport::ParseTranslation(text, translation); !parsed.ok()) {
-            note(file.filename().string() + ": " + parsed.message());
-            continue;
-        }
-
-        Found next{file, translation.font.empty() ? std::filesystem::path() : directory / std::filesystem::path(translation.font).filename(), translation.code};
-        const auto same = std::find_if(found.begin(), found.end(), [&](const Found& f) { return f.code == next.code; });
-        const auto newer = [&] {
-            if (same->file.filename() == "template.json" || next.file.filename() == "template.json")
-                return same->file.filename() == "template.json";
-
-            return Modified(next.file) > Modified(same->file);
-        };
-
-        if (same == found.end())
-            found.push_back(next);
-        else if (newer())
-            *same = next;
-    }
-
-    std::vector<Found> due;
-    std::vector<bool> fresh;
-
-    for (const auto& f : found) {
-        const auto pack = LanguagePack::PackPath(gameData, f.code);
-        std::error_code missing;
-        const bool exists = std::filesystem::exists(pack, missing);
-
-        if (exists && !LanguagePack::Outdated(pack) && Modified(f.file) <= Modified(pack) && (f.font.empty() || Modified(f.font) <= Modified(pack)))
-            continue;
-
-        due.push_back(f);
-        fresh.push_back(!exists);
-    }
-
-    if (due.empty())
-        return report;
-
-    std::vector<Status> results(due.size());
-    std::vector<std::string> summaries(due.size());
-    ReloadGameData();
-
-    // Each file's own result goes into the report.
-    (void)WorkScreen(font, "Importing languages", [&](const LanguageImport::Progress& progress) {
-        for (size_t i = 0; i < due.size(); ++i) {
-            const std::string name = due[i].file.filename().string();
-            const auto step = [&](const std::string& s) { progress(name + ": " + s); };
-
-            if (due[i].file == japaneseDisc)
-                results[i] = LanguageImport::ImportJapanese(due[i].file, gameData, step, summaries[i]);
-            else {
-                std::string code;
-                step("Reading the translation");
-                results[i] = LanguageImport::ImportTranslation(due[i].file, gameData, code, summaries[i]);
-            }
-        }
-
-        return Status{};
-    });
-
-    bool picked = false;
-
-    for (size_t i = 0; i < due.size(); ++i) {
-        const std::string name = due[i].file.filename().string();
-        Log("language %s from %s: %s", due[i].code.c_str(), name.c_str(), results[i].ok() ? summaries[i].c_str() : results[i].message().c_str());
-        note(results[i].ok() ? "Imported " + name + ": " + summaries[i] : name + ": " + results[i].message());
-
-        if (results[i].ok() && choose && fresh[i] && !picked && due[i].file.filename() != "template.json") {
-            LanguagePack::Select(due[i].code);
-            picked = true;
-        }
-    }
-
-    return report;
-}
-
 // The disc image stays in base; its metadata and the converted-asset cache live
 // in base/disc. A development install of a prepared disc directly in base is used as is.
 Status EnsureDisc(Font& font, const std::filesystem::path& base) {
@@ -1169,14 +1034,8 @@ Status EnsureDisc(Font& font, const std::filesystem::path& base) {
             return FsStatus::Failure("status", type, entry.path());
 
         if (regular && (entry.path().extension() == ".iso" || entry.path().extension() == ".rvz" || entry.path().extension() == ".wia")) {
-            // The Japanese disc only gives its language.
-            if (std::string game; RomImage::Identify(entry.path(), game).ok() && game == "RMHJ08") {
-                japaneseDisc = entry.path();
-                continue;
-            }
-
             if (!iso.empty())
-                return Status::Error("There is more than one disc image in " + base.string() + ". Leave only your European Monster Hunter Tri (RMHP08) ISO, RVZ or WIA there.");
+                return Status::Error("There is more than one disc image in " + base.string() + ". Leave only your Japanese Monster Hunter Tri (RMHJ08) ISO, RVZ or WIA there.");
 
             iso = entry.path();
         }
@@ -1188,8 +1047,6 @@ Status EnsureDisc(Font& font, const std::filesystem::path& base) {
     if (!DiscReady(output))
         output = base / "disc";
 
-    FindJapaneseDisc(LanguagePack::Directory(output));
-
     if (output != base) {
         screen("Checking game data");
         Pump();
@@ -1199,7 +1056,7 @@ Status EnsureDisc(Font& font, const std::filesystem::path& base) {
     // was prepared from this image.
     if (output != base && (!DiscReady(output) || (!iso.empty() && !DiscPreparedFrom(output, iso)))) {
         if (iso.empty())
-            return Status::Error("Game data is missing. Copy your European Monster Hunter Tri (RMHP08) disc image (ISO, RVZ or WIA) to " + base.string() +
+            return Status::Error("Game data is missing. Copy your Japanese Monster Hunter Tri (RMHJ08) disc image (ISO, RVZ or WIA) to " + base.string() +
                                  ", then start Monster Hunter Tri again.");
         std::mutex mutex;
         std::string status = "Checking game data", error;
@@ -1283,7 +1140,7 @@ const char* PageName(Page page) {
 }
 
 const char* RankName(uint8_t rank) {
-    return rank == 0 ? "Village" : rank == 1 ? "Low rank" : "High rank";
+    return rank == 0 ? "村" : rank == 1 ? "下位" : "上位";
 }
 
 const char* OnOff(bool on) {
@@ -1293,7 +1150,7 @@ const char* OnOff(bool on) {
 // The main menu's rows. The web build connects nowhere: it leaves out the
 // City and the online settings (the online quests, played offline, stay).
 // Its WebGPU renderer supersamples instead of multisampling.
-enum class Item { Start, Village, City, Adhoc, Quests, Create, Cheats, Widescreen, Upscaling, FrameLimit, Msaa, Ssaa, Keyboard, Language, Template, Online };
+enum class Item { Start, Village, City, Adhoc, Quests, Create, Cheats, Widescreen, Upscaling, FrameLimit, Msaa, Ssaa, Keyboard, Language, Online };
 
 constexpr Item MainItems[]{Item::Start,
                            Item::Village,
@@ -1316,7 +1173,6 @@ constexpr Item MainItems[]{Item::Start,
                            Item::Keyboard,
 #endif
                            Item::Language,
-                           Item::Template,
 #ifndef __EMSCRIPTEN__
                            Item::Online
 #endif
@@ -1406,10 +1262,6 @@ void LoadSettings(const std::filesystem::path& base) {
                 if (value == language.code)
                     SetLanguageSetting(language.system);
 
-            for (const auto& language : LanguagePack::Installed(std::getenv("MH3_DISC_DIR")))
-                if (value == language.code)
-                    LanguagePack::Select(language.code);
-
             continue;
         }
 
@@ -1456,9 +1308,6 @@ Status SaveSettings(const std::filesystem::path& base) {
     for (const auto& known : GameLanguages())
         if (LanguageSetting() == known.system)
             language = known.code;
-
-    if (!LanguagePack::Selected().empty())
-        language = LanguagePack::Selected().c_str();
 
     {
         std::ofstream file(temporary, std::ios::trunc);
@@ -1559,8 +1408,7 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
     std::string onlineServer = OnlineServerSetting();
     bool skipTls = SkipTlsSetting();
 
-    // The game reads it at startup; English unless the settings name another.
-    // Imported languages follow.
+    // The game reads it at startup; Japanese only for RMHJ08.
     struct Choice {
         std::string name, code;
         uint8_t system;
@@ -1574,34 +1422,19 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
         for (const auto& known : GameLanguages())
             languages.push_back({known.name, known.code, known.system});
 
-        for (const auto& pack : LanguagePack::Installed(gameData))
-            languages.push_back({pack.name, pack.code, 0});
-
         language = 0;
-        const std::string& imported = LanguagePack::Selected();
 
         for (size_t i = 0; i < languages.size(); ++i)
-            if (i < GameLanguages().size() ? imported.empty() && LanguageSetting() == languages[i].system : languages[i].code == imported)
+            if (LanguageSetting() == languages[i].system)
                 language = i;
     };
 
     const auto applyLanguage = [&] {
-        const bool imported = language >= GameLanguages().size();
-        SetLanguageSetting(imported ? GameLanguages()[0].system : languages[language].system);
-        LanguagePack::Select(imported ? languages[language].code : std::string());
+        SetLanguageSetting(languages[language].system);
     };
-
-    // The languages found since the last start; a new one becomes the game's.
-    const std::string chosen = LanguagePack::Selected();
-
-    if (const std::string imported = ImportLanguages(*font, gameData, true); !imported.empty())
-        Message(imported);
 
     listLanguages();
     applyLanguage();
-
-    if (LanguagePack::Selected() != chosen)
-        MH3_RETURN_IF_ERROR(SaveSettings(base));
 
     SaveSlot save{};
     std::vector<SaveSlot> saves;
@@ -1766,7 +1599,7 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
             continue;
         }
 #endif
-        std::string title, detail, footer = "X Select   O Back   D-pad Move";
+        std::string title, detail, footer = "Xボタン 決定   Oボタン 戻る   十字キー 移動";
         std::vector<std::string> rows;
 
         // The selected row takes Left and Right.
@@ -1774,97 +1607,90 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
 
         switch (page) {
         case Page::Main: {
-            title = "Main menu";
+            title = "メインメニュー";
             const std::string cheats = ActiveCheats();
-            const auto samples = [](uint32_t n) { return n == 1 ? "OFF" : n == 2 ? "2x" : "4x"; };
+            const auto samples = [](uint32_t n) { return n == 1 ? "オフ" : n == 2 ? "2x" : "4x"; };
 
             // An item's row and what it does.
             const auto describe = [&](Item item) -> std::pair<std::string, std::string> {
                 switch (item) {
                 case Item::Start:
-                    return {"Start game", "Continue through the game's title and character selection." + cheats};
+                    return {"ゲームを始める", "ゲームのタイトル画面とキャラクター選択から始めます。" + cheats};
                 case Item::Village:
-                    return {"Village", "Straight into Moga Village with an existing hunter, past the title." + cheats};
+                    return {"村へ行く", "タイトルを飛ばして、既存のハンターでモガの村へ直行します。" + cheats};
                 case Item::City:
-                    return {"City (online)", "Straight to the City's network screen with an existing hunter: online play on " + onlineServer + "." +
-                                                 (LauncherCheats::EnabledCount() ? " Online play is blocked while cheats are on." : "") + cheats};
+                    return {"集会所（オンライン）", "既存のハンターで集会所のネットワーク画面へ直行します。接続先: " + onlineServer + "。" +
+                                                 (LauncherCheats::EnabledCount() ? "チート有効中はオンライン接続できません。" : "") + cheats};
                 case Item::Adhoc:
-                    return {"Ad hoc play", "Hunt with hunters nearby, with no server and no router: one hosts, the others join." + cheats};
+                    return {"アドホック通信プレイ", "サーバーやルーターなしで近くのハンターと狩ります。1人がホストし、他の人が参加します。" + cheats};
                 case Item::Quests:
-                    return {"Quests", "Start a quest directly with an existing hunter." + cheats};
+                    return {"クエスト", "既存のハンターでクエストを直接開始します。" + cheats};
                 case Item::Create:
 #ifdef __EMSCRIPTEN__
-                    return {"Create custom quest", "Make a quest of your own in a form: a map, up to three large monsters and their sizes, how they arrive, an intruder."};
+                    return {"オリジナルクエスト作成", "マップ、大型モンスター（最大3体）とサイズ、出現方法、乱入などを指定してクエストを自作します。"};
 #else
-                    return {"Create custom quest", "Make a hunt or capture quest of your own: a map and one or two large monsters."};
+                    return {"オリジナルクエスト作成", "マップと大型モンスター1〜2体を選んで、狩猟・捕獲クエストを自作します。"};
 #endif
                 case Item::Cheats:
-                    return {"Cheats", "Gameplay toggles for this launch." + cheats};
+                    return {"チート", "今回の起動で有効にするゲームプレイ設定です。" + cheats};
                 case Item::Widescreen:
-                    return {std::string("Widescreen: ") + (widescreen ? "ON (16:9)" : "OFF (4:3)"),
-                            widescreen ? "The game's own 16:9 mode on the whole display." : "4:3, with bars at the sides of the display."};
+                    return {std::string("ワイド画面: ") + (widescreen ? "オン (16:9)" : "オフ (4:3)"),
+                            widescreen ? "ゲーム本来の16:9モードを画面全体に表示します。" : "4:3表示です。画面の左右に黒帯が入ります。"};
                 case Item::Upscaling:
 #ifdef __vita__
-                    return {std::string("Upscaling: ") + (upscaling ? "ON (544 lines)" : "OFF (448 lines)"),
+                    return {std::string("アップスケール: ") + (upscaling ? "オン (544ライン)" : "オフ (448ライン)"),
 #else
-                    return {std::string("Upscaling: ") + (upscaling ? "ON" : "OFF (448 lines)"),
+                    return {std::string("アップスケール: ") + (upscaling ? "オン" : "オフ (448ライン)"),
 #endif
-                            upscaling ? "Renders at the display's full resolution." : "Renders the Wii's 448 lines and scales them to the display: less GPU work."};
+                            upscaling ? "画面の解像度いっぱいで描画します。" : "Wiiの448ラインで描画して拡大します。GPU負荷が軽くなります。"};
                 case Item::FrameLimit: {
                     const std::string fps = std::to_string(frameLimit.fps) + " FPS";
 #ifdef __EMSCRIPTEN__
-                    // The browser shows frames at the display's refresh rate.
                     switch (frameLimit.mode) {
                     case FrameLimitMode::VSync:
-                        return {"Framelimit: VSync", "A frame for each refresh of the display (60, 120, 144 Hz...): every frame is shown, motion is even."};
+                        return {"フレーム制限: VSync", "画面のリフレッシュごとに1フレーム描画します。"};
                     case FrameLimitMode::HalfVSync:
-                        return {"Framelimit: Half VSync", "A frame for every second refresh of the display: steadier motion where the game cannot keep up with it."};
+                        return {"フレーム制限: Half VSync", "画面の2リフレッシュごとに1フレーム描画します。"};
                     case FrameLimitMode::Cap:
                         if (FrameLimits[FrameLimitChoice(frameLimit)] == CustomFrameCap)
-                            return {"Framelimit: Custom (" + fps + ")", "At most this many frames a second (Enter types it); the display shows the newest at each refresh."};
+                            return {"フレーム制限: カスタム (" + fps + ")", "指定した上限FPSで動作します。"};
 
-                        return {"Framelimit: " + fps, "At most " + fps + "; the display shows the newest frame at each refresh, so off its rate motion can judder."};
+                        return {"フレーム制限: " + fps, "最大 " + fps + " で動作します。"};
                     case FrameLimitMode::Off:
-                        return {"Framelimit: Unlimited", "As many frames as the game makes; the display shows the newest at each refresh, and motion can judder."};
+                        return {"フレーム制限: 無制限", "制限なしで動作します。"};
                     }
 #else
                     switch (frameLimit.mode) {
                     case FrameLimitMode::VSync:
-                        return {"Framelimit: 60 FPS", "60 fps: the game waits for each frame to be drawn before the next, and every frame is shown."};
+                        return {"フレーム制限: 60 FPS", "60 fps: 次のフレームの前に描画完了を待ち、すべてのフレームを表示します。"};
                     case FrameLimitMode::HalfVSync:
-                        return {"Framelimit: 30 FPS", "30 fps: every frame stays on screen for two refreshes: steadier motion where the game cannot hold 60."};
+                        return {"フレーム制限: 30 FPS", "30 fps: 1フレームを2リフレッシュ分表示します。60fpsを維持できない場面で安定します。"};
                     case FrameLimitMode::Cap:
-                        return {"Framelimit: " + fps, "At most " + fps + " (MH3_FRAME_LIMIT); frames the display outruns are dropped."};
+                        return {"フレーム制限: " + fps, "最大 " + fps + " (MH3_FRAME_LIMIT)。追い越したフレームは破棄されます。"};
                     case FrameLimitMode::Off:
-                        return {"Framelimit: OFF", "The game runs ahead of drawing; frames it outruns are dropped and motion can judder."};
+                        return {"フレーム制限: オフ", "描画を待たずに進めます。追い越したフレームは破棄され、動きがカクつくことがあります。"};
                     }
 #endif
                     return {};
                 }
                 case Item::Msaa:
                     return {std::string("MSAA: ") + samples(msaa),
-                            msaa == 1   ? "No antialiasing. MSAA smooths edges but can reduce performance: about 5% fewer fps at 2x and 15% at 4x in big fights."
-                            : msaa == 2 ? "2x multisample antialiasing: smoother edges. Can reduce performance: about 5% fewer fps in big fights (4x: about 15%)."
-                                        : "4x multisample antialiasing: the smoothest edges. Can reduce performance: about 15% fewer fps in big fights (2x: about 5%)."};
+                            msaa == 1   ? "アンチエイリアスなし。MSAAは輪郭を滑らかにしますが、負荷が増えます（大型戦で2xは約5%、4xは約15%のfps低下）。"
+                            : msaa == 2 ? "2xマルチサンプルAA。輪郭が滑らかになります。大型戦で約5%fpsが下がります（4xは約15%）。"
+                                        : "4xマルチサンプルAA。最も滑らかな輪郭です。大型戦で約15%fpsが下がります（2xは約5%）。"};
                 case Item::Ssaa:
                     return {std::string("SSAA: ") + samples(ssaa),
-                            ssaa == 1   ? "No antialiasing. SSAA renders more pixels and filters them down: smoother edges and textures, at 2x or 4x the GPU work."
-                            : ssaa == 2 ? "2x supersampling: 1.41 times the width and height, filtered down. About twice the GPU work."
-                                        : "4x supersampling: twice the width and height, filtered down: the smoothest picture. About four times the GPU work."};
+                            ssaa == 1   ? "アンチエイリアスなし。SSAAは高解像度で描画して縮小します（負荷2x/4x）。"
+                            : ssaa == 2 ? "2xスーパーサンプリング（縦横1.41倍で描画して縮小）。GPU負荷は約2倍になります。"
+                                        : "4xスーパーサンプリング（縦横2倍で描画して縮小）。最も滑らかですが、GPU負荷は約4倍になります。"};
                 case Item::Keyboard:
-                    return {std::string("Keyboard: ") + (systemKeyboard ? "Vita" : "Game"),
-                            systemKeyboard ? "Text entry uses the Vita's keyboard, with touch and its own languages. The game keeps running behind it." : "Text entry uses the game's own keyboard."};
+                    return {std::string("キーボード: ") + (systemKeyboard ? "Vita" : "ゲーム内"),
+                            systemKeyboard ? "文字入力にVitaのシステムキーボードを使用します（タッチ入力や日本語入力が可能）。" : "ゲーム独自のキーボードを使用します。"};
                 case Item::Language:
-                    return {std::string("Language: ") + languages[language].name,
-                            std::string(language < GameLanguages().size() ? "The game's text, menus and keyboard." : "An imported language: its text, with the English keyboard.") +
-                                " The launcher adds Japanese from a Japanese disc image (RMHJ08) in " + base.string() + " and translations from " +
-                                LanguagePack::Directory(gameData).string() + " when it starts."};
-                case Item::Template:
-                    return {"Write a translation template",
-                            "Writes template.json with the game's English text to " + LanguagePack::Directory(gameData).string() +
-                                ". It is a language at once; translate it, keeping the file or renaming it, and the next start brings it up to date."};
+                    return {std::string("言語: ") + languages[language].name,
+                            "ゲーム内のテキスト・メニュー言語を選択します（日本版ROMでは日本語固定）。"};
                 case Item::Online:
-                    return {"Online settings: " + onlineServer + (skipTls ? " (no TLS)" : ""), "The server the game's City mode connects to."};
+                    return {"オンライン設定: " + onlineServer + (skipTls ? " (TLSなし)" : ""), "集会所モードが接続するサーバーを設定します。"};
                 }
 
                 return {};
@@ -1876,26 +1702,26 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
             const Item item = MainItems[std::min(selected, std::size(MainItems) - 1)];
             detail = describe(item).second;
             values = item == Item::FrameLimit || item == Item::Msaa || item == Item::Ssaa || item == Item::Language;
-            footer = "X Select   D-pad Move";
+            footer = "Xボタン 決定   十字キー 移動";
             break;
         }
         case Page::Categories: {
-            title = "Quests";
-            rows = {"Offline quests", "Online quests", "Arena", "Custom quests"};
-            const char* details[] = {"Moga Village quests.", "Online quests, played offline.", "Arena quests.", "Your custom quests."};
-            detail = std::string(details[std::min<size_t>(selected, 3)]) + "  Hunter: " + saveName() + ".";
+            title = "クエスト";
+            rows = {"オフラインクエスト", "オンラインクエスト", "闘技大会", "カスタムクエスト"};
+            const char* details[] = {"モガの村のクエスト。", "オフラインで遊べるオンラインクエスト。", "闘技大会のクエスト。", "作成したカスタムクエスト。"};
+            detail = std::string(details[std::min<size_t>(selected, 3)]) + "  ハンター: " + saveName() + ".";
             break;
         }
         case Page::Saves:
-            title = "Choose your hunter";
+            title = "ハンターを選択";
 
             for (const auto& s : saves)
-                rows.push_back("File " + std::to_string(s.file + 1) + " / Character " + std::to_string(s.character + 1));
+                rows.push_back("ファイル " + std::to_string(s.file + 1) + " / キャラクター " + std::to_string(s.character + 1));
 
-            detail = "Characters of valid saves.";
+            detail = "有効なセーブデータのキャラクター一覧。";
             break;
         case Page::Quests:
-            title = "Quest list";
+            title = "クエスト一覧";
 
             for (const auto& q : quests)
                 rows.push_back(std::to_string(q.stars) + "*  " + q.name);
@@ -1905,25 +1731,25 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
                 detail = QuestCatalog::MapName(q.map) + ": " + q.goal;
             }
 
-            footer = "X Select   O Back   D-pad Move   L / R Page";
+            footer = "Xボタン 決定   Oボタン 戻る   十字キー 移動   L/R ページ";
             break;
         case Page::Custom:
-            title = "Custom quests";
+            title = "カスタムクエスト";
 
             for (const auto& q : custom)
                 rows.push_back(q.name);
 
             if (custom.empty()) {
-                detail = "No custom quests yet. Make one with Create custom quest in the main menu.";
-                footer = "O Back";
+                detail = "カスタムクエストがありません。メインメニューの「カスタムクエスト作成」から作成できます。";
+                footer = "Oボタン 戻る";
             } else {
                 const auto& q = custom[std::min(selected, custom.size() - 1)];
 
                 if (q.map) {
                     detail = QuestCatalog::MapName(q.map) + ": " + goal(q) + ", " + RankName(q.rank) + ", " + sizes(q) +
                              std::to_string(q.stars) + "*" +
-                             (q.minutes ? ", " + std::to_string(q.minutes) + " minutes" : "") + ".";
-                    footer = "X Launch   Triangle Edit   O Back   D-pad Move";
+                             (q.minutes ? ", " + std::to_string(q.minutes) + "分" : "") + ".";
+                    footer = "Xボタン 開始   △ボタン 編集   Oボタン 戻る   十字キー 移動";
                     break;
                 }
 
@@ -1931,93 +1757,93 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
                 const auto* encounter = findQuest(q.set, q.encounter ? q.encounter : q.base);
 
                 if (base && encounter && !encounter->objectives.empty())
-                    detail = QuestCatalog::MapName(base->map) + ": " + (q.capture ? "Capture " : "Hunt ") + std::to_string(q.count) + " " +
-                             monsterName(encounter->objectives.front().target) + ", " + std::to_string(q.stars) + "*" +
-                             (q.minutes ? ", " + std::to_string(q.minutes) + " minutes" : "") + ".";
+                    detail = QuestCatalog::MapName(base->map) + ": " + monsterName(encounter->objectives.front().target) + " " +
+                             std::to_string(q.count) + "頭の" + (q.capture ? "捕獲" : "狩猟") + ", " + std::to_string(q.stars) + "*" +
+                             (q.minutes ? ", " + std::to_string(q.minutes) + "分" : "") + ".";
                 else
-                    detail = "Its template is not on this disc.";
+                    detail = "テンプレートとなるクエストがこのディスクに見つかりません。";
 
-                footer = "X Launch   Triangle Edit   O Back   D-pad Move";
+                footer = "Xボタン 開始   △ボタン 編集   Oボタン 戻る   十字キー 移動";
             }
 
             break;
         case Page::Editor: {
-            title = edit.storageKey.empty() ? "Create custom quest" : "Edit custom quest";
-            rows = {"Name: " + edit.name,
-                    "Map: " + QuestCatalog::MapName(edit.map),
-                    "Monster: " + monsterName(edit.monsters[0]),
-                    "Second monster: " + (edit.monsters[1] ? monsterName(edit.monsters[1]) : std::string("None")),
-                    "Third monster: " + (edit.monsters[2] ? monsterName(edit.monsters[2]) : std::string("None")),
-                    "Objective: " + std::string(edit.capture ? "Capture" : "Hunt"),
-                    "Rank: " + std::string(RankName(edit.rank)),
-                    "Size: " + std::to_string(edit.sizes[0]) + "%",
-                    "Time: " + (edit.minutes ? std::to_string(edit.minutes) + " minutes" : "as the map's quest"),
-                    "Stars: " + std::to_string(edit.stars),
-                    "Save quest"};
+            title = edit.storageKey.empty() ? "カスタムクエスト作成" : "カスタムクエスト編集";
+            rows = {"クエスト名: " + edit.name,
+                    "マップ: " + QuestCatalog::MapName(edit.map),
+                    "モンスター1: " + monsterName(edit.monsters[0]),
+                    "モンスター2: " + (edit.monsters[1] ? monsterName(edit.monsters[1]) : std::string("なし")),
+                    "モンスター3: " + (edit.monsters[2] ? monsterName(edit.monsters[2]) : std::string("なし")),
+                    "目標: " + std::string(edit.capture ? "捕獲" : "狩猟"),
+                    "ランク: " + std::string(RankName(edit.rank)),
+                    "サイズ: " + std::to_string(edit.sizes[0]) + "%",
+                    "制限時間: " + (edit.minutes ? std::to_string(edit.minutes) + "分" : "マップのクエストに準拠"),
+                    "難易度(★): " + std::to_string(edit.stars),
+                    "クエストを保存"};
             const char* details[] = {
 #ifdef __vita__
-                "X opens the keyboard.",
+                "Xボタンでキーボードを開きます。",
 #elif defined(__EMSCRIPTEN__)
-                "Enter opens the browser's text prompt.",
+                "Enterキーでブラウザのテキスト入力を開きます。",
 #else
-                "The keyboard is the Vita's; the host keeps the name.",
+                "Vita用のキーボード入力です。ホスト側で名前を保持します。",
 #endif
-                "Any field map, the arenas or the Sacred Pinnacle. Jhen Mohran's Great Desert and Ceadeus's lair take only their own monster.",
-                "Any large monster but Ceadeus and Jhen Mohran, who need their own maps. The Water Arena takes the swimmers.",
-                "A second large monster at the same time, or none. Ceadeus, Alatreon and Jhen Mohran are always alone.",
-                "A third large monster at the same time (after a second), or none.",
-                "Capture needs monsters the game lets you capture, on a field map.",
-                "The monsters' strength and rewards come from the game's quests of this rank, nearest the stars.",
-                "Every monster's size, 50-200% (the game's quests: about 90-120%; event quests go further).",
-                "1 to 50 minutes.",
-                "The quest's stars; at a rank they also pick the monsters' strength.",
-                edit.storageKey.empty() ? "Saves a new custom quest." : "Saves the changes to this custom quest."};
+                "任意のフィールド、闘技場、または神域を選択できます。大砂漠（ジエン・モーラン）と海底遺跡（ナバルデウス）は専用モンスターのみ対応しています。",
+                "大型モンスターを選択します。ナバルデウスとジエン・モーランは専用マップが必要です。水上闘技場は水中戦対応モンスターのみ対応しています。",
+                "同時に出現する2頭目の大型モンスター（または「なし」）。ナバルデウス、アルバトリオン、ジエン・モーランは常に単独出現です。",
+                "同時に出現する3頭目の大型モンスター（2頭目の後に出現、または「なし」）。",
+                "「捕獲」はフィールドマップ上で捕獲可能なモンスターにのみ有効です。",
+                "モンスターの強さと報酬は、このランクで最も★の数が近いクエストを基準にします。",
+                "全モンスターのサイズ倍率（50〜200%）。通常クエストは約90〜120%、イベントクエストではさらに極端なサイズになります。",
+                "1〜50分。",
+                "クエストの★の数。ランクと合わせてモンスターの強さにも影響します。",
+                edit.storageKey.empty() ? "新しいカスタムクエストを保存します。" : "このカスタムクエストの変更を保存します。"};
             const size_t row = std::min<size_t>(selected, 10);
             detail = details[row];
             values = row >= 1 && row <= 9;
-            footer = row == 0 ? "X Keyboard   O Back   D-pad Move" : row == 10 ? "X Save   O Back   D-pad Move" : "Left / Right Change   O Back   D-pad Move";
+            footer = row == 0 ? "Xボタン キーボード   Oボタン 戻る   十字キー 移動" : row == 10 ? "Xボタン 保存   Oボタン 戻る   十字キー 移動" : "左/右 変更   Oボタン 戻る   十字キー 移動";
             break;
         }
         case Page::Cheats: {
-            title = "Cheats";
+            title = "チート";
             const auto groups = LauncherCheats::Groups();
 
             for (const char* group : groups) {
                 const auto list = GroupCheats(group);
                 const size_t on = std::count_if(list.begin(), list.end(), [](size_t i) { return LauncherCheats::Enabled(i); });
-                rows.push_back(std::string(group) + "  (" + std::to_string(list.size()) + " codes" + (on ? ", " + std::to_string(on) + " on" : "") + ")");
+                rows.push_back(std::string(group) + "  (" + std::to_string(list.size()) + "件" + (on ? ", " + std::to_string(on) + "件有効" : "") + ")");
             }
 
             if (selected == 0)
-                detail = "The launcher's own toggles. For this launch.";
+                detail = "ランチャー独自のトグル設定です。今回の起動中のみ有効になります。";
             else
-                detail = "Codes from the " + std::string(groups[std::min(selected, groups.size() - 1)]) + " Gecko list, ported to this disc. For this launch.";
+                detail = std::string(groups[std::min(selected, groups.size() - 1)]) + " のGeckoコード（本ディスク向けに移植）。今回の起動中のみ有効になります。";
 
             break;
         }
         case Page::Online:
-            title = "Online";
-            rows = {"Server: " + onlineServer, std::string("Skip TLS handshake: ") + OnOff(skipTls)};
+            title = "オンライン設定";
+            rows = {"サーバー: " + onlineServer, std::string("TLSハンドシェイクをスキップ: ") + OnOff(skipTls)};
 
             if (selected == 0) {
-                detail = std::string("A domain such as ") + kDefaultOnlineServer + " (the community server) or a local MH3SP's IP address. Add :port for an account server off port 80.";
-                footer = "X Keyboard   Triangle Default   O Back   D-pad Move";
+                detail = std::string(kDefaultOnlineServer) + "（コミュニティサーバー）などのドメイン、またはローカルMH3SPのIPアドレスを指定します。ポート80以外のアカウントサーバーを使う場合は :port を付けてください。";
+                footer = "Xボタン キーボード   △ボタン デフォルト   Oボタン 戻る   十字キー 移動";
             } else {
-                detail = skipTls ? "TLS sessions run unencrypted: for a server whose OPN has UseSSL = OFF. The community server needs TLS."
-                                 : "TLS as on the Wii, verified against the MH3SP certificate authority.";
-                footer = "X Toggle   O Back   D-pad Move";
+                detail = skipTls ? "TLSセッションを暗号化せずに実行します（OPNのUseSSL = OFFのサーバー向け）。コミュニティサーバーにはTLSが必要です。"
+                                 : "Wii実機と同様にTLSを使用し、MH3SPの認証局（CA）で検証します。";
+                footer = "Xボタン 切替   Oボタン 戻る   十字キー 移動";
             }
 
             break;
         case Page::Adhoc:
-            title = "Ad hoc play";
-            rows = {"Host a game", "Join a game"};
-            detail = selected == 0 ? "Opens the City to hunters nearby. Start this first; the others then choose Join. Wi-Fi stays on the ad hoc network until you close the game."
-                                   : "Finds a host nearby and goes to its City.";
+            title = "アドホック通信";
+            rows = {"ゲームをホストする", "ゲームに参加する"};
+            detail = selected == 0 ? "近くのハンター向けに街を開放します。まずこちらを開始し、他のプレイヤーは「参加する」を選択してください。ゲームを終了するまでWi-Fiはアドホックネットワークに接続されたままになります。"
+                                   : "近くのホストを検索して街へ移動します。";
             break;
         case Page::CheatList: {
             const auto cheats = LauncherCheats::List();
-            title = std::string("Cheats: ") + LauncherCheats::Groups()[cheatGroup];
+            title = std::string("チート: ") + LauncherCheats::Groups()[cheatGroup];
 
             for (size_t i : groupCheats) {
                 const std::string value = LauncherCheats::ValueLabel(i);
@@ -2027,15 +1853,15 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
             const size_t cheat = groupCheats[std::min(selected, groupCheats.size() - 1)];
             detail = cheats[cheat].detail;
             values = LauncherCheats::Choices(cheat) || LauncherCheats::TextLength(cheat);
-            footer = LauncherCheats::Choices(cheat) ? "X Toggle   Left / Right Value   O Back   L / R Page"
-                     : LauncherCheats::TextLength(cheat) ? "X Toggle   Left / Right Type the name   O Back   L / R Page"
-                                                         : "X Toggle   O Back   D-pad Move   L / R Page";
+            footer = LauncherCheats::Choices(cheat) ? "Xボタン 切替   左/右 値変更   Oボタン 戻る   L/R ページ"
+                     : LauncherCheats::TextLength(cheat) ? "Xボタン 切替   左/右 名前入力   Oボタン 戻る   L/R ページ"
+                                                         : "Xボタン 切替   Oボタン 戻る   十字キー 移動   L/R ページ";
             break;
         }
         }
 
         if (rows.empty())
-            rows = {"No quests available"};
+            rows = {"利用可能なクエストがありません"};
 
         selected = std::min(selected, rows.size() - 1);
         Draw(*font, title, rows, selected, first, detail, footer, values);
@@ -2316,7 +2142,6 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
                 Log("language %s", languages[language].code.c_str());
                 return SaveSettings(base);
             }
-
             if (page == Page::Online && selected == 0 && (accept || (buttons & Button::Triangle))) {
                 std::string server = accept ? onlineServer : kDefaultOnlineServer;
 
@@ -2351,11 +2176,11 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
 
                     if (saves.empty()) {
 #ifdef __EMSCRIPTEN__
-                        Message("No hunter save was found. Village and Quests need an existing character: choose Start game and create one through the game's own "
-                                "screens, or reload the page and import your Monster Hunter Tri save there.");
+                        Message("ハンターのセーブデータが見つかりません。村・クエストには既存のキャラクターが必要です。"
+                                "「ゲームを始める」からゲーム内でキャラクターを作成するか、ページを再読み込みしてセーブデータをインポートしてください。");
 #else
-                        Message("No hunter save was found. Village, City and Quests need an existing character: choose Start game and create one through the game's own "
-                                "screens, or copy your Monster Hunter Tri save.");
+                        Message("ハンターのセーブデータが見つかりません。村・集会所・クエストには既存のキャラクターが必要です。"
+                                "「ゲームを始める」からゲーム内でキャラクターを作成するか、モンスターハンター3(トライ)のセーブデータをコピーしてください。");
 #endif
                         break;
                     }
@@ -2394,23 +2219,6 @@ Status Menu(std::unique_ptr<Font>& font, bool& started) {
                     systemKeyboard = !systemKeyboard;
                     SystemKeyboard::SetSetting(systemKeyboard);
                     Log("system keyboard %s", systemKeyboard ? "on" : "off");
-                } else if (item == Item::Template) {
-                    // Never over a translation in the making.
-                    const auto directory = LanguagePack::Directory(gameData), file = directory / "template.json";
-                    bool written = false;
-                    MH3_RETURN_IF_ERROR(FsStatus::Exists(file, written));
-
-                    if (written) {
-                        Message("template.json is already in " + directory.string() + ". Rename or delete it to write a new one.");
-                        break;
-                    }
-
-                    MH3_RETURN_IF_ERROR(FsStatus::CreateDirectories(directory));
-                    ReloadGameData();
-                    MH3_RETURN_IF_ERROR(LanguageImport::ExportTemplate(file, gameData));
-                    const std::string imported = ImportLanguages(*font, gameData, false);
-                    listLanguages();
-                    Message("Wrote template.json to " + directory.string() + ".\n" + imported);
                 } else if (item == Item::Online)
                     enter(Page::Online);
                 else if (item == Item::Adhoc)

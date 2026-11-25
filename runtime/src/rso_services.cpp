@@ -3,7 +3,6 @@
 #include "abi_bridge.h"
 #include "village_boot.h"
 #include "self_test.h"
-#include "language_pack.h"
 #include "generated/rso_binding.h"
 #include "generated/rso_overlays/map_village.h"
 #include "generated/rso_overlays/quest_field.h"
@@ -40,11 +39,11 @@ struct Module {
 };
 
 Module modules[]{
-    {"hbm_data.rso", HbmBinding::Base, HbmBinding::Text, HbmBinding::Size, 0x8081A8A4, HbmBinding::Checksum},
-    {"com_data.rso", ComBinding::Base, ComBinding::Text, ComBinding::Size, 0x8086907C, ComBinding::Checksum},
-    {"lobby_data.rso", LobbyBinding::Base, LobbyBinding::Text, LobbyBinding::Size, 0x808C7ED8, LobbyBinding::Checksum},
-    {"demo_data.rso", DemoBinding::Base, DemoBinding::Text, DemoBinding::Size, 0x80992FC8, DemoBinding::Checksum},
-    {"quest_data.rso", QuestBinding::Base, QuestBinding::Text, QuestBinding::Size, 0x809D60C4, QuestBinding::Checksum},
+    {"hbm_data.rso", HbmBinding::Base, HbmBinding::Text, HbmBinding::Size, HbmBinding::Prolog, HbmBinding::Checksum},
+    {"com_data.rso", ComBinding::Base, ComBinding::Text, ComBinding::Size, ComBinding::Prolog, ComBinding::Checksum},
+    {"lobby_data.rso", LobbyBinding::Base, LobbyBinding::Text, LobbyBinding::Size, LobbyBinding::Prolog, LobbyBinding::Checksum},
+    {"demo_data.rso", DemoBinding::Base, DemoBinding::Text, DemoBinding::Size, DemoBinding::Prolog, DemoBinding::Checksum},
+    {"quest_data.rso", QuestBinding::Base, QuestBinding::Text, QuestBinding::Size, QuestBinding::Prolog, QuestBinding::Checksum},
     {"map_village.rso", MapVillageBinding::Base, MapVillageBinding::Text, MapVillageBinding::Size, MapVillageBinding::Prolog, MapVillageBinding::Checksum, false, MapVillageBinding::Records,
      MapVillageBinding::Count},
     {"quest_data.rso (field)", QuestFieldBinding::Base, QuestFieldBinding::Text, QuestFieldBinding::Size, QuestFieldBinding::Prolog, QuestFieldBinding::Checksum, false, QuestFieldBinding::Records,
@@ -229,7 +228,7 @@ void RunRsoOverlaySelfTests(CpuContext* cpu) {
     // Exercise the generated register-global-object leaf under an active overlay
     // fixture. Its address overlaps demo code; only the overlay entry may run.
     overlay.active = true;
-    constexpr uint32_t chain = 0x8097E2E0, node = 0x80006000;
+    constexpr uint32_t chain = 0x80B1BB20, node = 0x80006000;
     const uint32_t oldChain = Memory::Read32(chain);
     Memory::Write32(chain, 0x11223344);
     cpu->gpr[3] = 0xA5;
@@ -255,7 +254,7 @@ void RunRsoOverlaySelfTests(CpuContext* cpu) {
         MH3_THROW(std::runtime_error("Field quest overlay accepted an unverified image"));
 }
 
-extern "C" void func_804DB614(CpuContext*);
+extern "C" void func_804C575C(CpuContext*);
 extern "C" void MH3_RSOUnlink(CpuContext* cpu) {
     Module* unloading = nullptr;
 
@@ -273,7 +272,7 @@ extern "C" void MH3_RSOUnlink(CpuContext* cpu) {
     } else
         unloading = nullptr;
 
-    func_804DB614(cpu);
+    func_804C575C(cpu);
 
     if (unloading) {
         if (cpu->gpr[3] != 1)
@@ -282,45 +281,44 @@ extern "C" void MH3_RSOUnlink(CpuContext* cpu) {
         std::cerr << "MH3 RSO: unlinked " << unloading->name << " static binding\n";
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804DB614, MH3_RSOUnlink, "MH3_RSOUnlink");
+REGISTER_NATIVE_FUNCTION_AS(0x804C575C, MH3_RSOUnlink, "MH3_RSOUnlink");
 
-extern "C" void func_8081A8A4(CpuContext*);
+extern "C" void func_808DA490(CpuContext*);
 extern "C" void MH3_HbmProlog(CpuContext* cpu) {
     using namespace HbmBinding;
     VerifyModule(cpu, "hbm_data.rso", Base, Text, Size, Checksum);
-    func_8081A8A4(cpu);
+    func_808DA490(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8081A8A4, MH3_HbmProlog, "MH3_HbmProlog");
+REGISTER_NATIVE_FUNCTION_AS(0x808DA490, MH3_HbmProlog, "MH3_HbmProlog");
 
-extern "C" void func_8086907C(CpuContext*);
+extern "C" void func_8092B1A8(CpuContext*);
 extern "C" void MH3_ComProlog(CpuContext* cpu) {
     using namespace ComBinding;
     VerifyModule(cpu, "com_data.rso", Base, Text, Size, Checksum);
-    func_8086907C(cpu);
+    func_8092B1A8(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8086907C, MH3_ComProlog, "MH3_ComProlog");
+REGISTER_NATIVE_FUNCTION_AS(0x8092B1A8, MH3_ComProlog, "MH3_ComProlog");
 
-extern "C" void func_808C7ED8(CpuContext*);
+extern "C" void func_809E3ADC(CpuContext*);
 extern "C" void MH3_LobbyProlog(CpuContext* cpu) {
     using namespace LobbyBinding;
     VerifyModule(cpu, "lobby_data.rso", Base, Text, Size, Checksum);
-    func_808C7ED8(cpu);
+    func_809E3ADC(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x808C7ED8, MH3_LobbyProlog, "MH3_LobbyProlog");
+REGISTER_NATIVE_FUNCTION_AS(0x809E3ADC, MH3_LobbyProlog, "MH3_LobbyProlog");
 
-extern "C" void func_80992FC8(CpuContext*);
+extern "C" void func_80B2D420(CpuContext*);
 extern "C" void MH3_DemoProlog(CpuContext* cpu) {
     using namespace DemoBinding;
     VerifyModule(cpu, "demo_data.rso", Base, Text, Size, Checksum);
-    LanguagePack::PatchDemoData(Base);
-    func_80992FC8(cpu);
+    func_80B2D420(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80992FC8, MH3_DemoProlog, "MH3_DemoProlog");
+REGISTER_NATIVE_FUNCTION_AS(0x80B2D420, MH3_DemoProlog, "MH3_DemoProlog");
 
-extern "C" void func_809D60C4(CpuContext*);
+extern "C" void func_80B59D98(CpuContext*);
 extern "C" void MH3_QuestProlog(CpuContext* cpu) {
     using namespace QuestBinding;
     VerifyModule(cpu, "quest_data.rso", Base, Text, Size, Checksum);
-    func_809D60C4(cpu);
+    func_80B59D98(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x809D60C4, MH3_QuestProlog, "MH3_QuestProlog");
+REGISTER_NATIVE_FUNCTION_AS(0x80B59D98, MH3_QuestProlog, "MH3_QuestProlog");

@@ -14,6 +14,7 @@
 // that fraction is 0 and these are the originals
 // (MH3_PORT_CHECK=DemoPose,DemoPoseAxes MH3_VARIABLE_STEP=0).
 #include "abi_bridge.h"
+#include "enemy_work.h"
 #include "game_step.h"
 #include "guest_call.h"
 #include "memory.h"
@@ -33,14 +34,17 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    KeyData = 0x80052364,     // getKeyData (keys; f1 frame) -> f1
-    KeyData2 = 0x800523D4,    // (keys, float* a, float* b; f1 frame)
-    KeyData3 = 0x8005246C,    // getKeyData3 (keys, float* a, float* b, float* c; f1 frame)
-    SetPosition = 0x801460BC, // (work; f1-f3): the position and the previous position
-    SetAngles = 0x80146170,   // (work; f1-f3 degrees)
-    ToAngle = 0x801460F8,     // (f1 degrees) -> s32 angle units
-    Vec3Copy = 0x80041EA4,    // (to, from)
+    KeyData = 0x8028D250,     // getKeyData (keys; f1 frame) -> f1
+    KeyData2 = 0x8028D2B8,    // (keys, float* a, float* b; f1 frame)
+    KeyData3 = 0x8028D344,    // getKeyData3 (keys, float* a, float* b, float* c; f1 frame)
+    SetPosition = 0x80184730, // (work; f1-f3): the position and the previous position
+    SetAngles = 0x80184778,   // (work; f1-f3 degrees)
 };
+
+inline void CopyVec3(uint32_t to, uint32_t from) {
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::Write32(to + i, Memory::Read32(from + i));
+}
 
 // Which values a DemoPoseAxes table gives (r7 for the position, r8 the angles).
 enum Axes : uint8_t {
@@ -100,7 +104,7 @@ void DemoPoseAxesPort(CpuContext* ctx) {
 
     const auto two = [&](uint32_t keys) { game.Call<KeyData2>({keys, a, b}, {at}); };
 
-    const auto angle = [&](float degrees) { return game.Call<ToAngle>({}, {degrees}); };
+    const auto angle = [&](float degrees) { return uint32_t(int32_t(Em::DegToS16(degrees))); };
 
     if (positionKeys != 0 && positionAxes != kNone) {
         switch (positionAxes) {
@@ -136,7 +140,7 @@ void DemoPoseAxesPort(CpuContext* ctx) {
             break;
         }
 
-        game.Call<Vec3Copy>({work + kPrevPosition, work + kPosition});
+        CopyVec3(work + kPrevPosition, work + kPosition);
     }
 
     if (angleKeys == 0 || angleAxes == kNone)
@@ -176,14 +180,14 @@ void DemoPoseAxesPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8014620C(CpuContext* ctx);
+extern "C" void func_80184974(CpuContext* ctx);
 extern "C" void MH3_DemoPose(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoPose", func_8014620C, DemoPosePort);
+    PortCheck::Call(ctx, "DemoPose", func_80184974, DemoPosePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014620C, MH3_DemoPose, "DemoPose");
+REGISTER_NATIVE_FUNCTION_AS(0x80184974, MH3_DemoPose, "DemoPose");
 
-extern "C" void func_80146308(CpuContext* ctx);
+extern "C" void func_80184BA0(CpuContext* ctx);
 extern "C" void MH3_DemoPoseAxes(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoPoseAxes", func_80146308, DemoPoseAxesPort);
+    PortCheck::Call(ctx, "DemoPoseAxes", func_80184BA0, DemoPoseAxesPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80146308, MH3_DemoPoseAxes, "DemoPoseAxes");
+REGISTER_NATIVE_FUNCTION_AS(0x80184BA0, MH3_DemoPoseAxes, "DemoPoseAxes");

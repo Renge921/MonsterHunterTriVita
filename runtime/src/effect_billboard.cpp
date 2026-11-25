@@ -5,4 +5,4 @@
 extern "C" void MH3_DrawBillboard(CpuContext *ctx) {
     NativeEffectDrawBillboards(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B9E5C, MH3_DrawBillboard, "DrawBillboard");
+REGISTER_NATIVE_FUNCTION_AS(0x8050C3C4, MH3_DrawBillboard, "DrawBillboard");

@@ -29,11 +29,11 @@
 #include <cstdio>
 
 namespace QuestPlacement {
-constexpr uint32_t kLists = 0x805F7E60, kMapKeys = 0x805F8058;
+constexpr uint32_t kLists = 0x806B6D28, kMapKeys = 0x806B6F20;
 
 namespace {
 constexpr uint32_t kMonsters = 32, kRecords = 4, kRecordBytes = 48;
-constexpr uint32_t kQuestWork = 0x80797100u, kLiveRecords = 0x806C7D6Cu, kLayouts = 0x805A23F8u;
+constexpr uint32_t kQuestWork = 0x808A02C0u, kLiveRecords = 0x8073FC1Cu, kLayouts = 0x806A9C90u;
 
 // The records of `list`'s entry for map key `key`, 0 for none.
 uint32_t Records(uint32_t list, uint8_t key) {
@@ -281,16 +281,18 @@ extern "C" void func_803AEBE0(CpuContext* ctx);
 extern "C" void MH3_CopyQuestSlot(CpuContext* ctx) {
     PortCheck::Call(ctx, "CopyQuestSlot", func_803AEBE0, CopyQuestSlotPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AEBE0, MH3_CopyQuestSlot, "CopyQuestSlot");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AEBE0, MH3_CopyQuestSlot, "CopyQuestSlot");
 
 extern "C" void func_803ADFE8(CpuContext* ctx);
 extern "C" void MH3_QuestRecordOf(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestRecordOf", func_803ADFE8, QuestRecordOfPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ADFE8, MH3_QuestRecordOf, "QuestRecordOf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ADFE8, MH3_QuestRecordOf, "QuestRecordOf");
 
 extern "C" void func_803AE9F4(CpuContext* ctx);
 extern "C" void MH3_SetQuestMonsters(CpuContext* ctx) {
     PortCheck::Call(ctx, "SetQuestMonsters", func_803AE9F4, SetQuestMonstersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AE9F4, MH3_SetQuestMonsters, "SetQuestMonsters");
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+// REGISTER_NATIVE_FUNCTION_AS(0x803AE9F4, MH3_SetQuestMonsters, "SetQuestMonsters");

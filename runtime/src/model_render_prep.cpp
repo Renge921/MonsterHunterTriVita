@@ -32,8 +32,8 @@
 #include <cstdio>
 
 namespace {
-constexpr uint32_t Genmode = 0x80685300, Coordinates = 0x8068530c, TextureCache = 0x80685380, PaletteCache = 0x806854a0, ShapeCache = 0x80685504, TextureSources = 0x80685510;
-constexpr uint32_t Sync = 0x80796db0, CurrentValid = 0x80796db4, PostIdentity = 0x80796db8, Pipeline = 0x80796dbc, DepthCompare = 0x80796dc8;
+constexpr uint32_t Genmode = 0x80866560, Coordinates = 0x8086656c, TextureCache = 0x808665e0, PaletteCache = 0x80866700, ShapeCache = 0x80866764, TextureSources = 0x80866770;
+constexpr uint32_t Sync = 0x8089a330, CurrentValid = 0x8089a334, PostIdentity = 0x8089a338, Pipeline = 0x8089a33c, DepthCompare = 0x8089a348;
 
 // A failed step names its function (the call's text up to its arguments).
 void CheckedStep(mh3_res_status status, const char* call) {
@@ -837,7 +837,7 @@ mh3_res_mut_span ModelPrepMirror::At(uint32_t address, size_t size) {
 
 void ModelPrepMirror::Invalidate(uint32_t fields) {
     // Fog, light and view-source caches belong to the game thread.
-    const mh3_model_cache_storage storage{At(0x80685480, 1),  At(0x80685500, 2),  At(Coordinates, 4), At(Pipeline, 4), At(Genmode, 12),
+    const mh3_model_cache_storage storage{At(0x808666e0, 1),  At(0x80866760, 2),  At(Coordinates, 4), At(Pipeline, 4), At(Genmode, 12),
                                           At(ShapeCache, 12), At(CurrentValid, 1), At(TextureSources, 32), At(PostIdentity, 4), At(DepthCompare, 4),
                                           {unused, 4},        {unused + 4, 28},  {unused + 32, 12},  At(Sync, 1)};
     Checked(mh3_model_cache_invalidate(storage, fields & ~(256u | 512u | 1024u)));
@@ -1078,7 +1078,7 @@ void CaptureModelPrepMaterial(ModelPrepInputs& in, const mh3_model_material_scop
         // The constructor defines these exact built-in mapping functions. Custom
         // slots may change their callback and type at runtime; reject those until
         // their own typed native producer is implemented.
-        constexpr uint32_t functions[]{0x800850a0, 0x80084694, 0x80084a78, 0x80084694, 0x80084c00};
+        constexpr uint32_t functions[]{0x80529964, 0x80528fd0, 0x805293d4, 0x80528fd0, 0x80529500};
         constexpr uint32_t kinds[]{0, 1, 2, 1, 1};
 
         for (uint32_t i = 0; i < 8; i++) {
@@ -1088,7 +1088,7 @@ void CaptureModelPrepMaterial(ModelPrepInputs& in, const mh3_model_material_scop
             if (!(slot.flags & 1) || !slot.map_mode)
                 continue;
 
-            const uint32_t mode = slot.map_mode, entry = 0x80685560 + mode * 8;
+            const uint32_t mode = slot.map_mode, entry = 0x808667a0 + mode * 8;
             const uint32_t builtin = mode < 5 ? mode : 0;
 
             if (Memory::Read32(entry) != functions[builtin] || Memory::Read32(entry + 4) != kinds[builtin])
@@ -1096,7 +1096,7 @@ void CaptureModelPrepMaterial(ModelPrepInputs& in, const mh3_model_material_scop
 
             if (builtin) {
                 mh3_texture_mapping_input input{};
-                Checked(mh3_texture_mapping_read({Memory::GetPointer(0x80688d94, 0x1a34), 0x1a34}, {Bytes(0x80686368, MH3_LIGHT_STATE_BYTES), MH3_LIGHT_STATE_BYTES}, builtin,
+                Checked(mh3_texture_mapping_read({Memory::GetPointer(0x80869fe0, 0x1a34), 0x1a34}, {Bytes(0x808675b4, MH3_LIGHT_STATE_BYTES), MH3_LIGHT_STATE_BYTES}, builtin,
                                                  slot.camera_reference, slot.light_reference, &input));
                 Checked(mh3_texture_mapping(builtin, &input, &out.maps[i]));
             } else

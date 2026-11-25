@@ -46,7 +46,7 @@ enum : uint32_t {
     kRangeY = 0x1F4,      // f32
 };
 
-constexpr int32_t kSdaTargetSource = -22408; // r13: u32 copied to +0x20
+constexpr int32_t kSdaTargetSource = -28240; // r13: u32 copied to +0x20
 
 // The phase's way back from a bound. The Wii clamps it to the bound on the
 // tick that crosses it, so it rests there until the next whole tick and only
@@ -64,10 +64,12 @@ uint32_t Back(uint32_t over, uint32_t perTick) {
     return uint32_t(perTick * (fraction + std::floor(past - fraction)));
 }
 
+constexpr float kDegToFIdx = 0.7111111283302307f; // 256.0f / 360.0f (0x3F360B61)
+
 enum : uint32_t {
-    Random = 0x800CEF20, // ran_suu(long)
-    SinDegrees = 0x80059210,
-    CosDegrees = 0x803BB7EC, // CosFIdx(deg * 256 / 360)
+    Random = 0x802BC314, // ran_suu(long)
+    SinFIdx = 0x8053D3D8,
+    CosFIdx = 0x8053D440,
 };
 
 } // namespace
@@ -129,9 +131,9 @@ static void AmbientHover(CpuContext* ctx) {
     }
 
     const float degrees = 360.0f * float(Memory::Read32(w + kAngle)) / 65536.0f;
-    call(SinDegrees, {}, {degrees});
+    call(SinFIdx, {}, {degrees * kDegToFIdx});
     const float sin = call.F1();
-    call(CosDegrees, {}, {degrees});
+    call(CosFIdx, {}, {degrees * kDegToFIdx});
     const float cos = call.F1();
     Memory::WriteFloat32(w + kPosX, Memory::ReadFloat32(w + kCentreX) + 20.0f * sin);
     Memory::WriteFloat32(w + kPosZ, Memory::ReadFloat32(w + kCentreZ) + 20.0f * cos);
@@ -150,9 +152,9 @@ static void AmbientHover(CpuContext* ctx) {
         Memory::WriteFloat32(w + kHeightSpeed, now * -1.0f);
 }
 
-extern "C" void func_803BB570(CpuContext* ctx);
+extern "C" void func_802098E4(CpuContext* ctx);
 
 extern "C" void MH3_AmbientHover(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AmbientHover", func_803BB570, AmbientHover);
+    PortCheck::Call(ctx, "AmbientHover", func_802098E4, AmbientHover);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803BB570, MH3_AmbientHover, "AmbientHover");
+REGISTER_NATIVE_FUNCTION_AS(0x802098E4, MH3_AmbientHover, "AmbientHover");

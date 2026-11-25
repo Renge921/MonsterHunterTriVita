@@ -15,7 +15,7 @@ void ServiceOsAlarms(CpuContext* cpu) {
         return;
 
     const auto saved = *cpu;
-    const auto queue = saved.gpr[13] - 0x3B10;
+    const auto queue = saved.gpr[13] - 0x4120;
     servicing = true;
     ScopeExit finish([&] {
         *cpu = saved;
@@ -31,7 +31,7 @@ void ServiceOsAlarms(CpuContext* cpu) {
         if (!Memory::Contains(alarm, 0x30))
             MH3_THROW(std::runtime_error("Invalid OS alarm queue entry"));
 
-        InvokeIndirectCpu(0x804D5400, cpu); // __OSGetSystemTime, same clock as InsertAlarm
+        InvokeIndirectCpu(0x8042BFE8, cpu); // __OSGetSystemTime, same clock as InsertAlarm
         const uint64_t now = (uint64_t(cpu->gpr[3]) << 32) | cpu->gpr[4];
         const uint64_t due = Memory::Read64(alarm + 8);
         *cpu = saved;
@@ -58,13 +58,13 @@ void ServiceOsAlarms(CpuContext* cpu) {
             cpu->gpr[3] = alarm;
             cpu->gpr[5] = cpu->gpr[6] = 0;
             cpu->gpr[7] = callback;
-            InvokeIndirectCpu(0x804CBB30, cpu); // InsertAlarm chooses the next future period
+            InvokeIndirectCpu(0x80422188, cpu); // InsertAlarm chooses the next future period
             *cpu = saved;
         }
 
         const auto oldContext = Memory::Read32(0x800000D4);
         const auto oldPhysical = Memory::Read32(0x800000C0);
-        const auto scheduler = saved.gpr[13] - 14992;
+        const auto scheduler = saved.gpr[13] - 16544;
         const auto disabled = Memory::Read32(scheduler);
         const auto stack = (saved.gpr[1] - 0x300) & ~15u;
         const auto temporaryContext = stack + 16;

@@ -17,8 +17,8 @@
 
 namespace {
 // RMHP08's main.dol, the one the code was translated from.
-constexpr std::array<uint8_t, 20> kDolSha1{0x7a, 0x12, 0x84, 0xfb, 0xf2, 0xa2, 0x66, 0x40, 0x03, 0x63,
-                                           0xaf, 0x75, 0x10, 0xa4, 0x4d, 0x0a, 0xf3, 0xcb, 0x2a, 0x3e};
+constexpr std::array<uint8_t, 20> kDolSha1{0xc7, 0x4d, 0x20, 0xc0, 0xd7, 0xba, 0x84, 0x97, 0xc3, 0x71,
+                                           0x72, 0x24, 0x51, 0x75, 0x31, 0xad, 0x54, 0x0b, 0x00, 0x2d};
 
 // A DOL header: 7 text and 11 data sections (file offsets, addresses,
 // sizes), then the BSS address and size.
@@ -56,7 +56,7 @@ extern "C" void InitializeDataSections() {
     mh3_sha1(dol.data(), dol.size(), digest.data());
 
     if (digest != kDolSha1)
-        MH3_THROW(std::runtime_error("The game executable is not the European Monster Hunter Tri (RMHP08) one: " + path.string()));
+        MH3_THROW(std::runtime_error("The game executable is not the Japanese Monster Hunter Tri (RMHJ08) one: " + path.string()));
 
     for (unsigned i = 0; i < kSections; ++i) {
         const uint32_t offset = Be32(dol.data() + i * 4), address = Be32(dol.data() + 0x48 + i * 4), size = Be32(dol.data() + 0x90 + i * 4);

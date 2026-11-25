@@ -11,6 +11,9 @@ struct mh3_native_light_slots;
 struct mh3_native_material_state;
 struct mh3_model_matrix_selectors;
 struct mh3_resolved_mesh_submit;
+struct CpuContext;
+
+extern "C" void MH3_DebugDrawSetup(CpuContext* cpu);
 
 // Game unless named: the render thread passes NativeOwner::Render.
 const mh3_draw_state& GetNativeDrawState(NativeOwner owner = NativeOwner::Game);

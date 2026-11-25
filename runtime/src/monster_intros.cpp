@@ -66,22 +66,20 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    SetMotionEx = 0x8012F568,   // (work, motion, blend, flags, 1)
-    SetMotionSpeed = 0x8012F92C, // (work; f1): the motion's speed (+0x7C4) and its MHchar rate
-    SetScale = 0x80130628,      // (work; f1)
-    DemoStart = 0x801461D0,     // (work, 0)
-    JointPosition = 0x8013599C, // get_joint_wpos_em (work, joint, VEC3* out)
-    ChangeScale = 0x801359B4,   // get_em_chg_scale (work) -> f1
-    JointEffect = 0x80104918,   // (work, kind, joint, 0; f1 scale): an effect on a joint
-    GroundEffect = 0x8010D314,  // (VEC3* at, u8 area, kind, angle; f1 scale): dust on the ground
-    SpotEffect = 0x801066F8,    // (work, VEC3* at, 0; f1 scale)
-    Vec3Copy = 0x80041EA4,      // (to, from)
-    ShellParams = 0x801497EC,   // (params*): the shell parameters' constructor
-    ShellAim = 0x8015FD80,      // (params*, direction, 4, VEC3* offset, 0, angle)
-    Em008Signal = 0x8015D8C4,   // (work): kind 8's intro, demo step 0x280 / 2
+    SetMotionEx = 0x80168E80,   // (work, motion, blend, flags, 1)
+    SetMotionSpeed = 0x80169A70, // (work; f1): the motion's speed (+0x7C4) and its MHchar rate
+    SetScale = 0x8016A878,      // (work; f1)
+    SetAngles = 0x80184778,     // (work; f1-f3 degrees)
+    DemoStart = 0x801848D4,     // (work, 0)
+    JointPosition = 0x801717A0, // get_joint_wpos_em (work, joint, VEC3* out)
+    ChangeScale = 0x801717B8,   // get_em_chg_scale (work) -> f1
+    JointEffect = 0x800433E0,   // (work, kind, joint, 0; f1 scale): an effect on a joint
+    GroundEffect = 0x8004C02C,  // (VEC3* at, u8 area, kind, angle; f1 scale): dust on the ground
+    SpotEffect = 0x800452E8,    // (work, VEC3* at, 0; f1 scale)
+    ShellParams = 0x803A195C,   // (params*): the shell parameters' constructor
 };
 
-constexpr uint32_t kShellTable = 0x80797020; // shell_set_func_ptr: the shell functions' table
+constexpr uint32_t kShellTable = 0x808A0540; // shell_set_func_ptr: the shell functions' table
 constexpr uint32_t kShellThrow = 0x3C;       // (work, params*, 4)
 
 // What every intro does, over its work and the original's local VEC3 at sp+8.
@@ -127,7 +125,7 @@ struct Intro {
 
     void Place(float x, float y, float z) { game.Call<Em::SetPosition>({work}, {x, y, z}); }
 
-    void Face(float x, float y, float z) { game.Call<Em::SetAngles>({work}, {x, y, z}); }
+    void Face(float x, float y, float z) { game.Call<SetAngles>({work}, {x, y, z}); }
 
     // The keyframe poses at `steps` (the demo clock or the intro's count).
     void Pose(int32_t steps, uint32_t positionKeys, uint32_t angleKeys) { game.Call<Em::DemoPose>({work, uint32_t(int32_t(int16_t(steps))), positionKeys, angleKeys}); }
@@ -166,7 +164,7 @@ void Em009IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
     const uint32_t work = in.work;
-    constexpr uint32_t kRunKeys = 0x805F0D30, kTurnKeys = 0x805F0DE0, kTurnAngleKeys = 0x805F0F50, kLeapKeys = 0x805F0F78;
+    constexpr uint32_t kRunKeys = 0x806902A8, kTurnKeys = 0x80690358, kTurnAngleKeys = 0x806904C8, kLeapKeys = 0x806904F0;
     in.em.CountTicks();
     in.Acted();
 
@@ -243,7 +241,8 @@ void Em009IntroPort(CpuContext* ctx) {
 
         // Dust at its feet on demo steps 0xC1 and 0xE5.
         if (Em::DemoAt(steps, 0xC1) || Em::DemoAt(steps, 0xE5)) {
-            in.game.Call<Vec3Copy>({in.at, work + Em::kPosition});
+            for (uint32_t i = 0; i < 3; ++i)
+                Memory::Write32(in.at + i * 4, Memory::Read32(work + Em::kPosition + i * 4));
             Memory::WriteFloat32(in.at + 4, 5.0f + Memory::ReadFloat32(work + kGroundY));
             in.Dust(1.2f, 1, 0);
         }
@@ -347,7 +346,7 @@ void Em004IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
     const uint32_t work = in.work;
-    constexpr uint32_t kRiseKeys = 0x805B5418, kLeapKeys = 0x805B5520, kLeapAngleKeys = 0x805B55D0;
+    constexpr uint32_t kRiseKeys = 0x8068A0E8, kLeapKeys = 0x8068A1F0, kLeapAngleKeys = 0x8068A2A0;
     in.Acted();
     Memory::Write8(work + kActed2, 1);
 
@@ -507,7 +506,7 @@ void Em004IntroPort(CpuContext* ctx) {
 void Em026IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
-    constexpr uint32_t kDropKeys = 0x805E08F8, kLandKeys = 0x805E09C8;
+    constexpr uint32_t kDropKeys = 0x806A2248, kLandKeys = 0x806A2318;
     in.em.CountTicks();
     const int32_t count = in.em.Count();
 
@@ -618,7 +617,7 @@ void Em023IntroPort(CpuContext* ctx) {
             in.Spawn(1.6f, 0x5E, 3);
         }
 
-        in.Pose(in.Demo(), 0x805D9BE0, 0x805DA5B0);
+        in.Pose(in.Demo(), 0x8069CEA0, 0x8069D870);
 
         if (!in.Reached(kEnd[state - 3]))
             break;
@@ -638,7 +637,7 @@ void Em023IntroPort(CpuContext* ctx) {
             in.Spawn(0.7f, 3, 0x14);
         }
 
-        in.Pose(in.Demo(), 0x805DAFC0, 0x805DB0D0);
+        in.Pose(in.Demo(), 0x8069E280, 0x8069E390);
 
         if (in.Reached(0x4B6)) {
             in.NextState();
@@ -648,7 +647,7 @@ void Em023IntroPort(CpuContext* ctx) {
 
         break;
     case 11:
-        in.PoseAxes(in.Demo(), 0x805DB270, 0x805DB2D0, 7, 2);
+        in.PoseAxes(in.Demo(), 0x8069E530, 0x8069E590, 7, 2);
 
         if (in.Reached(0x58A)) {
             in.NextState();
@@ -666,7 +665,7 @@ void LudrothIntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
     const uint32_t work = in.work;
-    constexpr uint32_t kSwimKeys = 0x805AC578, kWadeKeys = 0x805AC6F0, kShoreKeys = 0x805AC9B0;
+    constexpr uint32_t kSwimKeys = 0x8069624C, kWadeKeys = 0x806963C0, kShoreKeys = 0x80696680;
     in.Acted();
 
     const auto wake = [&](float from, float to, float scale) {
@@ -830,7 +829,12 @@ void Em008IntroPort(CpuContext* ctx) {
         else
             in.Offset(0.0f, 0.0f, 0.0f);
 
-        in.game.Call<ShellAim>({params, direction, 4, in.at, 0, angle});
+        Memory::Write32(params, 4);
+        for (uint32_t i = 0; i < 3; ++i)
+            Memory::Write32(params + 4 + i * 4, Memory::Read32(in.at + i * 4));
+        Memory::Write8(params + 0x10, uint8_t(direction));
+        Memory::Write16(params + 0x12, 0);
+        Memory::Write16(params + 0x14, uint16_t(angle));
         const uint32_t fn = Memory::Read32(Memory::Read32(kShellTable) + kShellThrow);
         in.game(fn, {work, params, 4});
     };
@@ -913,7 +917,13 @@ void Em008IntroPort(CpuContext* ctx) {
     case 6:
         if (Memory::Read8(work + kSubState) == 0 && in.Reached(0x280)) {
             Memory::Write8(work + kSubState, 1);
-            in.game.Call<Em008Signal>({work});
+            Memory::Write8(work + kRoamMask, 0);
+            if (uint8_t(in.game.Call<0x801560F8>({work, 2})) >= 2)
+                Memory::Write8(work + kRoamMask, Memory::Read8(work + kRoamMask) | 4);
+            if (in.game.Call<0x801715CC>({work, 2}) == 1)
+                Memory::Write8(work + kRoamMask, Memory::Read8(work + kRoamMask) | 1);
+            if (in.game.Call<0x801715CC>({work, 1}) == 1)
+                Memory::Write8(work + kRoamMask, Memory::Read8(work + kRoamMask) | 0x20);
         }
 
         if (in.Reached(0x2E8)) {
@@ -1187,9 +1197,9 @@ void Em006IntroPort(CpuContext* ctx) {
 void Em001IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
-    constexpr uint32_t kWallKeys = 0x805A389C, kCeilingKeys = 0x805A3A40, kCeilingAngleKeys = 0x805A4020;
-    constexpr uint32_t kDropKeys = 0x805A42A0, kHangKeys = 0x805A43D0, kHangAngleKeys = 0x805A4590;
-    constexpr uint32_t kFloorKeys = 0x805A4650, kFloorAngleKeys = 0x805A4780;
+    constexpr uint32_t kWallKeys = 0x8068607C, kCeilingKeys = 0x80686220, kCeilingAngleKeys = 0x80686800;
+    constexpr uint32_t kDropKeys = 0x80686A80, kHangKeys = 0x80686BB0, kHangAngleKeys = 0x80686D70;
+    constexpr uint32_t kFloorKeys = 0x80686E30, kFloorAngleKeys = 0x80686F60;
 
     const auto wall = [&] { in.PoseAxes(in.Demo(), kWallKeys, 0, 6, 0); };
 
@@ -1212,7 +1222,7 @@ void Em001IntroPort(CpuContext* ctx) {
     switch (in.State()) {
     case 0:
         in.NextState();
-        in.game.Call<0x801302AC>({in.work}); // its f1 goes on to SetScale
+        in.game.Call<0x8016A47C>({in.work}); // its f1 goes on to SetScale
         in.game.Call<SetScale>({in.work});
         in.Motion(0x1A, 0, 0);
         in.Face(0.0f, 180.0f, 0.0f);
@@ -1373,7 +1383,7 @@ void Em015IntroPort(CpuContext* ctx) {
     case 2:
         if (in.At(240.0f)) {
             in.Offset(0.0f, 180.0f, 60.0f);
-            in.game.Call<0x8010757C>({work, in.at, 0x19, 10}, {2.5}); // an effect at the offset
+            in.game.Call<0x80046118>({work, in.at, 0x19, 10}, {2.5}); // an effect at the offset
         }
 
         if (in.Reached(0x296)) {
@@ -1412,7 +1422,7 @@ void Em015IntroPort(CpuContext* ctx) {
 
         break;
     case 6:
-        in.game.Call<0x80133EA0>({work, 0x4000}, {0.0, 40.0}); // turns while the motion is in [0, 40]
+        in.game.Call<0x8016EC7C>({work, 0x4000}, {0.0, 40.0}); // turns while the motion is in [0, 40]
 
         if (in.At(70.0f)) {
             in.NextState();
@@ -1466,7 +1476,7 @@ void Em005IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     Intro in(ctx, frame);
     const uint32_t work = in.work;
-    constexpr uint32_t kFallKeys = 0x805B69B8, kFallAngleKeys = 0x805B6B68, kWalkKeys = 0x805B6BA8;
+    constexpr uint32_t kFallKeys = 0x8068BB98, kFallAngleKeys = 0x8068BD48, kWalkKeys = 0x8068BD88;
 
     // 0x80130450 (work; f1), inlined: the height above the ground.
     const auto height = [&](float h) {
@@ -1496,7 +1506,7 @@ void Em005IntroPort(CpuContext* ctx) {
     case 0:
         in.NextState();
         in.em.Count(0);
-        in.game.Call<0x801302AC>({work}); // its f1 goes on to SetScale
+        in.game.Call<0x8016A47C>({work}); // its f1 goes on to SetScale
         in.game.Call<SetScale>({work});
         in.Motion(1, 0, 0);
         in.StartDemo();
@@ -1535,7 +1545,7 @@ void Em005IntroPort(CpuContext* ctx) {
 
         if (in.At(26.0f)) {
             in.Offset(0.0f, 0.0f, 200.0f);
-            in.game.Call<0x80104A34>({work, 1, 5, 0, in.at}, {0.7}); // an effect at the offset
+            in.game.Call<0x80043504>({work, 1, 5, 0, in.at}, {0.7}); // an effect at the offset
         }
 
         if (in.Reached(0x294)) {
@@ -1607,9 +1617,9 @@ void Em005IntroPort(CpuContext* ctx) {
             walk();
         } else if (!(Memory::ReadFloat32(work + 0x24 + 0x44) > 0.0f)) {
             // Not cross-fading (0x8012F9AC, inlined): walks by its motion's speed table.
-            in.game.Call<0x801356A8>({work, 0x805B5A98});
+            in.game.Call<0x80171504>({work, 0x8068ABC0});
             Memory::WriteFloat32(work + 0x318, in.game.F1());
-            in.game.Call<0x80135558>({work, work + kAngleX}); // EnemyAddTurnedVelocity
+            in.game.Call<0x80171104>({work, work + kAngleX}); // EnemyAddTurnedVelocity
         }
 
         if (in.Reached(0x454)) {
@@ -1697,21 +1707,21 @@ void Em012IntroPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x50);
     Intro in(ctx, frame);
     const uint32_t work = in.work;
-    constexpr uint32_t kKeys = 0x805A91C0;
+    constexpr uint32_t kKeys = 0x80692970;
     const float shot = float(in.Demo() * 2);
 
     const auto rate = [&] {
-        in.game.Call<0x8012F948>({work});
+        in.game.Call<0x80169A88>({work});
         return in.game.F1();
     };
 
     // The keyed pose, the height above the ground and the place `back` behind it.
     const auto follow = [&](float back) {
-        in.game.Call<0x801321B8>({work});
+        in.game.Call<0x8016C91C>({work});
         in.Pose(int16_t(in.Demo() - 0x14C), kKeys, 0);
-        in.game.Call<0x80130450>({work}, {double(Memory::ReadFloat32(work + 0x18C) - Memory::ReadFloat32(work + 0x20C))});
+        in.game.Call<0x8016A668>({work}, {double(Memory::ReadFloat32(work + 0x18C) - Memory::ReadFloat32(work + 0x20C))});
         in.game.Call<Em::Vec3Set>({in.at}, {0.0, 0.0, double(back)});
-        in.game.Call<0x800510C8>({in.at, Memory::Read32(work + kAngleY)}); // rotVecY
+        in.game.Call<0x8028BD04>({in.at, Memory::Read32(work + kAngleY)}); // rotVecY
         const float x = Memory::ReadFloat32(work + 0x188) + Memory::ReadFloat32(in.at);
         const float y = Memory::ReadFloat32(work + 0x18C) + Memory::ReadFloat32(in.at + 4);
         const float z = Memory::ReadFloat32(work + 0x190) + Memory::ReadFloat32(in.at + 8);
@@ -1729,14 +1739,14 @@ void Em012IntroPort(CpuContext* ctx) {
         Memory::Write32(work + 0x1C4, 0);
         in.Place(-600.0f, 0.0f, 1370.0f);
         in.StartDemo();
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
         break;
     case 1:
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
 
         if (in.Reached(0x298)) {
             in.NextState();
-            in.game.Call<0x80146200>({work});
+            in.game.Call<0x80184968>({work});
             in.Motion(10, 0, 0x1A);
             in.MotionSpeed(0.8f);
             Memory::Write32(work + kAngleY, 0xFFFFE2AB);
@@ -1745,7 +1755,7 @@ void Em012IntroPort(CpuContext* ctx) {
 
         break;
     case 2:
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
         follow(shot == 666.0f ? -200.0f : -120.0f);
 
         if (in.Reached(0x2DC)) {
@@ -1757,7 +1767,7 @@ void Em012IntroPort(CpuContext* ctx) {
         break;
     case 3:
         if (shot < 772.0f)
-            in.game.Call<0x80136D78>({work});
+            in.game.Call<0x80172CC4>({work});
 
         follow(-120.0f);
 
@@ -1769,35 +1779,35 @@ void Em012IntroPort(CpuContext* ctx) {
 
         break;
     case 4:
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
         follow(-120.0f);
 
         if (in.Reached(0x3C0)) {
             in.NextState();
             in.MotionEx(9, 0x18, 0x6A, 1);
             in.MotionSpeed(0.5f);
-            in.game.Call<0x80130450>({work}, {0.0});
+            in.game.Call<0x8016A668>({work}, {0.0});
         }
 
         break;
     case 5:
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
 
         if (in.Reached(0x3E2)) {
             in.NextState();
-            in.game.Call<0x8012F7BC>({work, 9, 0}, {1.0});
+            in.game.Call<0x80169674>({work, 9, 0}, {1.0});
             in.MotionSpeed(0.5f);
             in.em.Count(0);
         }
 
         break;
     case 6: {
-        in.game.Call<0x80136D78>({work});
+        in.game.Call<0x80172CC4>({work});
         in.em.CountTicks();
         const float perTick = 0.5f / (40.0f / rate());
         const float blend = 1.0f - float(in.em.Count()) * perTick;
         const int32_t channelFrame = int32_t(float(in.em.Count()) * rate());
-        in.game.Call<0x8012F7BC>({work, 9, uint32_t(channelFrame)}, {double(blend)});
+        in.game.Call<0x80169674>({work, 9, uint32_t(channelFrame)}, {double(blend)});
 
         if (in.Reached(0x436)) {
             in.NextState();
@@ -1836,68 +1846,68 @@ void Em012IntroPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8017E56C(CpuContext* ctx);
+extern "C" void func_800DBAAC(CpuContext* ctx);
 extern "C" void MH3_Em015Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Intro", func_8017E56C, Em015IntroPort);
+    PortCheck::Call(ctx, "Em015Intro", func_800DBAAC, Em015IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017E56C, MH3_Em015Intro, "Em015Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800DBAAC, MH3_Em015Intro, "Em015Intro");
 
-extern "C" void func_80173314(CpuContext* ctx);
+extern "C" void func_800D0FC0(CpuContext* ctx);
 extern "C" void MH3_Em012Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Intro", func_80173314, Em012IntroPort);
+    PortCheck::Call(ctx, "Em012Intro", func_800D0FC0, Em012IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80173314, MH3_Em012Intro, "Em012Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800D0FC0, MH3_Em012Intro, "Em012Intro");
 
-extern "C" void func_801D42F0(CpuContext* ctx);
+extern "C" void func_8009FA3C(CpuContext* ctx);
 extern "C" void MH3_Em007Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Intro", func_801D42F0, Em005IntroPort);
+    PortCheck::Call(ctx, "Em005Intro", func_8009FA3C, Em005IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D42F0, MH3_Em007Intro, "Em005Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x8009FA3C, MH3_Em007Intro, "Em005Intro");
 
-extern "C" void func_80150830(CpuContext* ctx);
+extern "C" void func_80081070(CpuContext* ctx);
 extern "C" void MH3_Em004Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Intro", func_80150830, Em001IntroPort);
+    PortCheck::Call(ctx, "Em001Intro", func_80081070, Em001IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80150830, MH3_Em004Intro, "Em001Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x80081070, MH3_Em004Intro, "Em001Intro");
 
-extern "C" void func_8038C188(CpuContext* ctx);
+extern "C" void func_800C1680(CpuContext* ctx);
 extern "C" void MH3_Em011Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em009Intro", func_8038C188, Em009IntroPort);
+    PortCheck::Call(ctx, "Em009Intro", func_800C1680, Em009IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8038C188, MH3_Em011Intro, "Em009Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800C1680, MH3_Em011Intro, "Em009Intro");
 
-extern "C" void func_801C8228(CpuContext* ctx);
+extern "C" void func_800938E0(CpuContext* ctx);
 extern "C" void MH3_Em006Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Intro", func_801C8228, Em004IntroPort);
+    PortCheck::Call(ctx, "Em004Intro", func_800938E0, Em004IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C8228, MH3_Em006Intro, "Em004Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800938E0, MH3_Em006Intro, "Em004Intro");
 
-extern "C" void func_8032F5B4(CpuContext* ctx);
+extern "C" void func_8012FA08(CpuContext* ctx);
 extern "C" void MH3_Em026Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Intro", func_8032F5B4, Em026IntroPort);
+    PortCheck::Call(ctx, "Em026Intro", func_8012FA08, Em026IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032F5B4, MH3_Em026Intro, "Em026Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x8012FA08, MH3_Em026Intro, "Em026Intro");
 
-extern "C" void func_802FE5B4(CpuContext* ctx);
+extern "C" void func_801174A4(CpuContext* ctx);
 extern "C" void MH3_Em023Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em023Intro", func_802FE5B4, Em023IntroPort);
+    PortCheck::Call(ctx, "Em023Intro", func_801174A4, Em023IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802FE5B4, MH3_Em023Intro, "Em023Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x801174A4, MH3_Em023Intro, "Em023Intro");
 
-extern "C" void func_8018B47C(CpuContext* ctx);
+extern "C" void func_800E8B9C(CpuContext* ctx);
 extern "C" void MH3_LudrothIntro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "LudrothIntro", func_8018B47C, LudrothIntroPort);
+    PortCheck::Call(ctx, "LudrothIntro", func_800E8B9C, LudrothIntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8018B47C, MH3_LudrothIntro, "LudrothIntro");
+REGISTER_NATIVE_FUNCTION_AS(0x800E8B9C, MH3_LudrothIntro, "LudrothIntro");
 
-extern "C" void func_80162564(CpuContext* ctx);
+extern "C" void func_800B7E10(CpuContext* ctx);
 extern "C" void MH3_Em010Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Intro", func_80162564, Em008IntroPort);
+    PortCheck::Call(ctx, "Em008Intro", func_800B7E10, Em008IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80162564, MH3_Em010Intro, "Em008Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800B7E10, MH3_Em010Intro, "Em008Intro");
 
-extern "C" void func_801BF050(CpuContext* ctx);
+extern "C" void func_800A6248(CpuContext* ctx);
 extern "C" void MH3_Em008Intro(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Intro", func_801BF050, Em006IntroPort);
+    PortCheck::Call(ctx, "Em006Intro", func_800A6248, Em006IntroPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BF050, MH3_Em008Intro, "Em006Intro");
+REGISTER_NATIVE_FUNCTION_AS(0x800A6248, MH3_Em008Intro, "Em006Intro");

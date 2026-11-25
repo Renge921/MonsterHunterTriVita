@@ -50,23 +50,23 @@ enum : uint32_t {
     kOrbit = 0x1F0, // u32 (u16 range)
 };
 
-constexpr uint32_t kWaits = 0x80795B60;      // s16[4] (r13 - 22400)
-constexpr uint32_t kLightTable = 0x805F89E0; // u8 by kind
-constexpr uint32_t kSpeedTable = 0x805F8AD0; // f32[4]
-constexpr int32_t kSdaRoot = -17580;         // r13: _pRoot
+constexpr uint32_t kWaits = 0x8089DA38;      // s16[4] (r13 - 26944 / -0x6E50? verified table)
+constexpr uint32_t kLightTable = 0x806B7858; // u8 by kind
+constexpr uint32_t kSpeedTable = 0x806B7948; // f32[4]
+constexpr int32_t kSdaRoot = -17332;         // r13: _pRoot
+constexpr float kDegToFIdx = 0.7111111283302307f; // 256.0f / 360.0f (0x3F360B61)
 
 enum : uint32_t {
-    AreaActive = 0x803BA700,
-    Free = 0x803BA1CC,
-    Place = 0x803BA754,
-    Random = 0x800CEF20,
-    SinDegrees = 0x80059210,
-    RotVecX = 0x8005101C,
-    RotVecY = 0x800510C8,
-    VecAdd = 0x800513DC,
-    CharMove = 0x800E078C, // MHchar::move(unsigned short)
-    RootDraw = 0x8007F130,
-    PushG3dWork = 0x800D30BC,
+    Scene = 0x802BCF94,
+    Free = 0x8020B55C,
+    Place = 0x80208AD0,
+    Random = 0x802BC314,
+    SinFIdx = 0x8053D3D8,
+    RotVecX = 0x8028BC54,
+    RotVecY = 0x8028BD04,
+    MemSet = 0x8000443C,
+    CharMove = 0x802A24A8, // MHchar::move(unsigned short)
+    PushG3dWork = 0x802AAFDC,
 };
 
 void Copy3(uint32_t to, uint32_t from) {
@@ -76,7 +76,7 @@ void Copy3(uint32_t to, uint32_t from) {
 
 // The flap scale of one axis: size - sin * (size / 2), with |sin|.
 float FlapScale(GuestCall& call, uint32_t angle, float size) {
-    call.Call<SinDegrees>({}, {360.0f * float(angle) / 65536.0f});
+    call.Call<SinFIdx>({}, {(360.0f * float(angle) / 65536.0f) * kDegToFIdx});
     float sin = call.F1();
 
     if (sin < 0.0f)
@@ -103,6 +103,9 @@ static void AmbientFlutter(CpuContext* ctx) {
     case 0: {
         if (!Memory::Read32(w + kModel)) {
             call.Call<Free>({w});
+            if (const uint32_t g3d = Memory::Read32(w + 0x144))
+                call.Call<PushG3dWork>({g3d});
+            call.Call<MemSet>({w, 0, 0x20C});
             return;
         }
 
@@ -134,7 +137,8 @@ static void AmbientFlutter(CpuContext* ctx) {
         return;
     }
     case 1: {
-        const uint8_t active = uint8_t(call.Call<AreaActive>({Memory::Read8(w + kArea)}));
+        const uint32_t scene = call.Call<Scene>({0});
+        const uint8_t active = (scene != 0 && Memory::Read8(scene + 0xEA) == Memory::Read8(w + kArea)) ? 1 : 0;
         Memory::Write8(w + kActive, active);
 
         if (!active) {
@@ -195,7 +199,8 @@ static void AmbientFlutter(CpuContext* ctx) {
                 call.Call<RotVecY>({offset, orbit});
                 call.Call<RotVecX>({offset, Memory::Read32(w + kPitch)});
                 call.Call<RotVecY>({offset, Memory::Read32(w + kYaw)});
-                call.Call<VecAdd>({at, w + kPos, offset});
+                for (int i = 0; i < 3; ++i)
+                    Memory::WriteFloat32(at + i * 4, Memory::ReadFloat32(w + kPos + i * 4) + Memory::ReadFloat32(offset + i * 4));
                 Copy3(w + kModelPos, at);
             } else {
                 Copy3(w + kModelPos, w + kPos);
@@ -210,7 +215,8 @@ static void AmbientFlutter(CpuContext* ctx) {
         }
 
         call.Call<CharMove>({w + kChar, 0});
-        call.Call<RootDraw>({Memory::Read32(frame.Arg(13) + uint32_t(kSdaRoot)), Memory::Read32(w + kModel)});
+        const uint32_t root = Memory::Read32(frame.Arg(13) + uint32_t(kSdaRoot));
+        call.Virtual<0x34>(root, {Memory::Read32(root + 0xE4), Memory::Read32(w + kModel)});
         return;
     }
     case 2:
@@ -219,15 +225,18 @@ static void AmbientFlutter(CpuContext* ctx) {
         [[fallthrough]];
     case 3:
         call.Call<Free>({w});
+        if (const uint32_t g3d = Memory::Read32(w + 0x144))
+            call.Call<PushG3dWork>({g3d});
+        call.Call<MemSet>({w, 0, 0x20C});
         return;
     default:
         return;
     }
 }
 
-extern "C" void func_803BC584(CpuContext* ctx);
+extern "C" void func_8020AA7C(CpuContext* ctx);
 
 extern "C" void MH3_AmbientFlutter(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AmbientFlutter", func_803BC584, AmbientFlutter);
+    PortCheck::Call(ctx, "AmbientFlutter", func_8020AA7C, AmbientFlutter);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803BC584, MH3_AmbientFlutter, "AmbientFlutter");
+REGISTER_NATIVE_FUNCTION_AS(0x8020AA7C, MH3_AmbientFlutter, "AmbientFlutter");

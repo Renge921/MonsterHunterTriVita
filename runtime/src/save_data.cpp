@@ -51,9 +51,9 @@ enum : uint32_t {
 
 constexpr int32_t kWorkingCharacterSda = -17824; // r13-relative copy of system_w+0x95C
 enum : uint32_t {
-    Memcpy = 0x80004000,
-    Memset = 0x80004350,
-    OSGetTime = 0x804D53D0,
+    Memcpy = 0x80004338,
+    Memset = 0x8000443C,
+    OSGetTime = 0x8042BF64,
     Strcpy = 0x8045FBD4
 };
 
@@ -126,7 +126,7 @@ static void NewUserDataPort(CpuContext* ctx) {
 extern "C" void MH3_NewUserData(CpuContext* ctx) {
     PortCheck::Call(ctx, "NewUserData", func_80049818, NewUserDataPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049818, MH3_NewUserData, "NewUserData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80049818, MH3_NewUserData, "NewUserData");
 
 // 0x80049F00 UserDataStore(dest).
 extern "C" void func_80049F00(CpuContext* ctx);
@@ -137,7 +137,7 @@ static void UserDataStorePort(CpuContext* ctx) {
 extern "C" void MH3_UserDataStore(CpuContext* ctx) {
     PortCheck::Call(ctx, "UserDataStore", func_80049F00, UserDataStorePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049F00, MH3_UserDataStore, "UserDataStore");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80049F00, MH3_UserDataStore, "UserDataStore");
 
 // 0x80441AD8 SaveReadRequest(s8 file, s8 access) -> 1, or 0 without a buffer:
 // prepares the read of save file `file` into the save buffer (cleared).
@@ -174,7 +174,7 @@ static void SaveReadRequestPort(CpuContext* ctx) {
 extern "C" void MH3_SaveReadRequest(CpuContext* ctx) {
     PortCheck::Call(ctx, "SaveReadRequest", func_80441AD8, SaveReadRequestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80441AD8, MH3_SaveReadRequest, "SaveReadRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80441AD8, MH3_SaveReadRequest, "SaveReadRequest");
 
 // 0x80049F6C LoadCharacterWork(record).
 extern "C" void func_80049F6C(CpuContext* ctx);
@@ -185,7 +185,7 @@ static void LoadCharacterWorkPort(CpuContext* ctx) {
 extern "C" void MH3_LoadCharacterWork(CpuContext* ctx) {
     PortCheck::Call(ctx, "LoadCharacterWork", func_80049F6C, LoadCharacterWorkPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049F6C, MH3_LoadCharacterWork, "LoadCharacterWork");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80049F6C, MH3_LoadCharacterWork, "LoadCharacterWork");
 
 // 0x80442088 LoadCharacter(u8 slot) -> 1, or 0 when the save buffer's sum is
 // wrong or the file is unused: makes character `slot` of the save buffer the
@@ -213,4 +213,4 @@ static void LoadCharacterPort(CpuContext* ctx) {
 extern "C" void MH3_LoadCharacter(CpuContext* ctx) {
     PortCheck::Call(ctx, "LoadCharacter", func_80442088, LoadCharacterPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80442088, MH3_LoadCharacter, "LoadCharacter");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80442088, MH3_LoadCharacter, "LoadCharacter");

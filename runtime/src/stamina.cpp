@@ -22,11 +22,11 @@ namespace {
 bool noStaminaDrain = false;
 
 enum : uint32_t {
-    MasterCheck = 0x8026FE38,       // Pl_master_ck(PLW*) -> 1 for the local player
-    SkillCheck = 0x80271374,        // Pl_Skill_ck(PLW*, skill) -> 1
-    CatSkillCheck = 0x80272B14,     // Pl_cat_skill_ck(PLW*, skill) -> 1
-    DamageCondition = 0x80279130,   // Pl_dm_condition_ck(PLW*, condition) -> 1
-    SetConditionState = 0x802768CC, // PlSetConditionState(PLW*, s16 delta)
+    MasterCheck = 0x8033DBA4,       // Pl_master_ck(PLW*) -> 1 for the local player
+    SkillCheck = 0x803400D0,        // Pl_Skill_ck(PLW*, skill) -> 1
+    CatSkillCheck = 0x80341C10,     // Pl_cat_skill_ck(PLW*, skill) -> 1
+    DamageCondition = 0x80348F34,   // Pl_dm_condition_ck(PLW*, condition) -> 1
+    SetConditionState = 0x803461D0, // PlSetConditionState(PLW*, s16 delta)
 };
 
 enum : uint32_t {
@@ -119,8 +119,8 @@ void LauncherCheats::SetNoStaminaDrain(bool enabled) {
     noStaminaDrain = enabled;
 }
 
-extern "C" void func_8027695C(CpuContext* ctx);
-extern "C" void func_80276AA0(CpuContext* ctx);
+extern "C" void func_80346278(CpuContext* ctx);
+extern "C" void func_8034641C(CpuContext* ctx);
 
 static void StaminaChangePort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
@@ -138,11 +138,11 @@ static void StaminaDrainPort(CpuContext* ctx) {
 }
 
 extern "C" void MH3_StaminaChange(CpuContext* ctx) {
-    PortCheck::Call(ctx, "StaminaChange", func_8027695C, StaminaChangePort);
+    PortCheck::Call(ctx, "StaminaChange", func_80346278, StaminaChangePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027695C, MH3_StaminaChange, "StaminaChange");
+REGISTER_NATIVE_FUNCTION_AS(0x80346278, MH3_StaminaChange, "StaminaChange");
 
 extern "C" void MH3_StaminaDrain(CpuContext* ctx) {
-    PortCheck::Call(ctx, "StaminaDrain", func_80276AA0, StaminaDrainPort);
+    PortCheck::Call(ctx, "StaminaDrain", func_8034641C, StaminaDrainPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80276AA0, MH3_StaminaDrain, "StaminaDrain");
+REGISTER_NATIVE_FUNCTION_AS(0x8034641C, MH3_StaminaDrain, "StaminaDrain");

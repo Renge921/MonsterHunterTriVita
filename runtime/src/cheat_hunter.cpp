@@ -133,7 +133,7 @@ extern "C" void MH3_CheatArmorPigment(CpuContext* ctx) {
     func_8027E854(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027E854, MH3_CheatArmorPigment, "CheatArmorPigment");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027E854, MH3_CheatArmorPigment, "CheatArmorPigment");
 
 // 0x802747F8 (plw): 1 when the hunter can leave the area. Can't leave area
 // (US 0x802747DC, EU 0x80274840: the health check made to fail), switched by
@@ -149,7 +149,7 @@ extern "C" void MH3_CheatLeaveArea(CpuContext* ctx) {
     func_802747F8(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802747F8, MH3_CheatLeaveArea, "CheatLeaveArea");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802747F8, MH3_CheatLeaveArea, "CheatLeaveArea");
 
 // 0x8027851C (plw): 1 when a farcaster can be used: not in area 2 of maps of
 // kind 6 and 17, not in the camp's area. Farcaster at camp (US 0x80278528, EU
@@ -191,7 +191,7 @@ extern "C" void MH3_CheatFarcaster(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027851C, MH3_CheatFarcaster, "CheatFarcaster");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027851C, MH3_CheatFarcaster, "CheatFarcaster");
 
 // 0x8027804C (plw): 1 while no trap of the hunter's is set. Set unlimited
 // traps (Bully's, US 0x80277FE8, EU 0x8027804C: the count's load made li
@@ -201,7 +201,7 @@ extern "C" void MH3_TrapsFree(CpuContext* ctx) {
     ctx->gpr[3] = On(Id::UnlimitedTraps) ? 1 : (set - 1) >> 31;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027804C, MH3_TrapsFree, "TrapsFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027804C, MH3_TrapsFree, "TrapsFree");
 
 // 0x8027831C and 0x802784B4 (plw): 1 when a pit trap (a shock trap) can be
 // set: no trap set (0x8027804C) and the place allows it (0x802781A8,
@@ -236,13 +236,13 @@ extern "C" void MH3_CheatPitfall(CpuContext* ctx) {
     TrapAnywhere(ctx, On(Id::PitfallAtCamp), func_8027831C);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027831C, MH3_CheatPitfall, "CheatPitfall");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027831C, MH3_CheatPitfall, "CheatPitfall");
 
 extern "C" void MH3_CheatShockTrap(CpuContext* ctx) {
     TrapAnywhere(ctx, On(Id::ShockAtCamp), func_802784B4);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802784B4, MH3_CheatShockTrap, "CheatShockTrap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802784B4, MH3_CheatShockTrap, "CheatShockTrap");
 
 // 0x80277FB8 (plw): 1 when a large barrel bomb can be set: fewer than two set,
 // not in the camp's area. Set unlimited barrel bombs (Bully's, US 0x80277F68,
@@ -281,7 +281,7 @@ extern "C" void MH3_CheatBarrelBomb(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80277FB8, MH3_CheatBarrelBomb, "CheatBarrelBomb");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80277FB8, MH3_CheatBarrelBomb, "CheatBarrelBomb");
 
 // 0x8027C26C (plw, item): 1 when the item can be used now. Underwater (+9
 // 3) smoke bombs, steaks and felvine bombs cannot; Smoke underwater (US
@@ -312,7 +312,7 @@ extern "C" void MH3_CheatItemUsable(CpuContext* ctx) {
     Memory::Write8(plw + kActionGroup, 3);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027C26C, MH3_CheatItemUsable, "CheatItemUsable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027C26C, MH3_CheatItemUsable, "CheatItemUsable");
 
 // 0x8030BAC8 (weapon type, raw): the raw attack as shown, scaled by the
 // weapon type's factor (in percent). Show real raw (US 0x8030BA90, EU
@@ -328,7 +328,7 @@ extern "C" void MH3_CheatRawShown(CpuContext* ctx) {
     func_8030BAC8(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8030BAC8, MH3_CheatRawShown, "CheatRawShown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8030BAC8, MH3_CheatRawShown, "CheatRawShown");
 
 // 0x80316290 and 0x80316534 (..., u8* kind, s16* value): the element (the
 // status) as shown, ten times the weapon's; flag 1 of the result when there
@@ -354,13 +354,13 @@ extern "C" void MH3_CheatElementShown(CpuContext* ctx) {
     ShowUnscaled(ctx, On(Id::ShowRealElement), func_80316290);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80316290, MH3_CheatElementShown, "CheatElementShown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80316290, MH3_CheatElementShown, "CheatElementShown");
 
 extern "C" void MH3_CheatStatusShown(CpuContext* ctx) {
     ShowUnscaled(ctx, On(Id::ShowRealStatus), func_80316534);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80316534, MH3_CheatStatusShown, "CheatStatusShown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80316534, MH3_CheatStatusShown, "CheatStatusShown");
 
 // 0x802653D8 (plw): a hit's conditions (stun, poison, and so on); 1 when the
 // hit leaves the hunter without a reaction. Never stunned (US 0x802654E8, EU
@@ -385,7 +385,7 @@ extern "C" void MH3_CheatHitConditions(CpuContext* ctx) {
         ctx->gpr[3] = 1;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802653D8, MH3_CheatHitConditions, "CheatHitConditions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802653D8, MH3_CheatHitConditions, "CheatHitConditions");
 
 // 0x8027AC90 (plw, s8, s8): sets the weapon's sharpness levels (+0x568 from
 // the weapon type's table for -1). Weapons always sharp (Seth, US 0x8027AC6C,
@@ -409,7 +409,7 @@ extern "C" void MH3_CheatSharpLevels(CpuContext* ctx) {
         Memory::Write8(plw + kSharpLevel, before);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027AC90, MH3_CheatSharpLevels, "CheatSharpLevels");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027AC90, MH3_CheatSharpLevels, "CheatSharpLevels");
 
 // 0x8029FD60 (the item menu's entries): +134 and +158 of 0x806AED48 enable
 // combining and the speed combos (0x8031AC68 decides). Combine never disabled
@@ -431,7 +431,7 @@ extern "C" void MH3_CheatItemMenu(CpuContext* ctx) {
         Memory::Write8(kMenu + 158, 1);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8029FD60, MH3_CheatItemMenu, "CheatItemMenu");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8029FD60, MH3_CheatItemMenu, "CheatItemMenu");
 
 namespace {
 
@@ -513,7 +513,7 @@ extern "C" void MH3_CheatSpiritGauge(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027C918, MH3_CheatSpiritGauge, "CheatSpiritGauge");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027C918, MH3_CheatSpiritGauge, "CheatSpiritGauge");
 
 // PlAreaConditionTick (0x8027D608, plw, s16 change): the switch axe's phial
 // gauge at +0x36C (0 to 100). Enhanced focus grows it five times as fast.
@@ -542,7 +542,7 @@ extern "C" void MH3_CheatGauge36C(CpuContext* ctx) {
     Memory::Write16(plw + kGauge36C, uint16_t(std::clamp<int16_t>(gauge, 0, 100)));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027D608, MH3_CheatGauge36C, "CheatGauge36C");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027D608, MH3_CheatGauge36C, "CheatGauge36C");
 
 // PlChargeTime (0x80281210, plw, s16 time): a charge's time, scaled by the
 // focus skill, 9999 for 9999 and more. Great sword inf charge and Lv3 charge
@@ -573,7 +573,7 @@ extern "C" void MH3_CheatChargeTime(CpuContext* ctx) {
     ctx->gpr[3] = uint32_t(Fctiwz(scaled));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80281210, MH3_CheatChargeTime, "CheatChargeTime");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80281210, MH3_CheatChargeTime, "CheatChargeTime");
 
 // PlChargeLevel (0x802812C0, plw): the charge's level from (s16 time, s16
 // level) pairs at 0x805C7478: 30, 60, 70, 80 and 9999 for levels 0 to 3 and
@@ -614,7 +614,7 @@ extern "C" void MH3_CheatChargeLevel(CpuContext* ctx) {
     ctx->gpr[3] = level;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802812C0, MH3_CheatChargeLevel, "CheatChargeLevel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802812C0, MH3_CheatChargeLevel, "CheatChargeLevel");
 
 // 0x80284430 (plw): the hammer's charge counts up to 999. The original
 // counts 1 a step: here the step's ticks, so a charge takes the same time at
@@ -642,7 +642,7 @@ extern "C" void MH3_CheatHammerCharge(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlHammerChargeStep", func_80284430, HammerChargeStep);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80284430, MH3_CheatHammerCharge, "CheatHammerCharge");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80284430, MH3_CheatHammerCharge, "CheatHammerCharge");
 
 // 0x80284454 (plw): the hammer's charge time (30 steps, divided by the focus
 // skill's factor). Enhanced focus divides it by 5.
@@ -661,7 +661,7 @@ extern "C" void MH3_CheatHammerChargeTime(CpuContext* ctx) {
     ctx->gpr[3] = uint32_t(Fctiwz(hit ? base / factor : base));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80284454, MH3_CheatHammerChargeTime, "CheatHammerChargeTime");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80284454, MH3_CheatHammerChargeTime, "CheatHammerChargeTime");
 
 // 0x802786D8 (plw, s16 change, u8): sharpness += change (halved or doubled by
 // skills when it goes down), within 0 and the maximum, then the level and its
@@ -680,7 +680,7 @@ extern "C" void MH3_CheatSharpness(CpuContext* ctx) {
     func_802786D8(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802786D8, MH3_CheatSharpness, "CheatSharpness");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802786D8, MH3_CheatSharpness, "CheatSharpness");
 
 namespace {
 
@@ -736,7 +736,7 @@ extern "C" void MH3_CheatBowgunShot(CpuContext* ctx) {
         Memory::Write8(plw + kAmmoLoaded, loaded);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80287A30, MH3_CheatBowgunShot, "CheatBowgunShot");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80287A30, MH3_CheatBowgunShot, "CheatBowgunShot");
 
 // FieldActionFlags (0x80275B68, plw, ...): the action's flags. The bowgun's
 // shot calls it (0x80287B54, 0x80287B6C) right after its start stored 0 in
@@ -758,7 +758,7 @@ extern "C" void MH3_CheatActionFlags(CpuContext* ctx) {
     func_80275B68(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80275B68, MH3_CheatActionFlags, "CheatActionFlags");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80275B68, MH3_CheatActionFlags, "CheatActionFlags");
 
 // 0x8027EE6C (equipment, &data, &...): the equipment's data; the weapon's
 // stats (func_80273B78, from 0x80273C34) read its attack at +0xA. Weapon max
@@ -780,7 +780,7 @@ extern "C" void MH3_CheatEquipData(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027EE6C, MH3_CheatEquipData, "CheatEquipData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027EE6C, MH3_CheatEquipData, "CheatEquipData");
 
 // 0x8027ED10 (equipment): the weapon's data. Max sharp (C2 at US 0x803146DC,
 // EU 0x80314740: +8 0x0505) and Max affinity (C2 at US 0x802743D8, EU
@@ -804,7 +804,7 @@ extern "C" void MH3_CheatWeaponData(CpuContext* ctx) {
         Memory::Write8(data + 0xD, 0x7F);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8027ED10, MH3_CheatWeaponData, "CheatWeaponData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027ED10, MH3_CheatWeaponData, "CheatWeaponData");
 
 // 0x80270458 (plw, u16 defense, u8* boosted): the defense with items' and
 // skills' bonuses (item 598 adds 8). Add to defense (US 0x8027044C and
@@ -823,7 +823,7 @@ extern "C" void MH3_CheatDefense(CpuContext* ctx) {
     Memory::Write8(boosted, 1);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80270458, MH3_CheatDefense, "CheatDefense");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80270458, MH3_CheatDefense, "CheatDefense");
 
 // 0x802703C0 (plw): the attack (+0x3B8, at most 700) and its rate. Add 1000
 // to attack (US 0x802703AC and 0x802703B0, EU 0x80270410 and 0x80270414)
@@ -840,7 +840,7 @@ extern "C" void MH3_CheatAttack(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802703C0, MH3_CheatAttack, "CheatAttack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802703C0, MH3_CheatAttack, "CheatAttack");
 
 // 0x80270D08 (plw): the five elemental resistances. Max fire, water, thunder,
 // dragon and ice (US 0x80270D04 ..., EU 0x80270D68, 0x80270DA8, 0x80270DE8,
@@ -858,7 +858,7 @@ extern "C" void MH3_CheatResistances(CpuContext* ctx) {
             Memory::WriteFloat32(plw + kResistances + 4 * i, 4503601774854144.0);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80270D08, MH3_CheatResistances, "CheatResistances");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80270D08, MH3_CheatResistances, "CheatResistances");
 
 // 0x80274BC0 (plw, ammo, weapon, frame, barrel, u8* boosted): the level an
 // ammo can be loaded at: the weapon's and the frame's (0x8027F06C), the
@@ -905,7 +905,7 @@ extern "C" void MH3_CheatAmmoLevel(CpuContext* ctx) {
         Memory::Write8(boosted, 1);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80274BC0, MH3_CheatAmmoLevel, "CheatAmmoLevel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80274BC0, MH3_CheatAmmoLevel, "CheatAmmoLevel");
 
 // Pl_frame_check (0x8026A378, plw, ..., f1 frame, f2): 1 once the motion is
 // past the frame. Instant sharpen (US 0x8024F564, EU 0x8024F5C8: 260 made 2)
@@ -919,7 +919,7 @@ extern "C" void MH3_CheatFrameCheck(CpuContext* ctx) {
     func_8026A378(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8026A378, MH3_CheatFrameCheck, "CheatFrameCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8026A378, MH3_CheatFrameCheck, "CheatFrameCheck");
 
 // 0x8024AAB8 (plw, ...): grilling meat; the time (+0x5B8) counts up and
 // decides the result (+0x5BA, 4 burnt). Instant well-done steak (US 0x8024AE14
@@ -948,7 +948,7 @@ extern "C" void MH3_CheatGrill(CpuContext* ctx) {
         Memory::Write8(plw + kGrill + 2, 2);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8024AAB8, MH3_CheatGrill, "CheatGrill");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8024AAB8, MH3_CheatGrill, "CheatGrill");
 
 // MHcharSetRate (0x800E16A4, mhchar, f1 rate): the motion's rate (+0x5C, twice
 // the given one). Speed up when running (C2 at US 0x800E1664, EU 0x800E16C8)
@@ -967,7 +967,7 @@ extern "C" void MH3_CheatCharRate(CpuContext* ctx) {
     func_800E16A4(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x800E16A4, MH3_CheatCharRate, "CheatCharRate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E16A4, MH3_CheatCharRate, "CheatCharRate");
 
 // 0x802B7880 (camera): the hunter falling (more than 10 below its last
 // ground). Cancel camera zoom-in when falling (US 0x802B7884, EU 0x802B78E8:
@@ -989,7 +989,7 @@ extern "C" void MH3_CheatFallCamera(CpuContext* ctx) {
     Memory::Write32(constant, saved);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802B7880, MH3_CheatFallCamera, "CheatFallCamera");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802B7880, MH3_CheatFallCamera, "CheatFallCamera");
 
 namespace Cheats {
 

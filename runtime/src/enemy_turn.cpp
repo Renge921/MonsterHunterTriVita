@@ -20,28 +20,32 @@
 #include "port_check.h"
 #include "ppc_runtime.h"
 
+#include <algorithm>
 #include <cstdint>
 
-extern "C" void func_80133E14(CpuContext* ctx);
+extern "C" void func_8016EBF4(CpuContext* ctx);
 extern "C" void MH3_EnemyTurnToward(CpuContext* ctx) {
     ctx->gpr[5] = uint16_t(GameStep::Share(int32_t(uint16_t(ctx->gpr[5]))));
-    func_80133E14(ctx);
+    func_8016EBF4(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80133E14, MH3_EnemyTurnToward, "EnemyTurnToward");
+REGISTER_NATIVE_FUNCTION_AS(0x8016EBF4, MH3_EnemyTurnToward, "EnemyTurnToward");
 
-extern "C" void func_80134884(CpuContext* ctx);
+// In RMHJ08, EnemyTurnStep is inlined into its callers (0x8016F5D8 and
+// 0x8016FC3C); both call 0x8016F3BC solely to compute the per-step turn
+// amount before comparing and stepping the angle.
+extern "C" void func_8016F3BC(CpuContext* ctx);
 extern "C" void MH3_EnemyTurnStep(CpuContext* ctx) {
-    ctx->gpr[6] = uint16_t(GameStep::Share(int32_t(uint16_t(ctx->gpr[6]))));
-    func_80134884(ctx);
+    func_8016F3BC(ctx);
+    ctx->gpr[3] = uint16_t(GameStep::Share(int32_t(uint16_t(ctx->gpr[3]))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80134884, MH3_EnemyTurnStep, "EnemyTurnStep");
+REGISTER_NATIVE_FUNCTION_AS(0x8016F3BC, MH3_EnemyTurnStep, "EnemyTurnStep");
 
-extern "C" void func_8012F8C4(CpuContext* ctx);
+extern "C" void func_80169A08(CpuContext* ctx);
 extern "C" void MH3_EnemyBlendToward(CpuContext* ctx) {
     ctx->fpr[2].d = float(ctx->fpr[2].d * GameStep::Scale());
-    func_8012F8C4(ctx);
+    func_80169A08(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012F8C4, MH3_EnemyBlendToward, "EnemyBlendToward");
+REGISTER_NATIVE_FUNCTION_AS(0x80169A08, MH3_EnemyBlendToward, "EnemyBlendToward");
 
 // 0x80133FB0 (enemy, s32 angle; f1 first, f2 last frame), decompiled with
 // Ghidra: while the motion is in [first, last] (em_frame_check mode 4), the
@@ -60,7 +64,7 @@ void TurnOverMotionPort(CpuContext* ctx) {
     const int32_t angle = int32_t(ctx->gpr[4]);
     const float first = float(ctx->fpr[1].d), last = float(ctx->fpr[2].d);
 
-    if (game.Call<0x8012F980>({enemy, 4}, {first, last}) != 1) // em_frame_check
+    if (game.Call<0x80169ABC>({enemy, 4}, {first, last}) != 1) // em_frame_check
         return;
 
     const int32_t perTick = int32_t(2.0f * (float(angle) / (last - first)));
@@ -81,13 +85,13 @@ void TurnWhilePort(CpuContext* ctx) {
     const uint32_t enemy = ctx->gpr[3];
     const int32_t angle = int32_t(ctx->gpr[4]);
     const float first = float(ctx->fpr[1].d), last = float(ctx->fpr[2].d);
-    game.Call<0x8012F948>({enemy});
+    game.Call<0x80169A88>({enemy});
     float advance = game.F1() * float(GameStep::Scale());
 
-    if (game.Call<0x8012F980>({enemy, 4}, {first, last + advance}) != 1) // em_frame_check
+    if (game.Call<0x80169ABC>({enemy, 4}, {first, last + advance}) != 1) // em_frame_check
         return;
 
-    game.Call<0x8012F950>({enemy});
+    game.Call<0x80169A90>({enemy});
     const float frame = game.F1(), past = frame - first;
 
     if (past < 0.0f)
@@ -130,7 +134,7 @@ void LevelPort(CpuContext* ctx) {
 
     const uint32_t amount = uint32_t(GameStep::Share(0x100));
 
-    if (game.Call<0x80133CAC>({enemy}) == 0)
+    if (game.Call<0x8016EA84>({enemy}) == 0)
         Memory::Write32(enemy + 0x1BC, Level(Memory::Read32(enemy + 0x1BC), amount));
 
     if (Memory::Read8(enemy + 0x784) == 0 && (mode != 1 || Memory::Read8(enemy + 0x1E3) != 1))
@@ -138,100 +142,130 @@ void LevelPort(CpuContext* ctx) {
 }
 } // namespace
 
-extern "C" void func_80133EA0(CpuContext* ctx);
+extern "C" void func_8016EC7C(CpuContext* ctx);
 extern "C" void MH3_EnemyTurnWhile(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyTurnWhile", func_80133EA0, TurnWhilePort);
+    PortCheck::Call(ctx, "EnemyTurnWhile", func_8016EC7C, TurnWhilePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80133EA0, MH3_EnemyTurnWhile, "EnemyTurnWhile");
+REGISTER_NATIVE_FUNCTION_AS(0x8016EC7C, MH3_EnemyTurnWhile, "EnemyTurnWhile");
 
-extern "C" void func_80133FB0(CpuContext* ctx);
+extern "C" void func_8016ED78(CpuContext* ctx);
 extern "C" void MH3_EnemyTurnOverMotion(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyTurnOverMotion", func_80133FB0, TurnOverMotionPort);
+    PortCheck::Call(ctx, "EnemyTurnOverMotion", func_8016ED78, TurnOverMotionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80133FB0, MH3_EnemyTurnOverMotion, "EnemyTurnOverMotion");
+REGISTER_NATIVE_FUNCTION_AS(0x8016ED78, MH3_EnemyTurnOverMotion, "EnemyTurnOverMotion");
 
-extern "C" void func_80137E34(CpuContext* ctx);
+extern "C" void func_80173D00(CpuContext* ctx);
 extern "C" void MH3_EnemyLevel(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyLevel", func_80137E34, LevelPort);
+    PortCheck::Call(ctx, "EnemyLevel", func_80173D00, LevelPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80137E34, MH3_EnemyLevel, "EnemyLevel");
+REGISTER_NATIVE_FUNCTION_AS(0x80173D00, MH3_EnemyLevel, "EnemyLevel");
 
-// Awareness (0x8012B66C: enemy, player, amount): the enemy's value for a
-// player (s32 +0x428 + 4 * player) += amount, clamped to 0..20000. 0x8012B6B0
-// adds each player's rate every step (its call returns to 0x8012B898): that
-// amount becomes its share of this step. The other caller (0x8011F39C) adds on
-// an event and is left as is. Three more gauges work the same way, each with
-// one per-step caller in 0x8012BE58 and one event caller near 0x8011F3xx:
-//   0x8012B9A8 (enemy, player, amount): +0x390 + 4 * player, from 0x8012BFB0
-//   0x8012B9EC (enemy, amount): +0x3A0, from 0x8012C028
-//   0x8012BA20 (enemy, player, amount): +0x3A4 + 4 * player, from 0x8012C0FC
+// In RMHJ08, the per-step callers inline AwarenessAdd (0x80164468) and
+// GaugeAdd390/3A0/3A4 (0x801646EC/0x80164728/0x8016475C) directly inside
+// AwarenessStep (0x801644A4) and EnemyTargetGauges (0x80164B74); the standalone
+// Add helpers are only called on damage events. Scale per-step deltas directly
+// inside both ports instead.
 namespace {
-void ShareAt(CpuContext* ctx, uint32_t perStepReturn, int reg) {
-    if (ctx->lr == perStepReturn)
-        ctx->gpr[reg] = uint32_t(GameStep::Share(int32_t(ctx->gpr[reg])));
+void AddGaugeClamped(uint32_t addr, int32_t amount) {
+    const int32_t next = int32_t(Memory::Read32(addr)) + GameStep::Share(amount);
+    Memory::Write32(addr, uint32_t(std::clamp(next, 0, 20000)));
 }
-} // namespace
 
-extern "C" void func_8012B66C(CpuContext* ctx);
-extern "C" void MH3_EnemyAwarenessAdd(CpuContext* ctx) {
-    ShareAt(ctx, 0x8012B898u, 5);
-    func_8012B66C(ctx);
+void AwarenessStepPort(CpuContext* ctx) {
+    GuestFrame frame(ctx, 0x30);
+    GuestCall game{ctx};
+    const uint32_t em = frame.Arg(3);
+
+    if (Memory::Read8(em + 0x95C) == 3)
+        return;
+
+    const uint32_t enemyData = game.Call<0x8017E990>({Memory::Read8(em + 3), Memory::Read8(em + 0xA)});
+    const uint32_t awarenessBlock = Memory::Read32(Memory::Read32(enemyData + 0xA0) + 0x20);
+    const uint32_t ranges = Memory::Read32(awarenessBlock);
+    const uint32_t custom = Memory::Read32(awarenessBlock + 4);
+
+    int32_t r20 = int32_t(Memory::Read32(0x8062E320u));
+    int32_t r31 = int32_t(Memory::Read32(0x8062E324u));
+    int32_t r30 = int32_t(Memory::Read32(0x8062E328u));
+    int32_t r29 = int32_t(Memory::Read32(0x8062E32Cu));
+    int32_t r25 = -2;
+    int32_t r24 = -5;
+    int32_t r23 = 100;
+
+    if (custom != 0) {
+        r20 = int32_t(Memory::Read32(custom));
+        r31 = int32_t(Memory::Read32(custom + 4));
+        r30 = int32_t(Memory::Read32(custom + 8));
+        r29 = int32_t(Memory::Read32(custom + 0xC));
+        r25 = int32_t(Memory::Read32(custom + 0x10));
+        r24 = int32_t(Memory::Read32(custom + 0x14));
+        r23 = int32_t(Memory::Read32(custom + 0x18));
+    }
+
+    const uint32_t hunterCount = game.Call<0x802BCFD0>({2}) & 0xFFFF;
+    uint32_t hunter = game.Call<0x802BCF94>({2});
+
+    for (uint32_t i = 0; i < hunterCount; ++i, hunter += 0xB20) {
+        if (!Memory::Read8(hunter) || game.Call<0x80165F70>({Memory::Read8(hunter + 8)}) != 0)
+            continue;
+
+        int32_t delta = 0;
+
+        if (game.Call<0x80165E80>({em, hunter}) != 0 && game.Call<0x80168D14>({em, 0}) == 1) {
+            delta = r24;
+        } else {
+            const float dist = Memory::ReadFloat32(em + 0x454 + i * 4);
+
+            if (!(dist >= 0.0f))
+                delta = r24;
+            else if (dist <= Memory::ReadFloat32(ranges))
+                delta = r20;
+            else if (dist <= Memory::ReadFloat32(ranges + 4))
+                delta = r31;
+            else if (dist <= Memory::ReadFloat32(ranges + 8))
+                delta = r30;
+            else if (dist <= Memory::ReadFloat32(ranges + 0xC))
+                delta = r29;
+            else
+                delta = r25;
+
+            if (Memory::Read8(hunter + 9) == 1) {
+                if (delta > 0)
+                    delta /= 2;
+            } else if (Memory::Read8(em + 0x43D) == 2 && game.Call<0x8016BD44>({em, i & 0xFF}) == 1) {
+                delta += r23;
+            }
+        }
+
+        AddGaugeClamped(em + 0x428 + i * 4, delta);
+    }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012B66C, MH3_EnemyAwarenessAdd, "EnemyAwarenessAdd");
 
-extern "C" void func_8012B9A8(CpuContext* ctx);
-extern "C" void MH3_EnemyGaugeAdd390(CpuContext* ctx) {
-    ShareAt(ctx, 0x8012BFB4u, 5);
-    func_8012B9A8(ctx);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8012B9A8, MH3_EnemyGaugeAdd390, "EnemyGaugeAdd390");
-
-extern "C" void func_8012B9EC(CpuContext* ctx);
-extern "C" void MH3_EnemyGaugeAdd3A0(CpuContext* ctx) {
-    ShareAt(ctx, 0x8012C02Cu, 4);
-    func_8012B9EC(ctx);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8012B9EC, MH3_EnemyGaugeAdd3A0, "EnemyGaugeAdd3A0");
-
-extern "C" void func_8012BA20(CpuContext* ctx);
-extern "C" void MH3_EnemyGaugeAdd3A4(CpuContext* ctx) {
-    ShareAt(ctx, 0x8012C100u, 5);
-    func_8012BA20(ctx);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8012BA20, MH3_EnemyGaugeAdd3A4, "EnemyGaugeAdd3A4");
-
-// 0x8012BE58 EnemyTargetGauges(em), once a step: the three gauges above, from
-// each hunter, the Felyne comrade (0x806BF7E0) and the other monsters, by the
-// rate tables of the species' data (+0xA0, +0x24: hunters, comrade, monsters,
-// each with a default) through 0x8012BA64. Skills 12 and 11 scale a hunter's
-// amount by 1.5 and 0.8, the second at least 1. The gauges take their share
-// of the step by their call's return address, so the port names it.
-namespace {
 void TargetGaugesPort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     GuestCall game{ctx};
     const uint32_t em = frame.Arg(3);
-    const uint32_t rates = Memory::Read32(Memory::Read32(game.Call<0x80126098>({em}) + 0xA0) + 0x24); // EnemyData
+    const uint32_t rates = Memory::Read32(Memory::Read32(game.Call<0x8015D8D8>({em}) + 0xA0) + 0x24); // EnemyData
     const auto table = [&](uint32_t offset, uint32_t standard) {
         const uint32_t own = rates ? Memory::Read32(rates + offset) : 0;
         return own ? own : standard;
     };
 
-    const uint32_t hunters = table(0, 0x805A17B8u);
-    const uint32_t hunterCount = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max
-    uint32_t hunter = game.Call<0x800CFAF4>({2});                     // get_move_work_adrs
+    const uint32_t hunters = table(0, 0x806A8E58u);
+    const uint32_t hunterCount = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max
+    uint32_t hunter = game.Call<0x802BCF94>({2});                     // get_move_work_adrs
 
     for (uint32_t i = 0; i < hunterCount; ++i, hunter += 0xB20) {
-        if (!Memory::Read8(hunter) || game.Call<0x8012D20C>({Memory::Read8(hunter + 8)}) != 0)
+        if (!Memory::Read8(hunter) || game.Call<0x80165F70>({Memory::Read8(hunter + 8)}) != 0)
             continue;
 
-        int32_t amount = int32_t(game.Call<0x8012BA64>({em, hunters, hunter, 1, i}));
+        int32_t amount = int32_t(game.Call<0x80164798>({em, hunters, hunter, 1, i}));
 
         if (amount > 0) {
-            if (game.Call<0x80271374>({hunter, 12}) == 1) // Pl_Skill_ck
+            if (game.Call<0x803400D0>({hunter, 12}) == 1) // Pl_Skill_ck
                 amount = int32_t(float(amount) * 1.5f);
 
-            if (game.Call<0x80271374>({hunter, 11}) == 1) {
+            if (game.Call<0x803400D0>({hunter, 11}) == 1) {
                 amount = int32_t(float(amount) * 0.8f);
 
                 if (amount < 1)
@@ -239,38 +273,41 @@ void TargetGaugesPort(CpuContext* ctx) {
             }
         }
 
-        ctx->lr = 0x8012BFB4u;
-        game.Call<0x8012B9A8>({em, i & 0xFF, uint32_t(amount)});
+        AddGaugeClamped(em + 0x390 + i * 4, amount);
     }
 
-    constexpr uint32_t kComrade = 0x806BF7E0u;
+    constexpr uint32_t kComrade = 0x80769510u;
 
     if (Memory::Read8(kComrade)) {
-        const uint32_t amount = Memory::Read8(kComrade + 0x171) == 5 ? uint32_t(-5) : game.Call<0x8012BA64>({em, table(4, 0x805A17F4u), kComrade, 2, 0});
-        ctx->lr = 0x8012C02Cu;
-        game.Call<0x8012B9EC>({em, amount});
+        const int32_t amount = Memory::Read8(kComrade + 0x171) == 5 ? -5 : int32_t(game.Call<0x80164798>({em, table(4, 0x806A8E94u), kComrade, 2, 0}));
+        AddGaugeClamped(em + 0x3A0, amount);
     }
 
-    const uint32_t monsters = table(8, 0x805A182Cu);
-    const uint32_t monsterCount = game.Call<0x800CFB34>({3}) & 0xFFFF;
-    uint32_t other = game.Call<0x800CFAF4>({3});
+    const uint32_t monsters = table(8, 0x806A8ECCu);
+    const uint32_t monsterCount = game.Call<0x802BCFD0>({3}) & 0xFFFF;
+    uint32_t other = game.Call<0x802BCF94>({3});
 
     for (uint32_t i = 0; i < monsterCount; ++i, other += 0xB18) {
-        if (Memory::Read8(em + 2) == i || !Memory::Read8(other) || Memory::Read8(em + 3) == Memory::Read8(other + 3) || game.Call<0x8012CFF4>({em}) == 1 ||
+        if (Memory::Read8(em + 2) == i || !Memory::Read8(other) || Memory::Read8(em + 3) == Memory::Read8(other + 3) || game.Call<0x80165D54>({em}) == 1 ||
             uint8_t(Memory::Read8(other + 0x1E5) - 0xB) < 2) {
             Memory::Write32(em + i * 4 + 0x3A4, 0);
             continue;
         }
 
-        const uint32_t amount = game.Call<0x8012BA64>({em, monsters, other, 3, i});
-        ctx->lr = 0x8012C100u;
-        game.Call<0x8012BA20>({em, i & 0xFF, amount});
+        const int32_t amount = int32_t(game.Call<0x80164798>({em, monsters, other, 3, i}));
+        AddGaugeClamped(em + 0x3A4 + i * 4, amount);
     }
 }
 } // namespace
 
-extern "C" void func_8012BE58(CpuContext* ctx);
-extern "C" void MH3_EnemyTargetGauges(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyTargetGauges", func_8012BE58, TargetGaugesPort);
+extern "C" void func_801644A4(CpuContext* ctx);
+extern "C" void MH3_EnemyAwarenessStep(CpuContext* ctx) {
+    PortCheck::Call(ctx, "EnemyAwarenessStep", func_801644A4, AwarenessStepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012BE58, MH3_EnemyTargetGauges, "EnemyTargetGauges");
+REGISTER_NATIVE_FUNCTION_AS(0x801644A4, MH3_EnemyAwarenessStep, "EnemyAwarenessStep");
+
+extern "C" void func_80164B74(CpuContext* ctx);
+extern "C" void MH3_EnemyTargetGauges(CpuContext* ctx) {
+    PortCheck::Call(ctx, "EnemyTargetGauges", func_80164B74, TargetGaugesPort);
+}
+REGISTER_NATIVE_FUNCTION_AS(0x80164B74, MH3_EnemyTargetGauges, "EnemyTargetGauges");

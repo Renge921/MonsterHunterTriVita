@@ -12,8 +12,8 @@
 namespace GameStep {
 namespace {
 
-constexpr uint32_t kAnimationBaseRate = 0x80793628; // f32 nw4r::g3d::FrameCtrl::smBaseUpdateRate
-constexpr uint32_t kFrameRate = 0x8065B4D0;         // f32 steps per second (60 / vcnt at boot)
+constexpr uint32_t kAnimationBaseRate = 0x8089F4B8; // f32 nw4r::g3d::FrameCtrl::smBaseUpdateRate (r13 - 21448)
+constexpr uint32_t kFrameRate = 0x8076940C;         // f32 steps per second (ScreenRecord + 0x14, 60 / vcnt at boot)
 
 double scale = 1.0;
 double clock = 0.0; // fraction of a tick carried to the next step
@@ -34,7 +34,7 @@ void TraceRand(double ranTicks) {
     if (!on)
         return;
 
-    constexpr uint32_t kSeeds = 0x8065AA78;
+    constexpr uint32_t kSeeds = 0x80768AC0;
     static uint16_t last[4];
     static bool primed;
     static uint64_t advances[4], jumps[4], steps;

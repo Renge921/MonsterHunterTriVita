@@ -24,10 +24,10 @@ void Clear(void *) {
 
 uint32_t Field(void *user, unsigned field) {
     auto &call = *static_cast<GuestCall *>(user);
-    constexpr int32_t offsets[] = {-16588, -16516, -16520, -16556, -16552, -21004, -21000, -20996, -20984};
+    constexpr int32_t offsets[] = {-16892, -16820, -16824, -16860, -16856, -23672, -23668, -23664, -23652};
 
     if (field == MH3_CURSOR_WIDESCREEN)
-        return Memory::Read8(0x8065B4D5);
+        return Memory::Read8(0x80769411);
 
     const uint32_t address = call.cpu->gpr[13] + uint32_t(offsets[field]);
     return field == MH3_CURSOR_VERTICAL ? Memory::Read16(address) : Memory::Read32(address);
@@ -40,7 +40,7 @@ uint32_t Virtual(void *user, uint32_t object, uint32_t slot) {
 mh3_res_status Position(void *, uint32_t mode, uint32_t row, uint32_t column, mh3_res_span *out) {
     // The original mulli/slwi/add sequence wraps at 32 bits, including signed
     // row/column values. Validate the resulting guest address, not the indices.
-    const uint32_t address = (mode == 1 ? UINT32_C(0x80572658) : UINT32_C(0x805727F0)) + row * (mode == 1 ? 24u : 16u) + column * 4u;
+    const uint32_t address = (mode == 1 ? UINT32_C(0x806457F8) : UINT32_C(0x80645990)) + row * (mode == 1 ? 24u : 16u) + column * 4u;
 
     if (!Memory::Contains(address, 4))
         return MH3_RES_RANGE;
@@ -50,7 +50,7 @@ mh3_res_status Position(void *, uint32_t mode, uint32_t row, uint32_t column, mh
 }
 
 void Cursor(void *user, int32_t x, int32_t y) {
-    (*static_cast<GuestCall *>(user))(0x802E0FDC, {uint32_t(x), uint32_t(y), 32, 32, uint32_t(-16), 0});
+    (*static_cast<GuestCall *>(user))(0x801B5224, {uint32_t(x), uint32_t(y), 32, 32, uint32_t(-16), 0});
 }
 } // namespace
 
@@ -63,4 +63,4 @@ extern "C" void MH3_UICursorDraw(CpuContext *cpu) {
     if (status != MH3_RES_OK)
         MH3_THROW(std::runtime_error("Native UI cursor input failed: " + std::to_string(status)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80449800, MH3_UICursorDraw, "UIDrawAndCursor");
+REGISTER_NATIVE_FUNCTION(0x8041CAC0, MH3_UICursorDraw);

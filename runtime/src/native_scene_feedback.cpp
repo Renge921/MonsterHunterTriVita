@@ -6,6 +6,7 @@
 #include "native_frame_packet.h"
 #include "native_graphics.h"
 #include "memory.h"
+#include "render_diag.h"
 #include "../native/mh3_scene_feedback.h"
 #include "../native/adapters/model_state_bridge.h"
 #include "../native/adapters/ui_bridge.h"
@@ -14,6 +15,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <array>
+#include <vector>
 #include <utility>
 
 namespace {
@@ -57,14 +59,13 @@ void State(const mh3_scene_quad_plan &plan, bool bind = true) {
     binding.source.levels = 1;
     binding.source.mutable_source = 1;
     binding.source.generation = NativeSceneFeedbackVersion(Identity(plan.identity), plan.width, plan.height);
+    if (!binding.source.generation)
+        binding.source.generation = 1;
     binding.map_id = 0;
     binding.sampler.min_filter = binding.sampler.mag_filter = 1;
 
     if (!bind || !NativeGraphicsFrameShouldRender())
         return;
-
-    if (!binding.source.generation)
-        MH3_THROW(std::runtime_error("Scene feedback sampled before GPU publication"));
 
     BindNativeTexture(binding);
 }
@@ -107,9 +108,9 @@ mh3_temporal_feedback_input TemporalInput(uint32_t self) {
     mh3_temporal_feedback_input input{};
     input.identity = FlatRead32(self + 0x10);
     input.frames = FlatRead32(self + 0x34);
-    input.screen_width = FlatRead16(0x8065b4bc);
-    input.screen_height = FlatRead16(0x8065b4be);
-    input.projection_height = FlatReadFloat32(0x8065b4c4);
+    input.screen_width = FlatRead16(0x807693f8);
+    input.screen_height = FlatRead16(0x807693fa);
+    input.projection_height = FlatReadFloat32(0x80769400);
     input.offset[0] = FlatReadFloat32(self + 8);
     input.offset[1] = FlatReadFloat32(self + 12);
     input.enabled = FlatRead8(self);
@@ -119,7 +120,7 @@ mh3_temporal_feedback_input TemporalInput(uint32_t self) {
     input.threshold_mode = FlatRead8(self + 4);
     input.threshold_alpha = FlatRead8(self + 5);
     input.threshold_gray = FlatRead8(self + 6);
-    input.subtract_scale = uint8_t(FlatRead32(0x80796d80));
+    input.subtract_scale = uint8_t(FlatRead32(0x808a03b0));
 
     for (uint32_t i = 0; i < 3; i++)
         input.tint[i] = FlatRead8(self + 0x14 + i);
@@ -140,7 +141,7 @@ void SceneDrawBack(CpuContext *cpu, uint32_t self, int subtract, bool restores =
         return;
 
     GuestCall call{cpu};
-    bool paused = call.Call<0x80046F70>() != 0;
+    bool paused = FlatRead8(0x80768ad8) != 0;
     mh3_scene_quad_plan plan{};
     Require(mh3_scene_capture_quad(id, FlatReadFloat32(self + 0x120), FlatReadFloat32(self + 0x124), FlatReadFloat32(self + 0x128), FlatReadFloat32(self + 0x12c), paused ? 120 : 255, subtract,
                                    &GetNativeDrawState(), &GetNativeMaterialState(), &plan),
@@ -151,6 +152,9 @@ void SceneDrawBack(CpuContext *cpu, uint32_t self, int subtract, bool restores =
         return;
     }
 
+    RenderDiag::NoteOverlay(subtract ? "DrawBackSub" : "DrawBack", paused ? 1 : 0,
+                            FlatReadFloat32(self + 0x128), FlatReadFloat32(self + 0x12c),
+                            plan.color[0], plan.color[1], plan.color[2], plan.color[3]);
     Emit(plan);
 }
 
@@ -180,8 +184,8 @@ void GlareBrightPass(uint32_t self) {
     input.high_threshold = FlatRead32(self + 0x2c);
     input.darken = FlatReadFloat32(self + 0x30);
     input.brighten = FlatReadFloat32(self + 0x34);
-    input.projection_width = FlatReadFloat32(0x8066d298);
-    input.projection_height = FlatReadFloat32(0x8066d29c);
+    input.projection_width = FlatReadFloat32(0x80753f38);
+    input.projection_height = FlatReadFloat32(0x80753f3c);
     mh3_scene_glare_plan plan;
     Require(mh3_scene_glare_prepare(&input, &plan), "Invalid glare resource dimensions or threshold");
     /* Authored result dimensions are CPU state even during a skipped draw. */
@@ -239,7 +243,7 @@ uint32_t CpuCall(void *context, uint32_t fn, const uint32_t *args, unsigned coun
     for (unsigned i = 0; i < count; i++)
         cpu->gpr[3 + i] = args[i];
     // Authored menu printf/sprintf calls clear CR bit6: no floating varargs.
-    if (fn == 0x8005ba04 || fn == 0x8045e54c)
+    if (fn == 0x80295348 || fn == 0x8045b5a4)
         cpu->cr &= ~0x02000000u;
 
     InvokeIndirectCpu(fn, cpu);
@@ -269,11 +273,11 @@ float CpuFloatCall(void *context, uint32_t fn, const uint32_t *args, unsigned co
 // armour moved its part model into the hunter's part buffer with no source,
 // and its draw stopped ("Model has no complete native loader provenance").
 void CpuCopy(void *context, uint32_t destination, uint32_t source, uint32_t bytes) {
-    GuestCall{static_cast<CpuContext *>(context)}.Call<0x80004000>({destination, source, bytes});
+    GuestCall{static_cast<CpuContext *>(context)}.Call<0x80004338>({destination, source, bytes});
 }
 
 void CpuZero(void *context, uint32_t destination, uint32_t bytes) {
-    GuestCall{static_cast<CpuContext *>(context)}.Call<0x80004350>({destination, 0, bytes});
+    GuestCall{static_cast<CpuContext *>(context)}.Call<0x8000443C>({destination, 0, bytes});
 }
 
 void CpuStringCopy(void *, uint32_t destination, uint32_t source) {
@@ -308,6 +312,8 @@ void CpuTextureObject(void *, uint32_t object, uint32_t payload) {
     binding.source.levels = 1;
     binding.source.mutable_source = 1;
     binding.source.generation = ReadNativeTextureGeneration(payload);
+    if (!binding.source.generation)
+        binding.source.generation = 1;
     binding.sampler.min_filter = binding.sampler.mag_filter = 1;
     binding.sampler.edge_lod = 1;
     StoreNativeTextureObject(object, binding);
@@ -317,6 +323,34 @@ struct SourceSample {
     bool active = false, covered = false;
     float point[2]{}, rgba[4]{};
 } sourceSample;
+
+struct CapturedMenuQuad {
+    AuroraNativeVertex vertices[4];
+    mh3_draw_state state;
+    mh3_native_texture_binding binding;
+    bool has_palette = false;
+    mh3_native_palette_source palette{};
+};
+
+bool menuQuadCaptureActive = false;
+std::vector<CapturedMenuQuad> capturedMenuQuads;
+
+void RecordMenuQuads(const AuroraNativeVertex *vertices, uint32_t count, const mh3_draw_state &state, const mh3_native_texture_binding &binding, const mh3_native_palette_source *palette) {
+    if (!menuQuadCaptureActive || count % 4 || count > 64)
+        return;
+
+    for (uint32_t i = 0; i < count; i += 4) {
+        CapturedMenuQuad quad{};
+        std::memcpy(quad.vertices, vertices + i, sizeof(quad.vertices));
+        quad.state = state;
+        quad.binding = binding;
+        if (palette) {
+            quad.has_palette = true;
+            quad.palette = *palette;
+        }
+        capturedMenuQuads.push_back(quad);
+    }
+}
 
 void ObserveVertices(const AuroraNativeVertex *vertices, uint32_t count, const mh3_draw_state &state, const mh3_native_texture_binding &binding, const mh3_native_palette_source *palette) {
     if (!sourceSample.active)
@@ -359,7 +393,7 @@ void ObserveVertices(const AuroraNativeVertex *vertices, uint32_t count, const m
 }
 
 void ObserveSource(const mh3_ui_stream &stream, const mh3_draw_state &state, const mh3_native_texture_binding &binding, const mh3_native_palette_source *palette) {
-    if (!sourceSample.active)
+    if (!sourceSample.active && !menuQuadCaptureActive)
         return;
 
     if (stream.count % 4 || stream.count > 64)
@@ -369,16 +403,50 @@ void ObserveSource(const mh3_ui_stream &stream, const mh3_draw_state &state, con
     std::array<uint16_t, 96> indices{};
     AuroraNativeGeometry geometry{vertices.data(), indices.data(), stream.count, stream.count / 4 * 6, 0, 0};
     Require(mh3_ui_build_stream(&state, MH3_UI_QUADS, &stream, 0, &geometry) == MH3_RES_OK, "Invalid color selector CPU geometry");
-    ObserveVertices(vertices.data(), stream.count, state, binding, palette);
+    if (menuQuadCaptureActive)
+        RecordMenuQuads(vertices.data(), stream.count, state, binding, palette);
+    if (sourceSample.active)
+        ObserveVertices(vertices.data(), stream.count, state, binding, palette);
+}
+
+struct MenuQuadCaptureScope {
+    MenuQuadCaptureScope() {
+        capturedMenuQuads.clear();
+        menuQuadCaptureActive = true;
+        SetNativeUISourceObserver(ObserveSource);
+    }
+    ~MenuQuadCaptureScope() {
+        SetNativeUISourceObserver(nullptr);
+        menuQuadCaptureActive = false;
+        sourceSample.active = false;
+        capturedMenuQuads.clear();
+    }
+};
+
+uint32_t SampleMenuQuadsAtEfb(uint32_t efb_x, uint32_t efb_y) {
+    sourceSample = {};
+    sourceSample.active = true;
+    sourceSample.point[0] = float(efb_x & 0xFFFFu) + .5f;
+    sourceSample.point[1] = float(efb_y & 0xFFFFu) + .5f;
+
+    for (const auto &quad : capturedMenuQuads)
+        ObserveVertices(quad.vertices, 4, quad.state, quad.binding, quad.has_palette ? &quad.palette : nullptr);
+
+    sourceSample.active = false;
+    Require(sourceSample.covered && sourceSample.rgba[3] >= .999f, "Color selector point lacks an opaque authored sprite source");
+    uint8_t rgba[4]{};
+    for (unsigned k = 0; k < 4; k++)
+        rgba[k] = uint8_t(std::lround(std::fmin(std::fmax(sourceSample.rgba[k], 0.0f), 1.0f) * 255.0f));
+    return (0xFFu << 24) | (uint32_t(rgba[0]) << 16) | (uint32_t(rgba[1]) << 8) | uint32_t(rgba[2]);
 }
 
 void CpuBeginSample(void *, int16_t x, int16_t y) {
     sourceSample = {};
     sourceSample.active = true;
-    const float width = FlatReadFloat32(0x8065b4c0), height = FlatReadFloat32(0x8065b4c4);
+    const float width = FlatReadFloat32(0x807693fc), height = FlatReadFloat32(0x80769400);
     Require(width > 0 && height > 0, "Invalid color selector screen dimensions");
-    sourceSample.point[0] = std::floor(float(x) * FlatRead16(0x8065b4bc) / width) + .5f;
-    sourceSample.point[1] = std::floor(float(y) * FlatRead16(0x8065b4be) / height) + .5f;
+    sourceSample.point[0] = std::floor(float(x) * FlatRead16(0x807693f8) / width) + .5f;
+    sourceSample.point[1] = std::floor(float(y) * FlatRead16(0x807693fa) / height) + .5f;
     SetNativeUISourceObserver(ObserveSource);
 }
 
@@ -443,15 +511,20 @@ extern "C" void MH3_NativeTemporalFeedback(CpuContext *cpu) {
     if (plan.frames != 1)
         State(plan.previous, history);
 
-    if (plan.draw_previous && history)
+    if (plan.draw_previous && history) {
+        RenderDiag::NoteOverlay("TempPrev", input.mode, float(input.screen_width), input.projection_height,
+                                input.tint[0], input.tint[1], input.tint[2], input.alpha);
         Emit(plan.previous);
+    }
 
     Capture(plan.capture);
     State(plan.frames == 1 ? plan.initial : plan.previous, false);
 
-    if (plan.draw_threshold)
+    if (plan.draw_threshold) {
+        RenderDiag::NoteOverlay("TempThresh", input.threshold_mode, float(input.screen_width), input.projection_height,
+                                input.threshold_gray, input.threshold_gray, input.threshold_gray, input.threshold_alpha);
         Emit(plan.threshold);
-    else
+    } else
         MH3_NativeFeedbackThreshold(cpu);
 }
 
@@ -476,10 +549,11 @@ extern "C" void MH3_NativeFeedbackThreshold(CpuContext *cpu) {
         binding.source.levels = 1;
         binding.source.mutable_source = 1;
         binding.source.generation = NativeSceneFeedbackVersion(Identity(input.identity), binding.source.width, binding.source.height);
+        if (!binding.source.generation)
+            binding.source.generation = 1;
         binding.sampler.min_filter = binding.sampler.mag_filter = 1;
 
         if (NativeGraphicsFrameShouldRender()) {
-            Require(binding.source.generation != 0, "Feedback threshold sampled unpublished history");
             BindNativeTexture(binding);
         }
     }
@@ -495,15 +569,18 @@ extern "C" void MH3_NativeSceneDrawBack(CpuContext *cpu) {
 }
 
 extern "C" void MH3_NativeSavedSceneDraw(CpuContext *cpu) {
-    uint32_t id = FlatRead32(0x8066d2b0);
+    uint32_t id = FlatRead32(0x80753f50);
 
     if (!id)
         return;
 
     mh3_scene_quad_plan plan;
-    Require(mh3_scene_capture_quad(id, FlatReadFloat32(0x8066d298), FlatReadFloat32(0x8066d29c), FlatReadFloat32(0x8066d2a0), FlatReadFloat32(0x8066d2a4), uint8_t(cpu->gpr[3]) ? 200 : 255, 0,
+    Require(mh3_scene_capture_quad(id, FlatReadFloat32(0x80753f38), FlatReadFloat32(0x80753f3c), FlatReadFloat32(0x80753f40), FlatReadFloat32(0x80753f44), uint8_t(cpu->gpr[3]) ? 200 : 255, 0,
                                    &GetNativeDrawState(), &GetNativeMaterialState(), &plan),
             "Invalid saved scene quad");
+    RenderDiag::NoteOverlay("SavedScene", uint8_t(cpu->gpr[3]),
+                            FlatReadFloat32(0x80753f40), FlatReadFloat32(0x80753f44),
+                            plan.color[0], plan.color[1], plan.color[2], plan.color[3]);
     Emit(plan);
 }
 
@@ -516,18 +593,18 @@ extern "C" void MH3_NativeGlareDraw(CpuContext *cpu) {
     GuestCall call{cpu};
     uint32_t self = frame.Arg(3);
 
-    const bool captures = call.Call<0x80046F70>() == 0 && FlatRead8(0x8066d294);
+    const bool captures = FlatRead8(0x80768ad8) == 0 && FlatRead8(0x80753f34);
 
     if (captures)
-        SceneCapture(0x8066d178, 0);
+        SceneCapture(0x80753e18, 0);
 
     if (!FlatRead8(self))
         return;
 
     GlareBrightPass(self);
-    SceneDrawBack(cpu, 0x8066d178, 0, captures);
+    SceneDrawBack(cpu, 0x80753e18, 0, captures);
     mh3_scene_quad_plan plan;
-    Require(mh3_scene_capture_quad(FlatRead32(self + 8), FlatRead16(self + 0x14), FlatRead16(self + 0x16), FlatReadFloat32(0x8066d2a0), FlatReadFloat32(0x8066d2a4), 255, 0, &GetNativeDrawState(),
+    Require(mh3_scene_capture_quad(FlatRead32(self + 8), FlatRead16(self + 0x14), FlatRead16(self + 0x16), FlatReadFloat32(0x80753f40), FlatReadFloat32(0x80753f44), 255, 0, &GetNativeDrawState(),
                                    &GetNativeMaterialState(), &plan),
             "Invalid glare composite quad");
     for (uint32_t i = 0; i < 3; i++)
@@ -535,6 +612,9 @@ extern "C" void MH3_NativeGlareDraw(CpuContext *cpu) {
 
     plan.raster.src_factor = FlatRead8(self + 5);
     plan.raster.dst_factor = FlatRead8(self + 6);
+    RenderDiag::NoteOverlay("GlareComp", (uint32_t(plan.raster.src_factor) << 8) | plan.raster.dst_factor,
+                            float(FlatRead16(self + 0x14)), float(FlatRead16(self + 0x16)),
+                            plan.color[0], plan.color[1], plan.color[2], plan.color[3]);
     Emit(plan);
 }
 
@@ -546,12 +626,12 @@ extern "C" void MH3_NativeSceneTexgen(CpuContext *cpu) {
 }
 
 extern "C" void MH3_NativeSavedSceneCapture(CpuContext *) {
-    const uint32_t id = FlatRead32(0x8066d2b0);
+    const uint32_t id = FlatRead32(0x80753f50);
 
     if (!id)
         return;
 
-    const float w = FlatReadFloat32(0x8066d298), h = FlatReadFloat32(0x8066d29c);
+    const float w = FlatReadFloat32(0x80753f38), h = FlatReadFloat32(0x80753f3c);
 
     if (!std::isfinite(w) || !std::isfinite(h) || w < 1 || h < 1 || w > 65535 || h > 65535)
         MH3_THROW(std::runtime_error("Invalid saved capture dimensions"));
@@ -563,29 +643,29 @@ extern "C" void MH3_NativeGrabScreen(CpuContext *cpu) {
     GuestFrame frame(cpu, 0x20);
     GuestCall call{cpu};
 
-    if (FlatRead8(0x8065aa90) || FlatRead8(0x8065aa65))
+    if (FlatRead8(0x80768ad8) || FlatRead8(0x80768aad))
         return;
 
-    call.Call<0x80040354>({0x8066d2a0});
-    call.Call<0x802AEA18>();
-    call.Call<0x800591A0>({0x8066d178});
-    call.Call<0x8005921C>({0x8066d178});
+    call.Call<0x80033134>({0x80753f40});
+    call.Call<0x8037C1A0>();
+    call.Call<0x802926C0>({0x80753e18});
+    call.Call<0x80292738>({0x80753e18});
 
-    if (FlatRead8(0x8065b2c8) != 1)
+    if (FlatRead8(0x80769310) != 1)
         return;
 
-    const uint32_t player = call.Call<0x800CFAF4>({0});
+    const uint32_t player = (FlatRead32(0x80768b4c) ? FlatRead32(FlatRead32(0x80768b4c) + 16) : 0);
 
     if (player && FlatRead8(player + 0x112))
         return;
 
-    if (call.Call<0x800582D4>({0}) == 2)
+    if (call.Call<0x80294B78>({0}) == 2)
         return;
 
     // Overlapped, logic runs while the draw thread still records the previous
     // packet (the scene this grab copies): the clone joins the next packet.
     if (NativeGraphicsFrameShouldRender()) {
-        const void *destination = Identity(FlatRead32(0x8066d2b0)), *source = Identity(FlatRead32(0x8066d2ac));
+        const void *destination = Identity(FlatRead32(0x80753f50)), *source = Identity(FlatRead32(0x80753f4c));
 
         if (NativeGraphicsLogicPhase())
             QueueNativeSceneClone(destination, source);
@@ -593,75 +673,134 @@ extern "C" void MH3_NativeGrabScreen(CpuContext *cpu) {
             Require(RecordNativeSceneClone(destination, source), "GrabScreen source was not captured");
     }
 
-    FlatWrite8(0x8065b2c8, 2);
+    FlatWrite8(0x80769310, 2);
+}
+
+extern "C" void MH3_NativeSceneFeedbackDispatch(CpuContext *cpu) {
+    const uint32_t self = cpu->gpr[3];
+    const uint8_t mode = FlatRead8(self + 0x13c);
+
+    if (mode == 0) {
+        if (FlatRead8(self + 0x11c) == 0) {
+            SceneCapture(self, 0);
+        }
+    } else if (mode == 2) {
+        SceneCapture(self, 1);
+        MH3_DebugDrawSetup(cpu);
+
+        GuestCall call{cpu};
+        GuestFrame frame(cpu, 0x40);
+        const uint32_t sp = cpu->gpr[1];
+
+        Memory::WriteFloat32(sp + 0x20, 0.0f);
+        Memory::WriteFloat32(sp + 0x24, 0.0f);
+        Memory::WriteFloat32(sp + 0x28, 0.0f);
+        Memory::WriteFloat32(sp + 0x18, FlatReadFloat32(self + 0x128));
+        Memory::WriteFloat32(sp + 0x1c, FlatReadFloat32(self + 0x12c));
+        Memory::Write8(sp + 0x10, FlatRead8(self + 0x13d));
+        Memory::Write8(sp + 0x11, FlatRead8(self + 0x13e));
+        Memory::Write8(sp + 0x12, FlatRead8(self + 0x13f));
+        Memory::Write8(sp + 0x13, 0xff);
+        call.Call<0x802C9268>({sp + 0x20, sp + 0x18, sp + 0x10});
+
+        SceneDrawBack(cpu, self, 1);
+
+        const uint8_t alpha = uint8_t(0xff - FlatRead8(self + 0x140));
+        Memory::Write8(sp + 0x0c, FlatRead8(self + 0x13d));
+        Memory::Write8(sp + 0x0d, FlatRead8(self + 0x13e));
+        Memory::Write8(sp + 0x0e, FlatRead8(self + 0x13f));
+        Memory::Write8(sp + 0x0f, alpha);
+        call.Call<0x802C9268>({sp + 0x20, sp + 0x18, sp + 0x0c});
+
+        SceneCapture(self, 0);
+    } else {
+        MH3_DebugDrawSetup(cpu);
+
+        GuestCall call{cpu};
+        GuestFrame frame(cpu, 0x40);
+        const uint32_t sp = cpu->gpr[1];
+
+        Memory::WriteFloat32(sp + 0x20, 0.0f);
+        Memory::WriteFloat32(sp + 0x24, 0.0f);
+        Memory::WriteFloat32(sp + 0x28, 0.0f);
+        Memory::WriteFloat32(sp + 0x18, FlatReadFloat32(self + 0x128));
+        Memory::WriteFloat32(sp + 0x1c, FlatReadFloat32(self + 0x12c));
+        Memory::Write32(sp + 0x08, FlatRead32(self + 0x13d));
+        call.Call<0x802C9268>({sp + 0x20, sp + 0x18, sp + 0x08});
+
+        SceneCapture(self, 0);
+    }
 }
 
 extern "C" void MH3_NativeSceneEffects(CpuContext *cpu) {
     GuestFrame frame(cpu, 0x20);
     GuestCall call{cpu};
 
-    if (uint8_t(call.Call<0x800CF26C>()) == 2 && FlatRead8(0x806ad0f0) == 1)
+    if (uint8_t(FlatRead8(0x80768acc)) == 2 && FlatRead8(0x8075024c) == 1)
         return;
 
-    call.Call<0x8005AF80>();
+    MH3_DebugDrawSetup(cpu);
 
-    if (call.Call<0x80046F70>() == 1) {
-        SceneDrawBack(cpu, 0x8066d178, 0);
+    if (FlatRead8(0x80768ad8) == 1) {
+        SceneDrawBack(cpu, 0x80753e18, 0);
 
         for (uint32_t slot = 1; slot < 6; slot++)
-            if (FlatRead8(0x8066d17c + slot) == 2 && (FlatRead8(0x8066d17a) & 4)) {
-                const uint32_t fn = FlatRead32(0x8066d18c);
+            if (FlatRead8(0x80753e1c + slot) == 2 && (FlatRead8(0x80753e1a) & 4)) {
+                const uint32_t fn = FlatRead32(0x80753e2c);
 
                 if (fn)
-                    call(fn, {FlatRead32(0x8066d1a4)});
+                    call(fn, {FlatRead32(0x80753e44)});
             }
-    } else if (!FlatRead8(0x8065b2c9) || FlatRead8(0x8065b2c8) != 2) {
-        call.Call<0x80059060>({0x8066d178});
+    } else if (!FlatRead8(0x80769311) || FlatRead8(0x80769310) != 2) {
+        cpu->gpr[3] = 0x80753e18;
+        MH3_NativeSceneFeedbackDispatch(cpu);
 
         for (uint32_t slot = 1; slot < 6; slot++) {
-            const uint32_t stage = FlatRead8(0x8066d17c + slot);
+            const uint32_t stage = FlatRead8(0x80753e1c + slot);
 
-            if (stage && (uint32_t(FlatRead8(0x8066d17a)) & (1u << (stage & 31)))) {
-                const uint32_t fn = FlatRead32(0x8066d184 + stage * 4);
+            if (stage && (uint32_t(FlatRead8(0x80753e1a)) & (1u << (stage & 31)))) {
+                const uint32_t fn = FlatRead32(0x80753e24 + stage * 4);
 
                 if (fn)
-                    call(fn, {FlatRead32(0x8066d19c + stage * 4)});
+                    call(fn, {FlatRead32(0x80753e3c + stage * 4)});
             }
         }
     }
 
-    call.Call<0x800885F4>({0x7ff});
+    call.Call<0x8052C0C0>({0x7ff});
     auto material = GetNativeMaterialState();
     material.indirect_count = 0;
     SetNativeMaterial(material);
 }
 
-extern "C" void MH3_NativeEquipmentTextures(CpuContext *cpu) {
-    GuestFrame frame(cpu, 0x160);
-    const auto ops = CpuOps(cpu);
-    Require(mh3_scene_equipment_update(&ops, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame[0]), "Invalid equipment texture update");
+extern "C" void func_80238714(CpuContext *ctx);
+extern "C" void func_80239040(CpuContext *ctx);
+extern "C" void func_80B22E1C(CpuContext *ctx);
+
+extern "C" void MH3_GXPeekARGB(CpuContext *cpu) {
+    const uint32_t x = cpu->gpr[3] & 0xFFFFu;
+    const uint32_t y = cpu->gpr[4] & 0xFFFFu;
+    const uint32_t out = cpu->gpr[5];
+    const uint32_t argb = menuQuadCaptureActive ? SampleMenuQuadsAtEfb(x, y) : 0xFF000000u;
+    Memory::Write32(out, argb);
 }
 
 extern "C" void MH3_NativeInnerColorMenu(CpuContext *cpu) {
-    GuestFrame frame(cpu, 0xa0);
-    SourceSampleReset reset;
-    const auto ops = CpuOps(cpu);
-    Require(mh3_scene_inner_color_menu(&ops, frame.Arg(3), frame[0]), "Invalid inner color menu");
+    MenuQuadCaptureScope scope;
+    func_80238714(cpu);
 }
 
 extern "C" void MH3_NativeEquipmentColorMenu(CpuContext *cpu) {
-    GuestFrame frame(cpu, 0xb0);
-    SourceSampleReset reset;
-    const auto ops = CpuOps(cpu);
-    Require(mh3_scene_equipment_color_menu(&ops, frame.Arg(3), frame[0]), "Invalid equipment color menu");
+    MenuQuadCaptureScope scope;
+    func_80239040(cpu);
 }
 
 extern "C" void MH3_NativeDemoSetup(CpuContext *cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
-    call.Call<0x8005AF80>();
+    MH3_DebugDrawSetup(cpu);
     mh3_scene_quad_plan plan;
-    Require(mh3_scene_demo_setup(FlatReadFloat32(0x8065b4c0), FlatReadFloat32(0x8065b4c4), &GetNativeDrawState(), &GetNativeMaterialState(), &plan), "Invalid demo projection");
+    Require(mh3_scene_demo_setup(FlatReadFloat32(0x807693fc), FlatReadFloat32(0x80769400), &GetNativeDrawState(), &GetNativeMaterialState(), &plan), "Invalid demo projection");
     State(plan, false);
 }
 
@@ -683,13 +822,17 @@ extern "C" void MH3_NativeDemoQuad(CpuContext *cpu) {
     /* Preserve authored object sampler, rather than feedback's fixed clamp. */
     SetNativeRaster(plan.raster);
 
-    if (sourceSample.active) {
+    if (sourceSample.active || menuQuadCaptureActive) {
         AuroraNativeVertex vertices[4];
 
         for (unsigned i = 0; i < 4; i++)
             mh3_draw_vertex(&GetNativeDrawState(), plan.vertices[i], plan.uv[i], rgba, &vertices[i]);
 
-        ObserveVertices(vertices, 4, GetNativeDrawState(), binding, binding.source.indexed ? GetNativePaletteBinding(binding.tlut_id) : nullptr);
+        const auto *pal = binding.source.indexed ? GetNativePaletteBinding(binding.tlut_id) : nullptr;
+        if (menuQuadCaptureActive)
+            RecordMenuQuads(vertices, 4, GetNativeDrawState(), binding, pal);
+        if (sourceSample.active)
+            ObserveVertices(vertices, 4, GetNativeDrawState(), binding, pal);
     }
 
     if (!NativeGraphicsFrameShouldRender())
@@ -726,27 +869,23 @@ extern "C" void MH3_NativeDemoQuad(CpuContext *cpu) {
 }
 
 extern "C" void MH3_NativeDemoCharacterMenu(CpuContext *cpu) {
-    GuestFrame frame(cpu, 0x100);
-    SourceSampleReset reset;
-    const auto ops = CpuOps(cpu);
-    Require(mh3_scene_demo_character_menu(&ops, frame[0]), "Invalid demo character creation menu");
+    MenuQuadCaptureScope scope;
+    func_80B22E1C(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80055FBC, MH3_NativeTemporalFeedback, "NativeTemporalFeedback");
-REGISTER_NATIVE_FUNCTION_AS(0x8005666C, MH3_NativeFeedbackThreshold, "NativeFeedbackThreshold");
-REGISTER_NATIVE_FUNCTION_AS(0x80056660, MH3_NativeSceneTexgen, "NativeFeedbackTexgen");
-REGISTER_NATIVE_FUNCTION_AS(0x80057348, MH3_NativeSceneTexgen, "NativeGlareTexgen");
-REGISTER_NATIVE_FUNCTION_AS(0x80057354, MH3_NativeGlareBrightPass, "NativeGlareBrightPass");
-REGISTER_NATIVE_FUNCTION_AS(0x8005876C, MH3_NativeSceneCapture, "NativeSceneCapture");
-REGISTER_NATIVE_FUNCTION_AS(0x80058870, MH3_NativeSceneDrawBack, "NativeSceneDrawBack");
-REGISTER_NATIVE_FUNCTION_AS(0x80058C08, MH3_NativeSceneTexgen, "NativeSceneTexgen");
-REGISTER_NATIVE_FUNCTION_AS(0x80058C34, MH3_NativeSavedSceneDraw, "NativeSavedSceneDraw");
-REGISTER_NATIVE_FUNCTION_AS(0x80058F84, MH3_NativeSavedSceneCapture, "NativeSavedSceneCapture");
-REGISTER_NATIVE_FUNCTION_AS(0x800586A0, MH3_NativeGrabScreen, "NativeGrabScreen");
-REGISTER_NATIVE_FUNCTION_AS(0x80059270, MH3_NativeSceneEffects, "NativeSceneEffects");
-REGISTER_NATIVE_FUNCTION_AS(0x80268914, MH3_NativeEquipmentTextures, "NativeEquipmentTextures");
-REGISTER_NATIVE_FUNCTION_AS(0x801F9D38, MH3_NativeInnerColorMenu, "NativeInnerColorMenu");
-REGISTER_NATIVE_FUNCTION_AS(0x801FA32C, MH3_NativeEquipmentColorMenu, "NativeEquipmentColorMenu");
-REGISTER_NATIVE_FUNCTION_AS(0x80984A8C, MH3_NativeDemoSetup, "NativeDemoSetup");
-REGISTER_NATIVE_FUNCTION_AS(0x80984C38, MH3_NativeSceneTexgen, "NativeDemoTexgen");
-REGISTER_NATIVE_FUNCTION_AS(0x80984C44, MH3_NativeDemoQuad, "NativeDemoQuad");
-REGISTER_NATIVE_FUNCTION_AS(0x80987E9C, MH3_NativeDemoCharacterMenu, "NativeDemoCharacterMenu");
+REGISTER_NATIVE_FUNCTION(0x8044EF1C, MH3_GXPeekARGB);
+REGISTER_NATIVE_FUNCTION(0x80292B00, MH3_NativeTemporalFeedback);
+REGISTER_NATIVE_FUNCTION(0x802930DC, MH3_NativeFeedbackThreshold);
+REGISTER_NATIVE_FUNCTION(0x80293D00, MH3_NativeGlareBrightPass);
+REGISTER_NATIVE_FUNCTION(0x80291A0C, MH3_NativeSceneCapture);
+REGISTER_NATIVE_FUNCTION(0x80291B0C, MH3_NativeSceneDrawBack);
+REGISTER_NATIVE_FUNCTION(0x80291E5C, MH3_NativeSavedSceneDraw);
+REGISTER_NATIVE_FUNCTION(0x802921A0, MH3_NativeSavedSceneCapture);
+REGISTER_NATIVE_FUNCTION(0x80291940, MH3_NativeGrabScreen);
+REGISTER_NATIVE_FUNCTION(0x8029227C, MH3_NativeSceneFeedbackDispatch);
+REGISTER_NATIVE_FUNCTION(0x8029278C, MH3_NativeSceneEffects);
+REGISTER_NATIVE_FUNCTION_AS(0x80238714, MH3_NativeInnerColorMenu, "NativeInnerColorMenu");
+REGISTER_NATIVE_FUNCTION_AS(0x80239040, MH3_NativeEquipmentColorMenu, "NativeEquipmentColorMenu");
+REGISTER_NATIVE_FUNCTION(0x80B200BC, MH3_NativeDemoSetup);
+REGISTER_NATIVE_FUNCTION(0x80B27FAC, MH3_NativeSceneTexgen);
+REGISTER_NATIVE_FUNCTION(0x80B20268, MH3_NativeDemoQuad);
+REGISTER_NATIVE_FUNCTION_AS(0x80B22E1C, MH3_NativeDemoCharacterMenu, "NativeDemoCharacterMenu");

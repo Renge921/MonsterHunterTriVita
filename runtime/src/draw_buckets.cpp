@@ -14,7 +14,7 @@
 void FillNativeGuestMemory(uint32_t destination, uint8_t value, uint32_t bytes);
 
 namespace {
-constexpr uint32_t kBuckets = 0x80796D30, kBuffer = 0x8065B3A0;
+constexpr uint32_t kBuckets = 0x808A01C8, kBuffer = 0x807693CC;
 constexpr uint32_t kBucketBytes = 0x4880;
 
 // The first 32 halfwords of each array are list heads: 0xFFFF is empty.
@@ -42,22 +42,22 @@ void InitDrawBuckets(CpuContext*) {
 }
 } // namespace
 
-extern "C" void func_80048890(CpuContext* ctx);
+extern "C" void func_800346C0(CpuContext* ctx);
 extern "C" void MH3_ClearDrawBuckets(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    PortCheck::Call(ctx, "ClearDrawBuckets", func_80048890, ClearDrawBuckets);
+    PortCheck::Call(ctx, "ClearDrawBuckets", func_800346C0, ClearDrawBuckets);
 #else
     ClearDrawBuckets(ctx);
 #endif
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80048890, MH3_ClearDrawBuckets, "ClearDrawBuckets");
+REGISTER_NATIVE_FUNCTION_AS(0x800346C0, MH3_ClearDrawBuckets, "ClearDrawBuckets");
 
-extern "C" void func_80048834(CpuContext* ctx);
+extern "C" void func_80034664(CpuContext* ctx);
 extern "C" void MH3_InitDrawBuckets(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    PortCheck::Call(ctx, "InitDrawBuckets", func_80048834, InitDrawBuckets);
+    PortCheck::Call(ctx, "InitDrawBuckets", func_80034664, InitDrawBuckets);
 #else
     InitDrawBuckets(ctx);
 #endif
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80048834, MH3_InitDrawBuckets, "InitDrawBuckets");
+REGISTER_NATIVE_FUNCTION_AS(0x80034664, MH3_InitDrawBuckets, "InitDrawBuckets");

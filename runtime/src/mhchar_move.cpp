@@ -132,13 +132,13 @@ extern "C" void func_800E078C(CpuContext* ctx);
 extern "C" void MH3_MHcharMove(CpuContext* ctx) {
     PortCheck::Call(ctx, "MHcharMove", func_800E078C, Move);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E078C, MH3_MHcharMove, "MHcharMove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E078C, MH3_MHcharMove, "MHcharMove");
 
 extern "C" void func_800E0978(CpuContext* ctx);
 extern "C" void MH3_MHcharSetWorld(CpuContext* ctx) {
     PortCheck::Call(ctx, "MHcharSetWorld", func_800E0978, SetWorldPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E0978, MH3_MHcharSetWorld, "MHcharSetWorld");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E0978, MH3_MHcharSetWorld, "MHcharSetWorld");
 
 extern "C" void func_800E3154(CpuContext* ctx);
 static void SetVisibilityChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) {
@@ -159,4 +159,4 @@ static void SetVisibilityChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint
 extern "C" void MH3_MHcharSetVisibility(CpuContext* ctx) {
     SetVisibilityChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3154, MH3_MHcharSetVisibility, "MHcharSetVisibility");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E3154, MH3_MHcharSetVisibility, "MHcharSetVisibility");

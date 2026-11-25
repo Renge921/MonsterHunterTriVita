@@ -33,6 +33,8 @@
 // node; the ports read the resource directly and call the guest only for the
 // animation, the callbacks and the rarely taken paths.
 #include "abi_bridge.h"
+#include "character_creation.h"
+#include "diag_log.h"
 #include "g3d_native.h"
 #include "guest_call.h"
 #include "guest_worker.h"
@@ -40,6 +42,7 @@
 #include "nw4r_math.h"
 #include "port_check.h"
 #include "ppc_runtime.h"
+#include "render_diag.h"
 #include "runtime/native/adapters/model_catalog_bridge.h"
 #include "runtime/native/adapters/model_pose_bridge.h"
 #include "runtime/native/mh3_model_view.h"
@@ -190,25 +193,15 @@ void Skinning(uint32_t out, uint32_t flags, uint32_t mdl, uint32_t code, const s
 } // namespace
 
 extern "C" void func_80074180(CpuContext* ctx);
-extern "C" void func_80097DA4(CpuContext* ctx);
+// extern "C" void func_80097DA4(CpuContext* ctx);
 
 static void SkinningFor(CpuContext* ctx, const std::vector<uint8_t>* envelopes) {
     uint32_t code = ctx->gpr[6];
 
     if (code == 0) {
         // ResMdl::GetResByteCode(mdl, "NodeMix"): once per model, not per node.
-        const uint32_t r1 = ctx->gpr[1], r3 = ctx->gpr[3], r4 = ctx->gpr[4], r5 = ctx->gpr[5];
-        ctx->gpr[1] = r1 - 0xB0;
-        MemoryInline::FlatWrite32(ctx->gpr[1], r1);
-        ctx->gpr[3] = r5;
-        ctx->gpr[4] = ctx->gpr[13] - 0x7C48;
-        func_80097DA4(ctx);
-        code = ctx->gpr[3];
-        ctx->gpr[1] = r1;
-        ctx->gpr[3] = r3;
-        ctx->gpr[4] = r4;
-        ctx->gpr[5] = r5;
-
+        GuestCall game{ctx};
+        code = game.Call<0x8051B954>({ctx->gpr[5], 0x8089F4C8u});
         if (code == 0)
             return;
     }
@@ -239,11 +232,9 @@ extern "C" void MH3_G3dCalcSkinning(CpuContext* ctx) {
 #endif
     SkinningPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80074180, MH3_G3dCalcSkinning, "G3dCalcSkinning");
+REGISTER_NATIVE_FUNCTION(0x8052FF04, MH3_G3dCalcSkinning);
 
 extern "C" void func_80073830(CpuContext* ctx);
-extern "C" void func_800D7D88(CpuContext* ctx);
-extern "C" void func_80073D44(CpuContext* ctx);
 
 namespace {
 
@@ -264,6 +255,7 @@ void AddVec3(uint32_t a, uint32_t b) {
 const RawDispatchRecord* anmResultMemo = nullptr;
 const RawDispatchRecord* callbackAMemo = nullptr;
 const RawDispatchRecord* callbackBMemo = nullptr;
+const RawDispatchRecord* callbackCMemo = nullptr;
 
 void CalcWorld(CpuContext* ctx) {
     GuestFrame frame(ctx, kFrame);
@@ -281,13 +273,25 @@ void CalcWorld(CpuContext* ctx) {
 
     uint32_t code = frame.Arg(5);
 
-    if (code == 0 && (code = call(func_80097DA4, {mdl, 0x8058E938u})) == 0)
-        return; // "NodeTree"
+    if (code == 0) {
+        GuestCall game{ctx};
+        code = game.Call<0x8051B954>({mdl, 0x80719FF8u});
+        if (code == 0)
+            return; // "NodeTree"
+    }
+
     const uint32_t scales = WorkArea(), ids = scales + kMatrixIdsOffset;
     const uint32_t info = Read32(mdl) + 0x4C;
     const bool maya = Read32(info + 8) == 1;
     const bool segmentScale = (rootFlags & 0x08000000u) != 0;
-    const float one = ReadFloat(0x80798280u);
+    const float one = 1.0f;
+
+    // Phase 58 probe: the model's scaling rule and every step it takes, once
+    // per model while character creation is active.
+    const bool probe = MH3CharacterCreationActive() && RenderDiag::WantCalcWorldProbe(mdl);
+
+    if (probe)
+        MH3DiagLog("MH3 calcworld: mdl=%08x maya=%d segment=%d rootflags=%08x base=%08x\n", mdl, maya ? 1 : 0, segmentScale ? 1 : 0, rootFlags, base);
 
     for (uint32_t k = 0; k < 12; k += 4)
         WriteFloat(scales + k, one);
@@ -371,9 +375,20 @@ void CalcWorld(CpuContext* ctx) {
         }
 
         const uint32_t flagsAt = flags + 4 * id;
+        // The model's scaling rule picks the step (CalcWorld's maya flag):
+        // rule 0 is the plain step (JPN 0x80533FE4), rule 1 the Maya one
+        // (JPN 0x80533470), which does not inherit the parent's scale.
         const uint32_t stepped = maya ? G3dNative::WorldMtxNodeStepMayaScale(nodeWorld, nodeScale, world + 0x30 * parent, scales + 12 * parent, parentFlags, chr)
-                                      : call(func_800D7D88, {nodeWorld, nodeScale, world + 0x30 * parent, scales + 12 * parent, parentFlags, chr});
+                                      : G3dNative::WorldMtxNodeStep(nodeWorld, nodeScale, world + 0x30 * parent, scales + 12 * parent, parentFlags, chr);
         MemoryInline::FlatWrite32(flagsAt, (stepped & 0xFFFFFF00u) | (node ? Read32(node + 0x18) : 0));
+
+        if (probe)
+            MH3DiagLog("MH3 calcworld node: mdl=%08x idx=%u id=%u parent=%u pflags=%08x cflags=%08x t=(%.3f,%.3f,%.3f) s=(%.3f,%.3f,%.3f) pt=(%.3f,%.3f,%.3f) "
+                       "w=(%.3f,%.3f,%.3f) ws=(%.3f,%.3f,%.3f) nflags=%08x\n",
+                       mdl, nodeIndex, id, parent, parentFlags, Read32(chr), ReadFloat(chr + 0x28), ReadFloat(chr + 0x38), ReadFloat(chr + 0x48),
+                       ReadFloat(chr + 4), ReadFloat(chr + 8), ReadFloat(chr + 0xC), ReadFloat(world + 0x30 * parent + 0x0C),
+                       ReadFloat(world + 0x30 * parent + 0x1C), ReadFloat(world + 0x30 * parent + 0x2C), ReadFloat(nodeWorld + 0x0C), ReadFloat(nodeWorld + 0x1C),
+                       ReadFloat(nodeWorld + 0x2C), ReadFloat(nodeScale), ReadFloat(nodeScale + 4), ReadFloat(nodeScale + 8), Read32(flagsAt));
 
         // 0x80073D98: ExecCallbackB (vtable +0x10) with {world, scale,
         // flags} of the node's matrix after it.
@@ -397,7 +412,8 @@ void CalcWorld(CpuContext* ctx) {
 
     if (callback && (Read8(callback + 4) & 4) != 0) {
         MemoryInline::FlatWrite32(frame[kTemp8], Read32(mdl));
-        call(func_80073D44, {callback, world, frame[kTemp8]});
+        GuestCall game{ctx};
+        game.VirtualAt(callbackCMemo, Read32(callback), 0x14, {world, frame[kTemp8], callback});
     }
 }
 
@@ -417,7 +433,7 @@ extern "C" void MH3_G3dCalcWorld(CpuContext* ctx) {
 #endif
     CalcWorld(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80073830, MH3_G3dCalcWorld, "G3dCalcWorld");
+REGISTER_NATIVE_FUNCTION(0x8052F918, MH3_G3dCalcWorld);
 
 // 0x800711FC (G3dCalcViewLc, calcview.cpp's CalcView_LC): the view matrices
 // (view * model), their normal matrices and texture matrices, 40 at a time
@@ -438,7 +454,7 @@ REGISTER_NATIVE_FUNCTION_AS(0x80073830, MH3_G3dCalcWorld, "G3dCalcWorld");
 namespace {
 
 constexpr uint32_t kLockedCache = 0xE0000000u;
-constexpr uint32_t kBillboards = 0x8056FDF8u;
+constexpr uint32_t kBillboards = 0x8065ABC0u;
 
 void LcStore(uint32_t dst, uint32_t cache, uint32_t blocks) {
     const uint32_t size = (blocks ? blocks : 128) * 32;
@@ -477,7 +493,8 @@ int32_t MatrixNode(uint32_t info, uint32_t id) {
 // the constant at 0x8079F988 (0x8050199C) after the original's warning. The
 // other kinds run their originals. The arithmetic is plain float, not the
 // originals' paired singles (the normalization a float square root).
-constexpr uint32_t kBillboardZero = 0x80798268u;
+// RMHJ08: PAL 0x80798268 (0.0f) is .bss in the Japanese build; the value is kept.
+constexpr float kBillboardZero = 0.0f;
 
 // 0x8006F96C: the length of column i of m's rotation part.
 float ColumnLength(uint32_t m, uint32_t i) {
@@ -488,7 +505,7 @@ float ColumnLength(uint32_t m, uint32_t i) {
 // 0x8006F8FC (0x8006F938 with one scale): the rotation of mtx to the unit
 // axis (x, y), scaled per column.
 void FaceAxis(uint32_t mtx, float x, float y, float sx, float sy, float sz) {
-    const float zero = ReadFloat(kBillboardZero);
+    const float zero = kBillboardZero;
     WriteFloat(mtx + 0x00, y * sx);
     WriteFloat(mtx + 0x04, x * sy);
     WriteFloat(mtx + 0x08, zero);
@@ -503,10 +520,10 @@ void FaceAxis(uint32_t mtx, float x, float y, float sx, float sy, float sz) {
 // The kinds' common end: mtx faces the axis (x, y, 0) normalized, with the
 // column scales of world.
 void Face(uint32_t mtx, uint32_t world, uint32_t uniform, float x, float y) {
-    const float epsilon = ReadFloat(0x8079826Cu);
+    const float epsilon = 1.0e-18f;
 
     if (!(std::fabs(x) >= epsilon || std::fabs(y) >= epsilon)) {
-        const uint32_t fill = Read32(0x8079F988u);
+        const uint32_t fill = 0u;
 
         for (uint32_t k = 0; k < 0x30; k += 4)
             MemoryInline::FlatWrite32(mtx + k, fill);
@@ -540,7 +557,7 @@ void ParentAxis(uint32_t node, uint32_t parent, float& x, float& y) {
     const float a = p[9] * p[2] - p[1] * p[10], b = p[10] * p[0] - p[2] * p[8], c = p[1] * p[8] - p[0] * p[9];
     const float det = p[8] * (p[1] * p[6] - p[5] * p[2]) + p[4] * a + p[0] * (p[5] * p[10] - p[9] * p[6]);
 
-    if (std::fabs(det) < ReadFloat(0x80798270u)) {
+    if (std::fabs(det) < 1.0e-18f) {
         x = y = 0.0f;
         return;
     }
@@ -646,11 +663,11 @@ void CalcView(CpuContext* ctx, bool lockedCache) {
     // cache contents, keep their old values.
     const bool direct = !lockedCache || ((viewPos | nrm | tex) & 31) == 0;
     const uint32_t info = Read32(mdl) + 0x4C;
-    const float zero = ReadFloat(0x80798268u);
+    const float zero = 0.0f;
     const uint32_t inverse = frame[0x58];
     const uint32_t work = WorkArea();
     const mh3_matrix34 camera = ReadMatrix(view);
-    const float epsilon = ReadFloat(0x8079D6F0u);
+    const float epsilon = 1.0e-36f;
     mh3_matrix34 positions[40];
     GuestCall game{ctx};
 
@@ -828,13 +845,13 @@ extern "C" void func_8006F79C(CpuContext* ctx);
 extern "C" void MH3_BillboardStd(CpuContext* ctx) {
     PortCheck::Call(ctx, "BillboardStd", func_8006F79C, BillboardStdPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006F79C, MH3_BillboardStd, "BillboardStd");
+REGISTER_NATIVE_FUNCTION(0x8052D754, MH3_BillboardStd);
 
 extern "C" void func_8006FC20(CpuContext* ctx);
 extern "C" void MH3_BillboardRot(CpuContext* ctx) {
     PortCheck::Call(ctx, "BillboardRot", func_8006FC20, BillboardRotPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006FC20, MH3_BillboardRot, "BillboardRot");
+REGISTER_NATIVE_FUNCTION(0x8052DCFC, MH3_BillboardRot);
 
 extern "C" void func_800711FC(CpuContext* ctx);
 extern "C" void MH3_G3dCalcViewLc(CpuContext* ctx) {
@@ -857,7 +874,7 @@ extern "C" void MH3_G3dCalcViewLc(CpuContext* ctx) {
     PublishNativeModelPose(position, normal, environment, count, model_reference);
     PublishSkinView(position, world, camera, count, model_reference);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800711FC, MH3_G3dCalcViewLc, "G3dCalcViewLc");
+REGISTER_NATIVE_FUNCTION(0x8052F1FC, MH3_G3dCalcViewLc);
 
 // Deferred view passes. The game thread waits for the scene walk at the end
 // of its frame side (game_frame.cpp JoinScenePrepare), and the walk's view
@@ -1007,7 +1024,7 @@ extern "C" void MH3_G3dCalcViewPlain(CpuContext* ctx) {
     PublishNativeModelPose(position, normal, environment, count, model_reference);
     PublishSkinView(position, world, camera, count, model_reference);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80070884, MH3_G3dCalcViewPlain, "G3dCalcViewPlain");
+REGISTER_NATIVE_FUNCTION(0x8052E9E4, MH3_G3dCalcViewPlain);
 
 // 0x80502DD0, g3d's locked-cache acquire: under the OS mutex at 0x8076313C,
 // 1 (the mutex kept until 0x80502E40) while the byte at 0x80763138 says the
@@ -1019,4 +1036,4 @@ REGISTER_NATIVE_FUNCTION_AS(0x80070884, MH3_G3dCalcViewPlain, "G3dCalcViewPlain"
 extern "C" void MH3_LockedCacheAcquire(CpuContext* ctx) {
     ctx->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80502DD0, MH3_LockedCacheAcquire, "LockedCacheAcquire");
+REGISTER_NATIVE_FUNCTION(0x8053ECF4, MH3_LockedCacheAcquire);

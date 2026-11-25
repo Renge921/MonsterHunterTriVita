@@ -384,58 +384,60 @@ extern "C" void func_80343A38(CpuContext* cpu);
 extern "C" void MH3_CreatureKindClass(CpuContext* cpu) {
     Checked(cpu, "CreatureKindClass", func_80343A38, KindClassPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80343A38, MH3_CreatureKindClass, "CreatureKindClass");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80343A38, MH3_CreatureKindClass, "CreatureKindClass");
 
 extern "C" void func_80343948(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupFind(CpuContext* cpu) {
     Checked(cpu, "CreatureGroupFind", func_80343948, FindGroupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80343948, MH3_CreatureGroupFind, "CreatureGroupFind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80343948, MH3_CreatureGroupFind, "CreatureGroupFind");
 
 extern "C" void func_80343AD0(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupFlags(CpuContext* cpu) {
     Checked(cpu, "CreatureGroupFlags", func_80343AD0, ClassFlagsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80343AD0, MH3_CreatureGroupFlags, "CreatureGroupFlags");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80343AD0, MH3_CreatureGroupFlags, "CreatureGroupFlags");
 
 extern "C" void func_80344260(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupHolds(CpuContext* cpu) {
     Checked(cpu, "CreatureGroupHolds", func_80344260, HoldsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80344260, MH3_CreatureGroupHolds, "CreatureGroupHolds");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80344260, MH3_CreatureGroupHolds, "CreatureGroupHolds");
 
 extern "C" void func_803444C4(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupRelated(CpuContext* cpu) {
     Checked(cpu, "CreatureGroupRelated", func_803444C4, RelatedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803444C4, MH3_CreatureGroupRelated, "CreatureGroupRelated");
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+// REGISTER_NATIVE_FUNCTION_AS(0x803444C4, MH3_CreatureGroupRelated, "CreatureGroupRelated");
 
 extern "C" void func_803441C8(CpuContext* cpu);
 extern "C" void MH3_CreatureEnemyHolds(CpuContext* cpu) {
     Checked(cpu, "CreatureEnemyHolds", func_803441C8, EnemyHoldsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803441C8, MH3_CreatureEnemyHolds, "CreatureEnemyHolds");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803441C8, MH3_CreatureEnemyHolds, "CreatureEnemyHolds");
 
 extern "C" void func_803443B4(CpuContext* cpu);
 extern "C" void MH3_CreatureEnemyRelated(CpuContext* cpu) {
     Checked(cpu, "CreatureEnemyRelated", func_803443B4, EnemyRelatedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803443B4, MH3_CreatureEnemyRelated, "CreatureEnemyRelated");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803443B4, MH3_CreatureEnemyRelated, "CreatureEnemyRelated");
 
 extern "C" void func_803442EC(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupCount(CpuContext* cpu) {
     PortCheck::Call(cpu, "CreatureGroupCount", func_803442EC, CountPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803442EC, MH3_CreatureGroupCount, "CreatureGroupCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803442EC, MH3_CreatureGroupCount, "CreatureGroupCount");
 
 extern "C" void func_803445C8(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupAway(CpuContext* cpu) {
     Checked(cpu, "CreatureGroupAway", func_803445C8, AwayPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803445C8, MH3_CreatureGroupAway, "CreatureGroupAway");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803445C8, MH3_CreatureGroupAway, "CreatureGroupAway");
 
 extern "C" void func_80344F00(CpuContext* cpu);
 extern "C" void MH3_CreatureGroupsMatch(CpuContext* cpu) {
     PortCheck::Call(cpu, "CreatureGroupsMatch", func_80344F00, Match);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80344F00, MH3_CreatureGroupsMatch, "CreatureGroupsMatch");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80344F00, MH3_CreatureGroupsMatch, "CreatureGroupsMatch");

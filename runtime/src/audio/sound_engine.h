@@ -33,24 +33,24 @@ using MemoryInline::FlatWrite8;
 using MemoryInline::FlatWriteFloat32;
 
 // Globals.
-constexpr uint32_t kSeManager = 0x80699E00;      // vtable 0x80598568
-constexpr uint32_t kStreamManager = 0x8069CC90;  // vtable 0x80598828
-constexpr uint32_t kObjects = 0x8069CD68;        // object pool: free list head node, active list node at +0x110
+constexpr uint32_t kSeManager = 0x80776A38;      // JPN RMHJ08 (was 0x80699E00)      // vtable 0x80598568
+constexpr uint32_t kStreamManager = 0x807795D4;  // JPN RMHJ08 (was 0x8069CC90)  // vtable 0x80598828
+constexpr uint32_t kObjects = 0x807796B4;        // JPN RMHJ08 (was 0x8069CD68)        // object pool: free list head node, active list node at +0x110
 constexpr uint32_t kActive = kObjects + 0x110;
-constexpr uint32_t kCommands = 0x8069AF70;       // SE command queue: free list head node, pending list node at +0x4C
+constexpr uint32_t kCommands = 0x807778AC;       // JPN RMHJ08 (was 0x8069AF70)       // SE command queue: free list head node, pending list node at +0x4C
 constexpr uint32_t kPending = kCommands + 0x4C;
-constexpr uint32_t kMixConfig = 0x80699210;      // +0xBEC: the MIX channel mode of every voice
-constexpr uint32_t kMasterVolume = 0x80796EC4;   // s16, 0..127
-constexpr uint32_t kLevelTable = 0x805985E0;     // s32[128]: level 0..127 -> dB x 10
+constexpr uint32_t kMixConfig = 0x80775E38;      // JPN RMHJ08 (was 0x80699210)      // +0xBEC: the MIX channel mode of every voice
+constexpr uint32_t kMasterVolume = 0x808A0548;   // JPN RMHJ08 (was 0x80796EC4, r13 - 0x4338)   // s16, 0..127
+constexpr uint32_t kLevelTable = 0x806E03C0;     // JPN RMHJ08 (was 0x805985E0)     // s32[128]: level 0..127 -> dB x 10
 
 // Stream buffers: each channel's region is three chunks.
-constexpr uint32_t kStreamChannelBytes = 0x80796ED4, kStreamChunkBytes = 0x80796ED8, kStreamEndMargin = 0x80796EDC;
+constexpr uint32_t kStreamChannelBytes = 0x808A0554, kStreamChunkBytes = 0x808A0558, kStreamEndMargin = 0x808A055C; // JPN RMHJ08 (r13 - 0x432C, -0x4328, -0x4324)
 
 // Stream gain per category (set_str_*_main_vol): selector byte [idx], two
 // gains with their previous values.
-constexpr uint32_t kStreamGainSelect = 0x80796E70;
-constexpr uint32_t kStreamGainA = 0x80796E78, kStreamGainAOld = 0x80796E7C, kStreamGainANew = 0x80796E80;
-constexpr uint32_t kStreamGainB = 0x80796E88, kStreamGainBOld = 0x80796E8C, kStreamGainBNew = 0x80796E90;
+constexpr uint32_t kStreamGainSelect = 0x808A0560; // JPN RMHJ08 (r13 - 0x4320)
+constexpr uint32_t kStreamGainA = 0x808A0568, kStreamGainAOld = 0x808A056C, kStreamGainANew = 0x808A0570; // JPN RMHJ08 (r13 - 0x4318, -0x4314, -0x4310)
+constexpr uint32_t kStreamGainB = 0x808A0578, kStreamGainBOld = 0x808A057C, kStreamGainBNew = 0x808A0580; // JPN RMHJ08 (r13 - 0x4308, -0x4304, -0x4300)
 
 // Doubly linked list nodes: next +4, prev +8; a list is its head node.
 enum : uint32_t { kNext = 4, kPrev = 8 };

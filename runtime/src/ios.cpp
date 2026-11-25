@@ -82,7 +82,7 @@ struct DiscRequest {
 
 // The sound stream reader's callbacks (BGM, 2-4 reads a second in a fight).
 bool SoundStream(uint32_t caller) {
-    return caller == 0x800EA6E4 || caller == 0x800EA848 || caller == 0x800EA9C8;
+    return caller == 0x80368B60 || caller == 0x80368CCC || caller == 0x80368DB0; // JPN (PAL: 0x800EA6E4, 0x800EA848, 0x800EA9C8)
 }
 
 // Disc reads the DVD library sends with IOS_IoctlAsync (DI 0x71) run on a
@@ -495,9 +495,9 @@ class DiscReader {
             return "stream";
 
         switch (caller) {
-        case 0x80434CDC:
+        case 0x8040BF5C: // JPN (PAL: 0x80434CDC)
             return "movie";
-        case 0x800CE6E4:
+        case 0x80298140: // JPN (PAL: 0x800CE6E4)
             return "loader task";
         }
 
@@ -565,7 +565,7 @@ DiscReader& Reader() {
 // is its next chunk. The caller is the block's callback, or for DVDReadAsync
 // (whose block is a DVDFileInfo) the reader's own.
 DiscRequest DiscRequestOf(const CpuContext* ctx, uint64_t offset, uint32_t length) {
-    enum : int32_t { kExecuting = -0x3CF0 }; // DVDCommandBlock* executing
+    enum : int32_t { kExecuting = -0x3F70 }; // DVDCommandBlock* executing (JPN: -0x3F70, PAL: -0x3CF0)
     const uint32_t block = Memory::Read32(ctx->gpr[13] + uint32_t(kExecuting));
 
     if (!block)
@@ -577,7 +577,7 @@ DiscRequest DiscRequestOf(const CpuContext* ctx, uint64_t offset, uint32_t lengt
     if (start + Memory::Read32(block + 0x20) == offset && offset + length <= end)
         request = {block, end};
 
-    constexpr uint32_t kReadAsyncCallback = 0x804A6A70;
+    constexpr uint32_t kReadAsyncCallback = 0x804310A4; // JPN (PAL: 0x804A6A70)
     const uint32_t callback = Memory::Read32(block + 0x28);
     request.caller = callback == kReadAsyncCallback ? Memory::Read32(block + 0x38) : callback;
     return request;
@@ -737,7 +737,7 @@ int InitializeNand() {
         return Error();
     // IOS and title installation normally provide these parents. No game
     // settings or save contents are synthesized, and existing files survive.
-    constexpr const char* directories[]{"/tmp", "/sys", "/shared2", "/title", "/title/00010000", "/title/00010001", "/title/00010004", "/title/00010000/524d4850", "/title/00010000/524d4850/data"};
+    constexpr const char* directories[]{"/tmp", "/sys", "/shared2", "/title", "/title/00010000", "/title/00010001", "/title/00010004", "/title/00010000/524d484a", "/title/00010000/524d484a/data"};
 
     for (const auto* path : directories) {
         const std::filesystem::path entry(path);
@@ -1070,7 +1070,15 @@ extern "C" void MH3_IPCWriteReg(CpuContext* ctx) {
     if (ctx->gpr[3] != 1 || ctx->gpr[4] != 0x38)
         MH3_THROW(std::runtime_error("Unimplemented direct IPC register operation"));
 }
-REGISTER_NATIVE_FUNCTION(0x804BB950, MH3_IPCWriteReg);
+// __DVDCheckDevice (0x80436B84): checked by OSInit to verify DVD drive/version.
+// Retail Wii checks NAND/drive; on error returns 0, causing OSInit to call OSReturnToMenu.
+// Native bypass returns 1 (success).
+extern "C" void MH3_DVDCheckDevice(CpuContext* ctx) {
+    ctx->gpr[3] = 1;
+}
+REGISTER_NATIVE_FUNCTION(0x80436B84, MH3_DVDCheckDevice);
+
+REGISTER_NATIVE_FUNCTION(0x804721F8, MH3_IPCWriteReg);
 
 extern "C" void MH3_IOSOpen(CpuContext* ctx) {
     const std::string path = GuestPath(ctx->gpr[3]);
@@ -1133,7 +1141,7 @@ extern "C" void MH3_IOSOpen(CpuContext* ctx) {
 
     ctx->gpr[3] = OpenFile(path, ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BC500, MH3_IOSOpen);
+REGISTER_NATIVE_FUNCTION(0x80472AD0, MH3_IOSOpen);
 extern "C" void MH3_IOSClose(CpuContext* ctx) {
     if (devices.erase(ctx->gpr[3])) {
         if (eventHook && eventHook->fd == ctx->gpr[3])
@@ -1165,7 +1173,7 @@ extern "C" void MH3_IOSClose(CpuContext* ctx) {
     files.erase(it);
     ctx->gpr[3] = syncError ? syncError : result == 0 ? 0 : Error();
 }
-REGISTER_NATIVE_FUNCTION(0x804BC810, MH3_IOSClose);
+REGISTER_NATIVE_FUNCTION(0x80472CB0, MH3_IOSClose);
 
 // The USB library's IOS_Open and IOS_Close with a two-second timeout
 // (0x804BC630, 0x804BC8C0; decompiled with Ghidra): they queue the request
@@ -1174,12 +1182,12 @@ REGISTER_NATIVE_FUNCTION(0x804BC810, MH3_IOSClose);
 extern "C" void MH3_IOSOpenWithTimeout(CpuContext* ctx) {
     MH3_IOSOpen(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804BC630, MH3_IOSOpenWithTimeout, "IOSOpenWithTimeout");
+// REGISTER_NATIVE_FUNCTION_AS(0x804BC630, MH3_IOSOpenWithTimeout, "IOSOpenWithTimeout"); // Not needed for JPN
 
 extern "C" void MH3_IOSCloseWithTimeout(CpuContext* ctx) {
     MH3_IOSClose(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804BC8C0, MH3_IOSCloseWithTimeout, "IOSCloseWithTimeout");
+// REGISTER_NATIVE_FUNCTION_AS(0x804BC8C0, MH3_IOSCloseWithTimeout, "IOSCloseWithTimeout"); // Not needed for JPN
 extern "C" void MH3_IOSRead(CpuContext* ctx) {
     auto it = files.find(ctx->gpr[3]);
 
@@ -1214,7 +1222,7 @@ extern "C" void MH3_IOSRead(CpuContext* ctx) {
 
     ctx->gpr[3] = count;
 }
-REGISTER_NATIVE_FUNCTION(0x804BCA70, MH3_IOSRead);
+REGISTER_NATIVE_FUNCTION(0x80472E58, MH3_IOSRead);
 extern "C" void MH3_IOSWrite(CpuContext* ctx) {
     auto it = files.find(ctx->gpr[3]);
 
@@ -1231,7 +1239,7 @@ extern "C" void MH3_IOSWrite(CpuContext* ctx) {
     ssize_t count = ::write(it->second.host, Memory::GetPointer(ctx->gpr[4], ctx->gpr[5]), ctx->gpr[5]);
     ctx->gpr[3] = count < 0 ? Error() : count;
 }
-REGISTER_NATIVE_FUNCTION(0x804BCC80, MH3_IOSWrite);
+REGISTER_NATIVE_FUNCTION(0x80473060, MH3_IOSWrite);
 void SeekFile(CpuContext* ctx) {
     const auto it = files.find(ctx->gpr[3]);
 
@@ -1368,7 +1376,7 @@ extern "C" void MH3_IOSIoctlAsync(CpuContext* ctx) {
 
     MH3_THROW(std::runtime_error("IOS async ioctl needs a host implementation: " + (it == devices.end() ? std::string("invalid descriptor") : it->second) + " command " + std::to_string(ctx->gpr[4])));
 }
-REGISTER_NATIVE_FUNCTION(0x804BCE70, MH3_IOSIoctlAsync);
+REGISTER_NATIVE_FUNCTION(0x80473248, MH3_IOSIoctlAsync);
 
 extern "C" void MH3_IOSIoctl(CpuContext* ctx) {
     if (const auto file = files.find(ctx->gpr[3]); file != files.end()) {
@@ -1641,7 +1649,7 @@ extern "C" void MH3_IOSIoctl(CpuContext* ctx) {
 
     MH3_THROW(std::runtime_error("IOS ioctl needs a host implementation: " + device->second + " command " + std::to_string(command)));
 }
-REGISTER_NATIVE_FUNCTION(0x804BCFB0, MH3_IOSIoctl);
+REGISTER_NATIVE_FUNCTION(0x80473380, MH3_IOSIoctl);
 
 // ES_GetTitleID and ES_GetDataDir, verified at MH3's ESP wrappers
 // 0x804B0060 and 0x804AFFC0. Title ID comes from this disc's signed TMD.
@@ -1770,8 +1778,8 @@ extern "C" void MH3_IOSIoctlv(CpuContext* ctx) {
     if (device->second == "/dev/es" && outputs == 1 && ((command == 0x20 && inputs == 0) || (command == 0x1D && inputs == 1))) {
         const uint32_t out = Memory::Read32(vectors + inputs * 8);
         const uint32_t size = Memory::Read32(vectors + inputs * 8 + 4);
-        constexpr uint64_t title = 0x00010000524D4850ull;
-        constexpr char directory[] = "/title/00010000/524d4850/data";
+        constexpr uint64_t title = 0x00010000524D484Aull;
+        constexpr char directory[] = "/title/00010000/524d484a/data";
         const uint32_t required = command == 0x20 ? 8 : sizeof(directory);
 
         if (size < required || !Memory::Contains(out, size)) {
@@ -1804,7 +1812,7 @@ extern "C" void MH3_IOSIoctlv(CpuContext* ctx) {
 
     MH3_THROW(std::runtime_error("IOS ioctlv needs a host implementation: " + device->second + " command " + std::to_string(command)));
 }
-REGISTER_NATIVE_FUNCTION(0x804BD310, MH3_IOSIoctlv);
+REGISTER_NATIVE_FUNCTION(0x804736D0, MH3_IOSIoctlv);
 
 namespace {
 void AsyncFile(CpuContext* ctx, void (*operation)(CpuContext*), uint32_t callback, uint32_t argument) {
@@ -1822,23 +1830,23 @@ void AsyncFile(CpuContext* ctx, void (*operation)(CpuContext*), uint32_t callbac
 extern "C" void MH3_IOSOpenAsync(CpuContext* ctx) {
     AsyncFile(ctx, MH3_IOSOpen, ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BC3E0, MH3_IOSOpenAsync);
+REGISTER_NATIVE_FUNCTION(0x804729B8, MH3_IOSOpenAsync);
 extern "C" void MH3_IOSReadAsync(CpuContext* ctx) {
     AsyncFile(ctx, MH3_IOSRead, ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BC970, MH3_IOSReadAsync);
+REGISTER_NATIVE_FUNCTION(0x80472D58, MH3_IOSReadAsync);
 extern "C" void MH3_IOSWriteAsync(CpuContext* ctx) {
     AsyncFile(ctx, MH3_IOSWrite, ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BCB80, MH3_IOSWriteAsync);
+REGISTER_NATIVE_FUNCTION(0x80472F60, MH3_IOSWriteAsync);
 extern "C" void MH3_IOSSeekAsync(CpuContext* ctx) {
     AsyncFile(ctx, SeekFile, ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BCD90, MH3_IOSSeekAsync);
+REGISTER_NATIVE_FUNCTION(0x80473168, MH3_IOSSeekAsync);
 extern "C" void MH3_IOSCloseAsync(CpuContext* ctx) {
     AsyncFile(ctx, MH3_IOSClose, ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BC750, MH3_IOSCloseAsync);
+REGISTER_NATIVE_FUNCTION(0x80472BF0, MH3_IOSCloseAsync);
 extern "C" void MH3_IOSIoctlvAsync(CpuContext* ctx) {
     if (const auto device = devices.find(ctx->gpr[3]); device != devices.end() && IosNet::IsDevice(device->second)) {
         if (!ctx->gpr[8] || ctx->gpr[5] > 16 || ctx->gpr[6] > 16 || !Memory::Contains(ctx->gpr[7], (ctx->gpr[5] + ctx->gpr[6]) * 8)) {
@@ -1853,7 +1861,7 @@ extern "C" void MH3_IOSIoctlvAsync(CpuContext* ctx) {
 
     AsyncFile(ctx, MH3_IOSIoctlv, ctx->gpr[8], ctx->gpr[9]);
 }
-REGISTER_NATIVE_FUNCTION(0x804BD220, MH3_IOSIoctlvAsync);
+REGISTER_NATIVE_FUNCTION(0x804735EC, MH3_IOSIoctlvAsync);
 
 // Boot's SCCheckStatus loop is a safe event-pump boundary before OS scheduling
 // starts. Preserve the polling caller's full CPU state around each callback.
@@ -1885,21 +1893,21 @@ void PumpIosCompletions(CpuContext* ctx) {
     }
 }
 
-extern "C" void func_804DB770(CpuContext*);
+extern "C" void func_804773B0(CpuContext*);
 extern "C" void MH3_SCCheckStatus(CpuContext* ctx) {
     PumpIosCompletions(ctx);
-    func_804DB770(ctx);
+    func_804773B0(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804DB770, MH3_SCCheckStatus, "MH3_SCCheckStatus");
+REGISTER_NATIVE_FUNCTION_AS(0x804773B0, MH3_SCCheckStatus, "MH3_SCCheckStatus");
 
 // MH3 polls DVD command status while waiting for module/asset reads. Deliver
 // queued IOS completions before querying the original SDK state machine.
-extern "C" void func_804AACC0(CpuContext*);
+extern "C" void func_8043531C(CpuContext*);
 extern "C" void MH3_DVDGetCommandBlockStatus(CpuContext* ctx) {
     PumpIosCompletions(ctx);
-    func_804AACC0(ctx);
+    func_8043531C(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804AACC0, MH3_DVDGetCommandBlockStatus, "MH3_DVDGetCommandBlockStatus");
+REGISTER_NATIVE_FUNCTION_AS(0x8043531C, MH3_DVDGetCommandBlockStatus, "MH3_DVDGetCommandBlockStatus");
 
 // DVDCancelAsync (0x804AAE90), decompiled with Ghidra. For the block whose
 // read is in flight it sets Canceling, the break flag and the cancel callback,
@@ -1911,18 +1919,18 @@ REGISTER_NATIVE_FUNCTION_AS(0x804AACC0, MH3_DVDGetCommandBlockStatus, "MH3_DVDGe
 // was in flight hung the Vita). The disc reader breaks the read instead, and
 // its reply arrives before DVDCancelAsync returns, as the drive's interrupt
 // could right after it.
-extern "C" void func_804AAE90(CpuContext*);
+extern "C" void func_804354E0(CpuContext*);
 extern "C" void MH3_DVDCancelAsync(CpuContext* ctx) {
     enum : int32_t {
-        kBreaking = -0x3D60,  // s32: stop the read in flight
-        kExecuting = -0x3CF0, // DVDCommandBlock* executing
+        kBreaking = -0x3FE0,  // s32: stop the read in flight (JPN: -0x3FE0, PAL: -0x3D60)
+        kExecuting = -0x3F70, // DVDCommandBlock* executing (JPN: -0x3F70, PAL: -0x3CF0)
     };
 
     const uint32_t block = ctx->gpr[3], sda = ctx->gpr[13];
 #ifdef MH3_DEVELOPMENT
     const uint32_t state = Memory::Read32(block + 0xC), executing = Memory::Read32(sda + uint32_t(kExecuting));
 #endif
-    func_804AAE90(ctx);
+    func_804354E0(ctx);
 #ifdef MH3_DEVELOPMENT
     if (state == 1 || state == 2) // busy or waiting; DVDClose cancels every finished block too
         std::fprintf(stderr, "MH3 disc: DVDCancelAsync of block 0x%08X (state %d, %s) returned %u, breaking %u\n", block, int32_t(state),
@@ -1936,18 +1944,18 @@ extern "C" void MH3_DVDCancelAsync(CpuContext* ctx) {
     PumpIosCompletions(ctx);
     *ctx = saved;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804AAE90, MH3_DVDCancelAsync, "DVDCancelAsync");
+REGISTER_NATIVE_FUNCTION_AS(0x804354E0, MH3_DVDCancelAsync, "DVDCancelAsync");
 
 // DVDGetDriveStatus (0x804AAD90), decompiled with Ghidra. The frame counter's
 // retrace callbacks sample it every retrace.
 extern "C" void MH3_DVDGetDriveStatus(CpuContext* ctx) {
     enum : int32_t {
-        kFatalError = -0x3D74, // s32 FatalErrorFlag
-        kPausing = -0x3D78,    // s32 PausingFlag
-        kExecuting = -0x3CF0,  // DVDCommandBlock* executing
+        kFatalError = -0x3FF4, // s32 FatalErrorFlag (JPN: -0x3FF4, PAL: -0x3D74)
+        kPausing = -0x3FF8,    // s32 PausingFlag (JPN: -0x3FF8, PAL: -0x3D78)
+        kExecuting = -0x3F70,  // DVDCommandBlock* executing (JPN: -0x3F70, PAL: -0x3CF0)
     };
 
-    constexpr uint32_t kDummyCommandBlock = 0x80748A20;
+    constexpr uint32_t kDummyCommandBlock = 0x807B16E0; // JPN: 0x807B16E0, PAL: 0x80748A20
     const CpuContext saved = *ctx;
     const uint32_t sda = saved.gpr[13];
     ctx->msr &= ~0x8000u; // OSDisableInterrupts (inlined)
@@ -1964,7 +1972,7 @@ extern "C" void MH3_DVDGetDriveStatus(CpuContext* ctx) {
             status = 0;
         else {
             ctx->gpr[3] = executing;
-            InvokeIndirectCpu(0x804AACC0, ctx); // DVDGetCommandBlockStatus
+            InvokeIndirectCpu(0x8043531C, ctx); // DVDGetCommandBlockStatus (JPN: 0x8043531C, PAL: 0x804AACC0)
             status = ctx->gpr[3];
         }
     }
@@ -1972,7 +1980,7 @@ extern "C" void MH3_DVDGetDriveStatus(CpuContext* ctx) {
     *ctx = saved; // OSRestoreInterrupts
     ctx->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804AAD90, MH3_DVDGetDriveStatus, "DVDGetDriveStatus");
+REGISTER_NATIVE_FUNCTION_AS(0x804353E4, MH3_DVDGetDriveStatus, "DVDGetDriveStatus");
 
 // WaitDvd (0x80435EA8), decompiled with Ghidra: the game's synchronous file
 // loads (load_file 0x800CECC8 and its siblings) call it to wait until the DVD
@@ -1989,37 +1997,37 @@ REGISTER_NATIVE_FUNCTION_AS(0x804AAD90, MH3_DVDGetDriveStatus, "DVDGetDriveStatu
 void PumpDevices(CpuContext* cpu); // os_sleep.cpp
 namespace {
 enum : uint32_t {
-    WPADGetStatus = 0x804EDCA0, // the WPAD library state, interrupts disabled
-    WPADDisconnect = 0x804EEF40,
-    DVDGetCommandBlockStatus = 0x804AACC0,
-    SetMasterVolume = 0x800E874C, // AXSetMasterVolume, interrupts disabled
-    SePause = 0x800E8338,         // SeManager state 2
-    SeResume = 0x800E8378,        // SeManager state 4
-    SeStop = 0x800D849C,          // SeManager state 1
-    StreamPause = 0x800E4B30,     // StreamManager state 2
-    StreamResume = 0x800E4B70,    // StreamManager state 4
-    VIEnableDimming = 0x804E96A0,
-    func_8045607C = 0x8045607C,
-    RunDrawHook = 0x80040890, // the installed draw callback (0x8065B360), if any
-    DrawDiscErrorMessage = 0x80435DBC,
-    FontFlush = 0x8005C174,
-    NativeFrameEnd = 0x8003FFFC,
-    FramePacer = 0x800401A8,
-    FontStackReset = 0x8005B52C, // flfntStackReset
-    RumbleStopAll = 0x80044AB8,
-    BgmStopAll = 0x800F6398,
-    NativeMovieCleanup = 0x804360B0,
-    OSShutdownSystem = 0x804D2BA0,
-    OSRestart = 0x804D2CC0,
-    QuestResetTimeBase = 0x803A91F0,
+    WPADGetStatus = 0x8047D400, // the WPAD library state, interrupts disabled (PAL: 0x804EDCA0)
+    WPADDisconnect = 0x8047E63C, // (PAL: 0x804EEF40)
+    DVDGetCommandBlockStatus = 0x8043531C, // (PAL: 0x804AACC0)
+    SetMasterVolume = 0x80367494, // AXSetMasterVolume, interrupts disabled (PAL: 0x800E874C)
+    SePause = 0x8036716C,         // SeManager state 2 (PAL: 0x800E8338)
+    SeResume = 0x803671A4,        // SeManager state 4 (PAL: 0x800E8378)
+    SeStop = 0x802AFE88,          // SeManager state 1 (PAL: 0x800D849C)
+    StreamPause = 0x8036D024,     // StreamManager state 2 (PAL: 0x800E4B30)
+    StreamResume = 0x8036D05C,    // StreamManager state 4 (PAL: 0x800E4B70)
+    VIEnableDimming = 0x8043BC80, // (PAL: 0x804E96A0)
+    func_8045607C = 0x803A06B0,   // (PAL: 0x8045607C)
+    RunDrawHook = 0x8041FBEC,     // the installed draw callback, if any (PAL: 0x80040890)
+    DrawDiscErrorMessage = 0x8040D658, // (PAL: 0x80435DBC)
+    FontFlush = 0x80295AF0,       // (PAL: 0x8005C174)
+    NativeFrameEnd = 0x80032DDC,  // (PAL: 0x8003FFFC)
+    FramePacer = 0x80032F84,      // (PAL: 0x800401A8)
+    FontStackReset = 0x8029501C,  // flfntStackReset (PAL: 0x8005B52C)
+    RumbleStopAll = 0x8029B43C,   // (PAL: 0x80044AB8)
+    BgmStopAll = 0x802878CC,      // (PAL: 0x800F6398)
+    NativeMovieCleanup = 0x8040D9BC, // (PAL: 0x804360B0)
+    OSShutdownSystem = 0x8042974C,   // (PAL: 0x804D2BA0)
+    OSRestart = 0x80429868,          // (PAL: 0x804D2CC0)
+    QuestResetTimeBase = 0x801F70B0, // (PAL: 0x803A91F0)
 };
 
-constexpr uint32_t kWaiting = 0x8065B2D0;   // u8: inside WaitDvd
-constexpr uint32_t kErrorSeen = 0x8065B2D1; // u8: the drive reported a fatal error
-constexpr uint32_t kWait = 0x806D6D40;      // s32 +4 error screen kind (-1 none), u8 +9 dimming, u8 +11 outer kWaiting
-constexpr int32_t kDriveStatus = -0x4688;   // r13: s32 DVDGetDriveStatus at the last retrace
-constexpr int32_t kPowerPressed = -0x467A;  // r13: u8
-constexpr int32_t kResetPressed = -0x467B;  // r13: u8
+constexpr uint32_t kWaiting = 0x80769318;   // u8: inside WaitDvd (PAL: 0x8065B2D0)
+constexpr uint32_t kErrorSeen = 0x80769319; // u8: the drive reported a fatal error (PAL: 0x8065B2D1)
+constexpr uint32_t kWait = 0x80799CC0;      // s32 +4 error screen kind (-1 none), u8 +9 dimming, u8 +11 outer kWaiting (PAL: 0x806D6D40)
+constexpr int32_t kDriveStatus = -0x470C;   // r13: s32 DVDGetDriveStatus at the last retrace (PAL: -0x4688)
+constexpr int32_t kPowerPressed = -0x46FE;  // r13: u8 (PAL: -0x467A)
+constexpr int32_t kResetPressed = -0x46FF;  // r13: u8 (PAL: -0x467B)
 
 void WaitDvd(GuestCall& game, uint32_t block, uint32_t sda) {
     Memory::Write8(kWait + 11, Memory::Read8(kWaiting) != 0);
@@ -2109,4 +2117,4 @@ extern "C" void MH3_WaitDvd(CpuContext* ctx) {
     GuestCall game{ctx};
     WaitDvd(game, frame.Arg(3), frame.Arg(13));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80435EA8, MH3_WaitDvd, "WaitDvd");
+REGISTER_NATIVE_FUNCTION_AS(0x8040D7B8, MH3_WaitDvd, "WaitDvd");

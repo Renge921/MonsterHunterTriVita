@@ -1,4 +1,5 @@
 #include "platform.h"
+#include "diag_log.h"
 #include "fatal.h"
 #include "nand_recover.h"
 #include <aurora/thread_role.hpp>
@@ -8,6 +9,7 @@
 #include <psp2/kernel/threadmgr.h>
 #include <psp2/power.h>
 #include <psp2/appmgr.h>
+#include <psp2/io/stat.h>
 #include <csignal>
 #include <cstdio>
 #include <unwind.h>
@@ -94,7 +96,17 @@ void InitializeVitaPlatform(int& argc, char**& argv) {
     argv = arguments.data();
     setenv("MH3_DISC_DIR", "ux0:/data/mh3-wii", 0);
     setenv("MH3_USER_DIR", "ux0:/data/mh3-wii/saves", 0);
+
 #ifdef MH3_DEVELOPMENT
+    // Redirect stderr to file for runtime logging on device
+    sceIoMkdir("ux0:/data", 0777);
+    sceIoMkdir("ux0:/data/mh3-wii", 0777);
+    std::freopen("ux0:/data/mh3-wii/mh3.log", "a", stderr);
+    std::setvbuf(stderr, nullptr, _IONBF, 0);
+    std::fprintf(stderr, "=== MH3 Vita Boot ===\n");
+    // Build marker through the synced path: a log with the boot line but
+    // without this one means stderr stopped reaching the card.
+    MH3DiagLog("MH3 diag: build=moga-mat-fix-1\n");
     // The log goes to the Vita's TTY, whole lines.
     std::setvbuf(stderr, nullptr, _IOLBF, 1024);
     std::fprintf(stderr, "MH3 Vita: main thread core 2, heap 112 MiB, argv0=%s\n", argc ? argv[0] : "");
@@ -133,6 +145,17 @@ void ReportVitaMemory() {
         return;
 
     last = now;
+#ifdef MH3_DEVELOPMENT
+    // A synced heartbeat: a log that stops here says the game loop stopped, not
+    // that the writes never reached the card.
+    static uint64_t lastBeat = 0;
+
+    if (!lastBeat || now - lastBeat >= 30000000) {
+        lastBeat = now;
+        MH3DiagLog("MH3 diag: alive t=%llu s\n", static_cast<unsigned long long>(now / 1000000));
+    }
+#endif
+
     static bool budgetAvailable = true;
 
     if (budgetAvailable) {

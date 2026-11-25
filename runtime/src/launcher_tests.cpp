@@ -66,7 +66,7 @@ void SaveTests(const std::filesystem::path& root) {
     Word(file, 4, 1);
     Check(!VitaLauncher::ValidSave(file, 0), "empty character must be rejected");
     Check(VitaLauncher::ValidSave(file, 1), "populated second character must be found");
-    auto dir = root / "nand/title/00010000/524d4850/data/nocopy";
+    auto dir = root / "nand/title/00010000/524d484a/data/nocopy";
     std::filesystem::create_directories(dir);
     Save(dir / "data04", file);
     const auto slots = VitaLauncher::ProbeSaves(root);
@@ -170,7 +170,7 @@ void DiscTests(const std::filesystem::path& root) {
     const auto disc = root / "disc";
     std::filesystem::create_directories(disc / "sys");
     std::vector<uint8_t> boot(0x440);
-    std::copy_n("RMHP08", 6, boot.begin());
+    std::copy_n("RMHJ08", 6, boot.begin());
     Word(boot, 0x18, 0x5d1c9ea3);
     Word(boot, 0x420, 0x3000 / 4);
     Word(boot, 0x424, 0x3400 / 4);

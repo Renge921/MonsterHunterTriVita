@@ -129,7 +129,7 @@ extern "C" void MH3_CheatItemAdd(CpuContext* ctx) {
     func_8004BAA0(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004BAA0, MH3_CheatItemAdd, "CheatItemAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004BAA0, MH3_CheatItemAdd, "CheatItemAdd");
 
 // 0x80272E94 (player, item, change): the player uses (-1) an item of the
 // pouch. Infinite items (Bully: li r5,-1 made li r5,0 before six calls, US
@@ -150,7 +150,7 @@ extern "C" void MH3_CheatPlayerItemUse(CpuContext* ctx) {
     func_80272E94(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80272E94, MH3_CheatPlayerItemUse, "CheatPlayerItemUse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80272E94, MH3_CheatPlayerItemUse, "CheatPlayerItemUse");
 
 // 0x8004AE6C (save data): the box's pages, 4, or 6 once the Organizer Guide
 // (item 0x244) was obtained, and 2 more once the Pack Rat Guide (0x245) was
@@ -176,7 +176,7 @@ extern "C" void MH3_BoxPages(CpuContext* ctx) {
     ctx->gpr[3] = pages;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004AE6C, MH3_BoxPages, "BoxPages");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004AE6C, MH3_BoxPages, "BoxPages");
 
 // 0x8004B770 (item, slots, slot count): how many of the item the slots hold,
 // at most 999 (the smithy's and the combinations' required materials). No
@@ -203,7 +203,7 @@ extern "C" void MH3_CheatMaterialCount(CpuContext* ctx) {
     ctx->gpr[3] = data != 0 ? 999 : 0;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004B770, MH3_CheatMaterialCount, "CheatMaterialCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004B770, MH3_CheatMaterialCount, "CheatMaterialCount");
 
 // 0x8004C620 (save data, talisman): stores a talisman in the equipment box's
 // first free slot (0x8004AED4: the box's slots, 100 a page; 0x8004A270 copies
@@ -236,7 +236,7 @@ extern "C" void MH3_TalismanToBox(CpuContext* ctx) {
     ctx->gpr[3] = slot;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004C620, MH3_TalismanToBox, "TalismanToBox");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004C620, MH3_TalismanToBox, "TalismanToBox");
 
 // 0x8004CD34 (save data, equipment): 1 when the hunter can wear it. Kinds 0xC
 // and 0xD need +0x20 == 11; armor (0x8027E3A8: its data) needs the classes
@@ -263,7 +263,7 @@ extern "C" void MH3_CanWearArmor(CpuContext* ctx) {
     ctx->gpr[3] = wear;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004CD34, MH3_CanWearArmor, "CanWearArmor");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004CD34, MH3_CanWearArmor, "CanWearArmor");
 
 // 0x80315AC4 (menu, &equipment, flags): why the equipment menu refuses a
 // piece, 6 and 7 for armor of the other weapon class. Equip blade/gunner
@@ -277,7 +277,7 @@ extern "C" void MH3_CheatEquipRefusal(CpuContext* ctx) {
         ctx->gpr[3] = 0;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80315AC4, MH3_CheatEquipRefusal, "CheatEquipRefusal");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80315AC4, MH3_CheatEquipRefusal, "CheatEquipRefusal");
 
 // Money and resources.
 namespace {
@@ -321,7 +321,7 @@ extern "C" void MH3_CheatShopListMoney(CpuContext* ctx) {
     func_801E46B4(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x801E46B4, MH3_CheatShopListMoney, "CheatShopListMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801E46B4, MH3_CheatShopListMoney, "CheatShopListMoney");
 
 extern "C" void func_80210990(CpuContext* ctx);
 
@@ -330,7 +330,7 @@ extern "C" void MH3_CheatItemShopMoney(CpuContext* ctx) {
     func_80210990(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80210990, MH3_CheatItemShopMoney, "CheatItemShopMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80210990, MH3_CheatItemShopMoney, "CheatItemShopMoney");
 
 extern "C" void func_80213D04(CpuContext* ctx);
 
@@ -339,7 +339,7 @@ extern "C" void MH3_CheatSmithyMoney(CpuContext* ctx) {
     func_80213D04(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80213D04, MH3_CheatSmithyMoney, "CheatSmithyMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80213D04, MH3_CheatSmithyMoney, "CheatSmithyMoney");
 
 extern "C" void func_802138D4(CpuContext* ctx);
 
@@ -348,7 +348,7 @@ extern "C" void MH3_CheatSmithyListMoney(CpuContext* ctx) {
     func_802138D4(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802138D4, MH3_CheatSmithyListMoney, "CheatSmithyListMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802138D4, MH3_CheatSmithyListMoney, "CheatSmithyListMoney");
 
 extern "C" void func_802140DC(CpuContext* ctx);
 
@@ -357,7 +357,7 @@ extern "C" void MH3_CheatSmithyUpgradeMoney(CpuContext* ctx) {
     func_802140DC(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802140DC, MH3_CheatSmithyUpgradeMoney, "CheatSmithyUpgradeMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802140DC, MH3_CheatSmithyUpgradeMoney, "CheatSmithyUpgradeMoney");
 
 extern "C" void func_803214C0(CpuContext* ctx);
 
@@ -366,7 +366,7 @@ extern "C" void MH3_CheatQuestFeeMoney(CpuContext* ctx) {
     func_803214C0(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803214C0, MH3_CheatQuestFeeMoney, "CheatQuestFeeMoney");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803214C0, MH3_CheatQuestFeeMoney, "CheatQuestFeeMoney");
 
 // 0x8004D14C (s32 change, &money): money += change, clamped to 0..9,999,999.
 // Dont lose money buying items (C2 at US 0x8004D0F0, EU 0x8004D154) keeps it
@@ -395,7 +395,7 @@ extern "C" void MH3_MoneyAdd(CpuContext* ctx) {
         Memory::Write32(money, uint32_t(total));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004D14C, MH3_MoneyAdd, "MoneyAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004D14C, MH3_MoneyAdd, "MoneyAdd");
 
 // 0x8004D398 (s32 change): the resources += change, clamped likewise. Max
 // res on converting (US 0x8004D358, EU 0x8004D3BC) sets them to 9,999,999.
@@ -411,7 +411,7 @@ extern "C" void MH3_ResourcesAdd(CpuContext* ctx) {
     Memory::Write32(resources, uint32_t(total));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004D398, MH3_ResourcesAdd, "ResourcesAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004D398, MH3_ResourcesAdd, "ResourcesAdd");
 
 // 0x803090FC: the money and the resources printed for menus. Infinite
 // ressources (C2 at US 0x80309354, EU 0x803093B8) first sets the resources to
@@ -427,7 +427,7 @@ extern "C" void MH3_CheatFundsPanel(CpuContext* ctx) {
     func_803090FC(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803090FC, MH3_CheatFundsPanel, "CheatFundsPanel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803090FC, MH3_CheatFundsPanel, "CheatFundsPanel");
 
 // Quests and the hunter rank.
 
@@ -443,7 +443,7 @@ extern "C" void MH3_StarQuestUnlocked(CpuContext* ctx) {
     ctx->gpr[3] = (Memory::Read16(word) >> (quest & 15)) & 1;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004D2E0, MH3_StarQuestUnlocked, "StarQuestUnlocked");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004D2E0, MH3_StarQuestUnlocked, "StarQuestUnlocked");
 
 // 0x8004D770 (quest): 1 when cleared, its bit (0x8004D660: the quest's index,
 // 0xFFFF none) at +0x512C. All quests completed (C2 at US 0x8004D748, EU
@@ -468,7 +468,7 @@ extern "C" void MH3_QuestCleared(CpuContext* ctx) {
     ctx->gpr[3] = cleared;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004D770, MH3_QuestCleared, "QuestCleared");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004D770, MH3_QuestCleared, "QuestCleared");
 
 // 0x8004DDD8: the rank class, 0 at HR 0, 1 below 31, else 2. Armor is
 // upgradeable to high rank even at low rank (US 0x8004DD78, EU 0x8004DDDC)
@@ -478,7 +478,7 @@ extern "C" void MH3_RankClass(CpuContext* ctx) {
     ctx->gpr[3] = rank == 0 ? 0 : rank < 31 ? 1 : 2;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004DDD8, MH3_RankClass, "RankClass");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004DDD8, MH3_RankClass, "RankClass");
 
 // 0x8004DF74 (&rank, &points, &next): the hunter rank, its points and the
 // points the next rank needs (0x8004DE38 (rank): the points a rank starts
@@ -528,7 +528,7 @@ extern "C" void MH3_HunterRankStatus(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004DF74, MH3_HunterRankStatus, "HunterRankStatus");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004DF74, MH3_HunterRankStatus, "HunterRankStatus");
 
 // 0x8004E228 (save data, s32 change): adds hunter rank points and moves the
 // rank up through them, stopping at the urgent quests' ranks. No HRP
@@ -549,7 +549,7 @@ extern "C" void MH3_CheatHunterPointsAdd(CpuContext* ctx) {
     Memory::Write16(save + kHunterRank, rank);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8004E228, MH3_CheatHunterPointsAdd, "CheatHunterPointsAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8004E228, MH3_CheatHunterPointsAdd, "CheatHunterPointsAdd");
 
 // 0x80213548 (save data, condition): whether a shop weapon's condition holds,
 // one case HR 1 or more. Purchase any weapon with HR0 (US 0x8021352C, EU
@@ -569,7 +569,7 @@ extern "C" void MH3_CheatWeaponCondition(CpuContext* ctx) {
         Memory::Write16(rank, 0);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80213548, MH3_CheatWeaponCondition, "CheatWeaponCondition");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80213548, MH3_CheatWeaponCondition, "CheatWeaponCondition");
 
 // Shops, the smithy and the boxes.
 
@@ -590,7 +590,7 @@ extern "C" void MH3_CheatItemPrice(CpuContext* ctx) {
     func_80210854(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80210854, MH3_CheatItemPrice, "CheatItemPrice");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80210854, MH3_CheatItemPrice, "CheatItemPrice");
 
 // 0x80216ACC (materials, count, ...): draws the smithy's required materials,
 // (u16 item, s16 count) pairs. Smithy forge/upgrade with 1 item (C2 at US
@@ -615,7 +615,7 @@ extern "C" void MH3_CheatSmithyMaterials(CpuContext* ctx) {
     func_80216ACC(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80216ACC, MH3_CheatSmithyMaterials, "CheatSmithyMaterials");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80216ACC, MH3_CheatSmithyMaterials, "CheatSmithyMaterials");
 
 // 0x802A7588 (..., slot, ...): draws an item list's slot (u16 item, s16
 // count). Item pouch items x10 (C2 at US 0x802A7704, EU 0x802A7768) sets the
@@ -631,7 +631,7 @@ extern "C" void MH3_CheatItemSlotDraw(CpuContext* ctx) {
     func_802A7588(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x802A7588, MH3_CheatItemSlotDraw, "CheatItemSlotDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802A7588, MH3_CheatItemSlotDraw, "CheatItemSlotDraw");
 
 // 0x801EDA48 (index): an item box slot's count for the box menu, at most what
 // the item may stack to. All item box items x99 (C2 at US 0x801EDA0C, EU
@@ -647,7 +647,7 @@ extern "C" void MH3_CheatBoxSlotCount(CpuContext* ctx) {
     func_801EDA48(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x801EDA48, MH3_CheatBoxSlotCount, "CheatBoxSlotCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801EDA48, MH3_CheatBoxSlotCount, "CheatBoxSlotCount");
 
 // All boxes have 8 pages (C2s at US 0x801F5A0C/5A24 and 0x801F7718, EU
 // 0x801F5A70/5A88 and 0x801F777C): the box menus' page counts, +0x1B or
@@ -663,7 +663,7 @@ extern "C" void MH3_CheatBoxPages(CpuContext* ctx) {
     func_801F5A1C(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x801F5A1C, MH3_CheatBoxPages, "CheatBoxPages");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801F5A1C, MH3_CheatBoxPages, "CheatBoxPages");
 
 extern "C" void MH3_CheatBoxPageDraw(CpuContext* ctx) {
     if (On(Id::AllBoxes8Pages) && ctx->lr == 0x801F77A0) {
@@ -674,7 +674,7 @@ extern "C" void MH3_CheatBoxPageDraw(CpuContext* ctx) {
     func_801F5E50(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x801F5E50, MH3_CheatBoxPageDraw, "CheatBoxPageDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801F5E50, MH3_CheatBoxPageDraw, "CheatBoxPageDraw");
 
 // 0x80214754 (entry, source, a, b): builds a bed menu entry, a at +2. Always
 // able to sleep (C2 at US 0x80214750, EU 0x802147B4) makes a 0.
@@ -687,7 +687,7 @@ extern "C" void MH3_CheatBedEntry(CpuContext* ctx) {
     func_80214754(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80214754, MH3_CheatBedEntry, "CheatBedEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80214754, MH3_CheatBedEntry, "CheatBedEntry");
 
 namespace {
 
@@ -1025,7 +1025,7 @@ extern "C" void MH3_CheatLoadUserData(CpuContext* ctx) {
     func_80049FE0(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80049FE0, MH3_CheatLoadUserData, "CheatLoadUserData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80049FE0, MH3_CheatLoadUserData, "CheatLoadUserData");
 
 namespace LauncherCheats {
 

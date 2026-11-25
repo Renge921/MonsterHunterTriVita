@@ -1,4 +1,4 @@
-// THPVideoDecode (0x804E17A0) for the movies. The SDK decoder runs its
+// THPVideoDecode (0x804F0BC4) for the movies. The SDK decoder runs its
 // paired-single IDCT through the translated FPU path, about 320 ms per
 // 640x480 frame on the Vita, so movies such as the opening after character
 // creation crawl at a few frames per second. The native decoder writes the
@@ -18,13 +18,13 @@
 namespace {
 
 #ifdef __vita__
-// The movie player (0x806D6B80): its component count and types (0: video).
-constexpr uint32_t kMovieComponents = 0x806D6C0C, kMovieComponentTypes = 0x806D6C10;
+// The movie player (0x80799B00): its component count and types (0: video).
+constexpr uint32_t kMovieComponents = 0x80799B8C, kMovieComponentTypes = 0x80799B90;
 
 // The video frame's size in bytes, 0 when unknown. The player's frame buffer
 // holds the next and previous frame sizes, one size per component, then the
 // components' data: a movie with only video passes its data right after its
-// size (MovieDecodeFrame 0x80434FFC, every movie on the disc).
+// size (MovieDecodeFrame 0x8040C330, every movie on the disc).
 uint32_t VideoBytes(uint32_t file) {
     if (Memory::Read32(kMovieComponents) != 1 || Memory::Read8(kMovieComponentTypes) != 0)
         return 0;
@@ -33,9 +33,9 @@ uint32_t VideoBytes(uint32_t file) {
     return bytes <= 256 * 1024 && GuestFlat::HostPointer(file, bytes) ? bytes : 0;
 }
 
-// The movie reader's ring of frame buffers (DecodeFrame 0x80434FFC): the
+// The movie reader's ring of frame buffers (DecodeFrame 0x8040C330): the
 // index of the frame being decoded, then 10 entries {buffer, frame, ready}.
-constexpr uint32_t kRingIndex = 0x806D6C44, kRing = 0x806D6C54, kRingEntries = 10, kRingEntryBytes = 12;
+constexpr uint32_t kRingIndex = 0x80799BC4, kRing = 0x80799BD4, kRingEntries = 10, kRingEntryBytes = 12;
 
 // The frames the reader has read after `file`, in order, up to `count`.
 size_t FramesAhead(uint32_t file, VitaThpFrame* ahead, size_t count) {
@@ -115,4 +115,4 @@ extern "C" void MH3_NativeThpVideoDecode(CpuContext* c) {
 
     c->gpr[3] = uint32_t(result);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804E17A0, MH3_NativeThpVideoDecode, "THPVideoDecode");
+REGISTER_NATIVE_FUNCTION(0x804F0BC4, MH3_NativeThpVideoDecode);

@@ -65,9 +65,11 @@ void CountDown(uint32_t address) {
     S16(address, std::max(S16(address) - int32_t(GameStep::Ticks()), 0));
 }
 
-void StepsTo27000(CpuContext* ctx) {
-    CountUp(ctx->gpr[3] + 0x452, 27000);
-}
+// Disabled for RMHJ08: StepsTo27000 (PAL 0x801298C8) is inlined at JPN 0x80161CF0
+// (handled via tick_sites.inc).
+// void StepsTo27000(CpuContext* ctx) {
+//     CountUp(ctx->gpr[3] + 0x452, 27000);
+// }
 
 void TwoCountdowns(CpuContext* ctx) {
     CountDown(ctx->gpr[3] + 0x200);
@@ -92,8 +94,12 @@ void CycleAndCountdown(CpuContext* ctx) {
         S16(self + 0x338, std::max(countdown - int32_t(GameStep::Ticks()), 0));
 }
 
-constexpr uint32_t kSystem = 0x8065AA60; // system_w (its address is in r4 at some calls)
-constexpr uint32_t CopyVec = 0x80041EA4; // (dst, src)
+constexpr uint32_t kSystem = 0x80768AA8; // system_w (its address is in r4 at some calls)
+
+void CopyVec(uint32_t dst, uint32_t src) {
+    for (uint32_t k = 0; k < 12; k += 4)
+        Memory::Write32(dst + k, Memory::Read32(src + k));
+}
 
 void SlowCheckWhileCounting(CpuContext* ctx) {
     GuestFrame frame(ctx, 16);
@@ -104,7 +110,7 @@ void SlowCheckWhileCounting(CpuContext* ctx) {
         return;
 
     if (StepCounter::Every(32))
-        game.Call<0x80133A24>({self, kSystem});
+        game.Call<0x8016E7CC>({self, kSystem});
     // Felvine lasts forever (cheats.h): the countdown's store dropped.
     if (Cheats::On(Cheats::Id::FelvineForever))
         return;
@@ -116,7 +122,7 @@ void SlowCheckWhileCounting(CpuContext* ctx) {
 }
 
 void CheckWhileCounting(CpuContext* ctx) {
-    GuestFrame frame(ctx, 16);
+    GuestFrame frame(ctx, 32);
     GuestCall game{ctx};
     const uint32_t self = frame.Arg(3);
     const int32_t countdown = S16(self + 0x812);
@@ -124,8 +130,18 @@ void CheckWhileCounting(CpuContext* ctx) {
     if (countdown > 0) {
         S16(self + 0x812, std::max(countdown - int32_t(GameStep::Ticks()), 0));
 
-        if (StepCounter::Every(32, 8))
-            game.Call<0x80133874>({self, kSystem});
+        const uint32_t kind = Memory::Read8(self + 3);
+        const uint32_t mode = Memory::Read8(self + 0x1E5);
+        const uint32_t sub = Memory::Read8(self + 0x1E6);
+
+        if (StepCounter::Every(32, 8) && kind != 0x28 && mode != 11 && !(mode == 12 && sub == 0xFF)) {
+            const uint32_t vec = frame[8];
+            game.Call<0x8028A7F4>({vec}, {0.0, 0.0, 0.0});
+            game.Call<0x80171898>({self});
+            const float scale = game.F1();
+            const uint32_t bone = Memory::Read32(self + 0x204);
+            game.Call<0x80046118>({self, vec, bone != 0xFFFFFFFFu ? bone : 2u, 0x12}, {double(scale)});
+        }
     }
 
     if (S16(self + 0x812) <= 0)
@@ -133,30 +149,67 @@ void CheckWhileCounting(CpuContext* ctx) {
 }
 
 void PeriodicCheck(CpuContext* ctx) {
-    GuestFrame frame(ctx, 16);
+    GuestFrame frame(ctx, 48);
     GuestCall game{ctx};
     const uint32_t self = frame.Arg(3);
+    const uint32_t mode = Memory::Read8(self + 0x1E5);
+    const uint32_t sub = Memory::Read8(self + 0x1E6);
 
-    if (game.Call<0x8012E13C>({Memory::Read8(self + 485), Memory::Read8(self + 486)}) != 1)
-        return;
+    const bool firstAction = mode == 0xA && (sub == 0x7C || sub == 0x82 || sub == 0x8B || sub == 0x95 || sub == 0x9C || sub == 0xBB || sub == 0xE8 || sub == 0xEE);
 
-    if (!StepCounter::Every(32))
-        return;
+    if (firstAction && StepCounter::Every(32)) {
+        game.Call<0x8017184C>({self});
+        game.Call<0x8004641C>({self, Memory::Read32(self + 516)});
+    }
 
-    game.Call<0x80135A54>({self});
-    game.Call<0x80107868>({self, Memory::Read32(self + 516)});
+    const bool secondAction = (mode == 0xA && (sub == 0x7B || sub == 0x81 || sub == 0x8A || sub == 0x94 || sub == 0x9B || sub == 0xBA || sub == 0xE7 || sub == 0xED || sub == 0xF8)) ||
+                              Memory::Read8(self + 0x8AB) != 0 || (mode == 0xB && sub >= 0x1A && sub < 0x1D);
+
+    if (secondAction && StepCounter::Every(32, 16)) {
+        const uint32_t enemyData = game.Call<0x8017E990>({Memory::Read8(self + 3), Memory::Read8(self + 0xA)});
+        const uint32_t entry = Memory::Read32(Memory::Read32(enemyData + 0x9C) + 0xC);
+        const uint32_t buf = frame[8];
+
+        if (entry != 0) {
+            const float x = Memory::ReadFloat32(entry + 4);
+            const float y = Memory::ReadFloat32(entry + 8);
+            const float z = Memory::ReadFloat32(entry + 12);
+            Memory::WriteFloat32(buf, x);
+            Memory::WriteFloat32(buf + 4, y);
+            Memory::WriteFloat32(buf + 8, z);
+            Memory::WriteFloat32(buf + 12, x);
+            Memory::WriteFloat32(buf + 16, y);
+            Memory::WriteFloat32(buf + 20, z);
+            game.Call<0x80046118>({self, buf, Memory::Read32(entry), 0xA}, {double(Memory::ReadFloat32(entry + 0x10))});
+        } else {
+            Memory::WriteFloat32(buf, 0.0f);
+            Memory::WriteFloat32(buf + 4, 100.0f);
+            Memory::WriteFloat32(buf + 8, 0.0f);
+            Memory::WriteFloat32(buf + 24, 0.0f);
+            Memory::WriteFloat32(buf + 28, 100.0f);
+            Memory::WriteFloat32(buf + 32, 0.0f);
+            game.Call<0x80046118>({self, buf, 2, 0xA}, {2.0});
+        }
+    }
 }
 
 void EveryNScaled(CpuContext* ctx) {
     GuestFrame frame(ctx, 32);
     GuestCall game{ctx};
-    const uint32_t self = frame.Arg(3), arg = frame.Arg(4);
+    const uint32_t self = frame.Arg(3);
+    const int32_t arg = int32_t(frame.Arg(4));
 
     if (!StepCounter::Every(uint32_t(int32_t(int16_t(frame.Arg(5))))))
         return;
 
-    const float amount = float(float(int32_t(Memory::Read32(self + 0x7A4))) * ctx->fpr[1].d);
-    game.Call<0x8011E6BC>({self, arg, uint32_t(int32_t(amount))});
+    const int32_t hp = int32_t(Memory::Read32(self + 0x7A0));
+    const int32_t maxHp = int32_t(Memory::Read32(self + 0x7A4));
+    const int32_t cap = std::max(hp, int32_t(float(float(maxHp) * ctx->fpr[1].d)));
+    int32_t next = std::clamp(hp + arg, 0, cap);
+    const int32_t floorHp = int32_t(float(maxHp) * Memory::ReadFloat32(self + 0x7B0));
+    if (next < floorHp)
+        next = floorHp;
+    Memory::Write32(self + 0x7A0, uint32_t(next));
 }
 
 void EveryNScaledU16(CpuContext* ctx) {
@@ -168,24 +221,7 @@ void EveryNScaledU16(CpuContext* ctx) {
         return;
 
     const float amount = float(float(Memory::Read16(self + 0x8A0)) * ctx->fpr[1].d);
-    game.Call<0x80130BD0>({self, arg, uint32_t(int32_t(amount)) & 0xFFFF});
-}
-
-// Every 32 steps while 0x8012ECC4 is 1: the effect (kind, id) `height` above
-// the enemy, at rate 1 (0x80105690).
-template <uint32_t Kind, uint32_t Id, int Height>
-void PeriodicEffect(CpuContext* ctx) {
-    GuestFrame frame(ctx, 32);
-    GuestCall game{ctx};
-    const uint32_t self = frame.Arg(3), offset = frame[8];
-
-    if (game.Call<0x8012ECC4>({self}) != 1 || !StepCounter::Every(32))
-        return;
-
-    Memory::WriteFloat32(offset, 0.0f);
-    Memory::WriteFloat32(offset + 4, 0.0f);
-    Memory::WriteFloat32(offset + 8, float(Height));
-    game.Call<0x80105690>({self, Kind, Id, offset}, {1.0});
+    game.Call<0x8016AE44>({self, arg, uint32_t(int32_t(amount)) & 0xFFFF});
 }
 
 void TimedAction(CpuContext* ctx) {
@@ -196,9 +232,9 @@ void TimedAction(CpuContext* ctx) {
     switch (Memory::Read8(self + 5)) {
     case 0:
         Memory::Write8(self + 5, 1);
-        game.Call<0x801304DC>({self, 0});
+        game.Call<0x8016A708>({self, 0});
         Memory::Write32(self + 0x20, 150);
-        game.Call<0x8012F690>({self, 1, 10, 0});
+        game.Call<0x80169284>({self, 1, 10, 0});
         break;
     case 1: {
         // The original: - 1, the action ends once it is below 0. Here it ends
@@ -208,14 +244,14 @@ void TimedAction(CpuContext* ctx) {
         Memory::Write32(self + 0x20, uint32_t(now));
 
         if (now < 0)
-            game.Call<0x80127FAC>({self, uint32_t(left)});
+            game.Call<0x8015FDDC>({self, uint32_t(left)});
 
         break;
     }
     }
 }
 
-// 0x8035BFC8.
+// 0x801427C8 (RMHP08 0x8035BFC8).
 void RetargetEvery32(CpuContext* ctx) {
     GuestFrame frame(ctx, 16);
     GuestCall game{ctx};
@@ -229,40 +265,40 @@ void RetargetEvery32(CpuContext* ctx) {
     };
 
     const auto alive = [&] {
-        return game.Call<0x8012D090>({self}) == 0;
+        return game.Call<0x80165DF8>({self}) == 0;
     };                                                         // em_die_ck
-    const auto roll = [&] {                                    // 0x8012CF18 (enemy, s16 0..15, 0)
-        const uint32_t pick = game.Call<0x800CEF20>({0}) & 15; // ran_suu
-        game.Call<0x8012CF18>({self, pick, 0});
+    const auto roll = [&] {                                    // 0x80165CDC (enemy, s16 0..15, 0)
+        const uint32_t pick = game.Call<0x802BC314>({0}) & 15; // ran_suu
+        game.Call<0x80165CDC>({self, pick, 0});
     };
 
     const auto newTarget = [&] {
         set(827, 255);
         roll();
-        game.Call<0x80130790>({self, 0, 0});
+        game.Call<0x8016A9DC>({self, 0, 0});
     };
 
-    game.Call<0x8035ED3C>({self});
+    game.Call<0x8014595C>({self});
 
     if (u8(10) != 1) {
         // The original: (steps & 31) == +2, never for +2 of 32 or more.
         if (alive() && u8(484) != 1 && u8(2) < 32 && StepCounter::Every(32, u8(2))) {
             if (u8(831) == 2) {
-                if (game.Call<0x803BE058>({u8(827), u8(481)}) == 0 && u8(826) == 0) {
+                if (game.Call<0x8020C8A8>({u8(827), u8(481)}) == 0 && u8(826) == 0) {
                     newTarget();
                     set(484, 0);
                     set(831, 0);
                 }
-            } else if (u8(1083) == 5 && u8(1084) == 1 && game.Call<0x803BE058>({u8(827), u8(481)}) == 0) {
-                if (game.Call<0x8035E880>({u8(481)}) == 1)
-                    game.Call<0x8035EB04>({self, 1});
+            } else if (u8(1083) == 5 && u8(1084) == 1 && game.Call<0x8020C8A8>({u8(827), u8(481)}) == 0) {
+                if (game.Call<0x8014544C>({u8(481)}) == 1)
+                    game.Call<0x80145710>({self, 1});
                 else
                     newTarget();
             }
         }
 
         if (u8(2099) == 1)
-            game.Call<0x8012C364>({33, u8(481)});
+            game.Call<0x801650C4>({33, u8(481)});
 
         if (alive()) {
             if (u8(1085) == 1 && u8(829) != 1) {
@@ -273,15 +309,15 @@ void RetargetEvery32(CpuContext* ctx) {
             }
 
             if ((u8(1083) == 0 || u8(1083) == 5) && u8(1084) == 0 && u8(484) != 1 && u8(485) != 12) {
-                if (game.Call<0x8035E880>({u8(481)}) == 1) {
+                if (game.Call<0x8014544C>({u8(481)}) == 1) {
                     set(831, 0);
 
                     if (u8(1083) == 0)
                         roll();
 
-                    game.Call<0x8035EB04>({self, 0});
+                    game.Call<0x80145710>({self, 0});
                 } else {
-                    game.Call<0x80130790>({self, 0, 0});
+                    game.Call<0x8016A9DC>({self, 0, 0});
                 }
             }
         }
@@ -290,7 +326,7 @@ void RetargetEvery32(CpuContext* ctx) {
     set(829, u8(1085));
 }
 
-// 0x801311B4.
+// 0x8016B4C8 (RMHP08 0x801311B4).
 void Sight(CpuContext* ctx) {
     GuestFrame frame(ctx, 176);
     GuestCall game{ctx};
@@ -301,31 +337,30 @@ void Sight(CpuContext* ctx) {
 
     const uint32_t eye = frame[8], target = frame[20], look = frame[32], mtx = frame[56];
     constexpr uint32_t kPlayerSize = 2848;
-    game.Call<0x80050570>({mtx});
-    const uint32_t players = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max
-    uint32_t player = game.Call<0x800CFAF4>({2});                 // get_move_work_adrs
+    const uint32_t players = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max
+    uint32_t player = game.Call<0x802BCF94>({2});                 // get_move_work_adrs
     Memory::Write8(self + 910, 0);
 
     if (uint8_t(u8(485) - 11) <= 1)
         return;
 
-    if (game.Call<0x8012F368>({self, 0}) == 1 || u8(504) == 1)
-        return; // em_sleep_ck
-    // The eye: the joint 0x80126478 names (its world matrix's position and
-    // facing), or 50 above +392 with the facing at +448.
-    const uint32_t joint = game.Call<0x80126478>({self});
+    if (game.Call<0x8016CA58>({self, 1}) == 1 || game.Call<0x8016CA28>({self}) == 1 || u8(504) == 1)
+        return; // em_sleep_ck / inlined checks
+    // The eye: the joint EnemyData->+0xA0->+0x18[+0x38B] names, or 50 above +392 with +448.
+    const uint32_t enemyData = game.Call<0x8017E990>({u8(3), u8(10)});
+    const uint32_t joint = Memory::Read32(Memory::Read32(enemyData + 0xA0) + 0x18) + u8(0x38B) * 0x18;
     uint32_t facing;
 
     if (Memory::Read32(joint) == 0xFFFFFFFF) {
-        game.Call<CopyVec>({eye, self + 392});
+        CopyVec(eye, self + 392);
         Memory::WriteFloat32(eye + 4, Memory::ReadFloat32(eye + 4) + 50.0f);
         facing = Memory::Read32(self + 448);
     } else {
-        game.Call<0x80135994>({self, Memory::Read32(joint), mtx}); // get_joint_wmat_em
+        game.Call<0x80171798>({self, Memory::Read32(joint), mtx}); // get_joint_wmat_em
         for (uint32_t k = 0; k < 3; ++k)
             Memory::Write32(eye + 4 * k, Memory::Read32(mtx + 12 + 16 * k));
 
-        facing = game.Call<0x80050EC4>({mtx});
+        facing = game.Call<0x8028BAD0>({mtx});
     }
 
     if (int16_t(Memory::Read16(self + 2326)) > 0)
@@ -333,10 +368,30 @@ void Sight(CpuContext* ctx) {
     // The original: on the steps where (steps & 1) == (+2 & 1).
     if ((u8(908) & 1) && StepCounter::Every(2, u8(2) & 1)) {
         for (uint32_t i = 0; i < players; ++i, player += kPlayerSize) {
-            if (Memory::Read8(player) == 0 || game.Call<0x8012D20C>({Memory::Read8(player + 8)}) != 0)
+            if (Memory::Read8(player) == 0)
                 continue;
 
-            if (game.Call<0x8012D118>({self, player}) == 0)
+            const uint32_t id = Memory::Read8(player + 8);
+            bool leaving = false;
+            if (game.Call<0x8039BA94>() == 1) {
+                const uint32_t mgr = game.Call<0x802BCF94>({0});
+                if (mgr && Memory::Read8(mgr + 0x22DD + id) == 4)
+                    leaving = true;
+            }
+            if (leaving || Memory::Read8(player + 10) == 8)
+                continue;
+
+            bool canSee = false;
+            if (u8(0x1E1) == Memory::Read8(player + 0x16)) {
+                if ((game.Call<0x8037DEF0>({u8(0x1E0)}) & 0xFF) == 9) {
+                    const uint32_t underwater = game.Call<0x801A08E0>({id}) & 0xFF;
+                    const uint32_t inWater = game.Call<0x8037DF0C>({self + 0x188});
+                    canSee = underwater == 0 ? (inWater == 1) : (inWater == 0);
+                } else {
+                    canSee = true;
+                }
+            }
+            if (!canSee)
                 continue;
 
             const float range = Memory::ReadFloat32(self + 1108 + 4 * i);
@@ -344,21 +399,21 @@ void Sight(CpuContext* ctx) {
             if (!(range >= 0.0f))
                 continue;
 
-            game.Call<CopyVec>({target, player + 60});
+            CopyVec(target, player + 60);
             Memory::WriteFloat32(target + 4, Memory::ReadFloat32(target + 4) + 100.0f);
 
-            if (!(Memory::Read32(self + 456) & 0x8000) && game.Call<0x80131514>({self, joint, eye, target, facing}, {range}) != 1)
+            if (!(Memory::Read32(self + 456) & 0x8000) && game.Call<0x8016B918>({self, joint, eye, target, facing}, {range}) != 1)
                 continue;
 
             Memory::Write8(self + 910, uint8_t(u8(910) | (1u << i)));
-            game.Call<0x80131908>({self, i & 0xFF});
+            game.Call<0x8016BCDC>({self, i & 0xFF});
         }
     }
 
-    if (game.Call<0x8011E6A4>({self, 4}) == 0 || game.Call<0x8012D204>({self}) == 0)
+    if (game.Call<0x80155DD4>({self, 4}) == 0 || game.Call<0x80165F68>({self}) == 0)
         return;
 
-    if (game.Call<0x8011E6A4>({self, 8}) == 0 && u8(482) == 4)
+    if (game.Call<0x80155DD4>({self, 8}) == 0 && u8(482) == 4)
         return;
 
     if (!(u8(908) & 2))
@@ -369,12 +424,12 @@ void Sight(CpuContext* ctx) {
 
     Memory::Write16(look + 20, 10012);
 
-    for (uint32_t entry = 0x806A6AA0, j = 0; j < 8; ++j, entry += 20) {
+    for (uint32_t entry = 0x80737928, j = 0; j < 8; ++j, entry += 20) {
         if (Memory::Read8(entry + 19) != 1 || Memory::Read8(entry + 18) != u8(481))
             continue;
 
-        if (game.Call<0x80131688>({look, eye, entry, facing}, {Memory::ReadFloat32(entry + 12)}) == 1) {
-            game.Call<0x80131770>({self, 1});
+        if (game.Call<0x8016BA74>({look, eye, entry, facing}, {Memory::ReadFloat32(entry + 12)}) == 1) {
+            game.Call<0x8016BB58>({self, 1});
             return;
         }
     }
@@ -382,87 +437,80 @@ void Sight(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_801298C8(CpuContext* ctx);
-extern "C" void MH3_EnemyStepsTo27000(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyStepsTo27000", func_801298C8, StepsTo27000);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801298C8, MH3_EnemyStepsTo27000, "EnemyStepsTo27000");
+// Disabled for RMHJ08: EnemyStepsTo27000 (PAL 0x801298C8) is inlined at 0x80161CF0 (tick_sites.inc).
 
-extern "C" void func_80129A3C(CpuContext* ctx);
+extern "C" void func_80161E08(CpuContext* ctx);
 extern "C" void MH3_EnemyTwoCountdowns(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyTwoCountdowns", func_80129A3C, TwoCountdowns);
+    PortCheck::Call(ctx, "EnemyTwoCountdowns", func_80161E08, TwoCountdowns);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80129A3C, MH3_EnemyTwoCountdowns, "EnemyTwoCountdowns");
+REGISTER_NATIVE_FUNCTION_AS(0x80161E08, MH3_EnemyTwoCountdowns, "EnemyTwoCountdowns");
 
-extern "C" void func_801307C4(CpuContext* ctx);
+extern "C" void func_8016AA08(CpuContext* ctx);
 extern "C" void MH3_EnemyStepsTo7FFF(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyStepsTo7FFF", func_801307C4, StepsTo7FFF);
+    PortCheck::Call(ctx, "EnemyStepsTo7FFF", func_8016AA08, StepsTo7FFF);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801307C4, MH3_EnemyStepsTo7FFF, "EnemyStepsTo7FFF");
+REGISTER_NATIVE_FUNCTION_AS(0x8016AA08, MH3_EnemyStepsTo7FFF, "EnemyStepsTo7FFF");
 
-extern "C" void func_801556C8(CpuContext* ctx);
+extern "C" void func_80086278(CpuContext* ctx);
 extern "C" void MH3_EnemyCycleAndCountdown(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyCycleAndCountdown", func_801556C8, CycleAndCountdown);
+    PortCheck::Call(ctx, "EnemyCycleAndCountdown", func_80086278, CycleAndCountdown);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801556C8, MH3_EnemyCycleAndCountdown, "EnemyCycleAndCountdown");
+REGISTER_NATIVE_FUNCTION_AS(0x80086278, MH3_EnemyCycleAndCountdown, "EnemyCycleAndCountdown");
 
-extern "C" void func_80133B64(CpuContext* ctx);
+extern "C" void func_8016E934(CpuContext* ctx);
 extern "C" void MH3_EnemySlowCheckWhileCounting(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemySlowCheckWhileCounting", func_80133B64, SlowCheckWhileCounting);
+    PortCheck::Call(ctx, "EnemySlowCheckWhileCounting", func_8016E934, SlowCheckWhileCounting);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80133B64, MH3_EnemySlowCheckWhileCounting, "EnemySlowCheckWhileCounting");
+REGISTER_NATIVE_FUNCTION_AS(0x8016E934, MH3_EnemySlowCheckWhileCounting, "EnemySlowCheckWhileCounting");
 
-extern "C" void func_80133920(CpuContext* ctx);
+extern "C" void func_8016E600(CpuContext* ctx);
 extern "C" void MH3_EnemyCheckWhileCounting(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyCheckWhileCounting", func_80133920, CheckWhileCounting);
+    PortCheck::Call(ctx, "EnemyCheckWhileCounting", func_8016E600, CheckWhileCounting);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80133920, MH3_EnemyCheckWhileCounting, "EnemyCheckWhileCounting");
+REGISTER_NATIVE_FUNCTION_AS(0x8016E600, MH3_EnemyCheckWhileCounting, "EnemyCheckWhileCounting");
 
-extern "C" void func_80132D50(CpuContext* ctx);
+extern "C" void func_8016DB2C(CpuContext* ctx);
 extern "C" void MH3_EnemyPeriodicCheck(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPeriodicCheck", func_80132D50, PeriodicCheck);
+    PortCheck::Call(ctx, "EnemyPeriodicCheck", func_8016DB2C, PeriodicCheck);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80132D50, MH3_EnemyPeriodicCheck, "EnemyPeriodicCheck");
+REGISTER_NATIVE_FUNCTION_AS(0x8016DB2C, MH3_EnemyPeriodicCheck, "EnemyPeriodicCheck");
 
-extern "C" void func_8011E750(CpuContext* ctx);
+extern "C" void func_80155E78(CpuContext* ctx);
 extern "C" void MH3_EnemyEveryNScaled(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyEveryNScaled", func_8011E750, EveryNScaled);
+    PortCheck::Call(ctx, "EnemyEveryNScaled", func_80155E78, EveryNScaled);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8011E750, MH3_EnemyEveryNScaled, "EnemyEveryNScaled");
+REGISTER_NATIVE_FUNCTION_AS(0x80155E78, MH3_EnemyEveryNScaled, "EnemyEveryNScaled");
 
-extern "C" void func_80130D4C(CpuContext* ctx);
+extern "C" void func_8016B078(CpuContext* ctx);
 extern "C" void MH3_EnemyEveryNScaledU16(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyEveryNScaledU16", func_80130D4C, EveryNScaledU16);
+    PortCheck::Call(ctx, "EnemyEveryNScaledU16", func_8016B078, EveryNScaledU16);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80130D4C, MH3_EnemyEveryNScaledU16, "EnemyEveryNScaledU16");
+REGISTER_NATIVE_FUNCTION_AS(0x8016B078, MH3_EnemyEveryNScaledU16, "EnemyEveryNScaledU16");
 
-extern "C" void func_801C8978(CpuContext* ctx);
-extern "C" void MH3_EnemyPeriodicEffect50(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPeriodicEffect50", func_801C8978, PeriodicEffect<23, 28, 50>);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801C8978, MH3_EnemyPeriodicEffect50, "EnemyPeriodicEffect50");
+// Disabled for RMHJ08: PAL PeriodicEffect50 (0x801C8978) and PeriodicEffect80 (0x8038CC84)
+// are inlined into larger state machine functions (0x80094730 and 0x800C25E4), whose
+// step-counter modulo checks (0x80094758 and 0x800C260C) are already hooked via step_counter_sites.inc.
 
-extern "C" void func_8038CC84(CpuContext* ctx);
-extern "C" void MH3_EnemyPeriodicEffect80(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyPeriodicEffect80", func_8038CC84, PeriodicEffect<24, 20, 80>);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8038CC84, MH3_EnemyPeriodicEffect80, "EnemyPeriodicEffect80");
-
-extern "C" void func_8015574C(CpuContext* ctx);
+extern "C" void func_800862B0(CpuContext* ctx);
 extern "C" void MH3_EnemyTimedAction(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyTimedAction", func_8015574C, TimedAction);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8015574C, MH3_EnemyTimedAction, "EnemyTimedAction");
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 0) {
+        PortCheck::Call(ctx, "EnemyTimedAction", func_800862B0, TimedAction);
+        return;
+    }
 
-extern "C" void func_8035BFC8(CpuContext* ctx);
+    func_800862B0(ctx);
+}
+REGISTER_NATIVE_FUNCTION_AS(0x800862B0, MH3_EnemyTimedAction, "EnemyTimedAction");
+
+extern "C" void func_801427C8(CpuContext* ctx);
 extern "C" void MH3_EnemyRetargetEvery32(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyRetargetEvery32", func_8035BFC8, RetargetEvery32);
+    PortCheck::Call(ctx, "EnemyRetargetEvery32", func_801427C8, RetargetEvery32);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035BFC8, MH3_EnemyRetargetEvery32, "EnemyRetargetEvery32");
+REGISTER_NATIVE_FUNCTION_AS(0x801427C8, MH3_EnemyRetargetEvery32, "EnemyRetargetEvery32");
 
-extern "C" void func_801311B4(CpuContext* ctx);
+extern "C" void func_8016B4C8(CpuContext* ctx);
 extern "C" void MH3_EnemySight(CpuContext* ctx) {
     PortCheck::Fuzz(ctx, 'E', ctx->gpr[3]);
-    PortCheck::Call(ctx, "EnemySight", func_801311B4, Sight);
+    PortCheck::Call(ctx, "EnemySight", func_8016B4C8, Sight);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801311B4, MH3_EnemySight, "EnemySight");
+REGISTER_NATIVE_FUNCTION_AS(0x8016B4C8, MH3_EnemySight, "EnemySight");

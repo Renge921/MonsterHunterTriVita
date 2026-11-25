@@ -1192,18 +1192,18 @@ uint32_t Arg(CpuContext* cpu, int n) {
 extern "C" void MH3_SOMove(CpuContext* cpu) {
     Move(Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D8CC, MH3_SOMove, "SOMove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D8CC, MH3_SOMove, "SOMove");
 
 extern "C" void MH3_SOFill(CpuContext* cpu) {
     Fill(Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DC8C, MH3_SOFill, "SOFill");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DC8C, MH3_SOFill, "SOFill");
 
 extern "C" void MH3_SOGetError(CpuContext* cpu) {
     const uint32_t thread = Memory::Read32(kCurrentThread);
     cpu->gpr[3] = thread ? Memory::Read32(thread + kThreadSocketError) : Memory::Read32(kError);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F790, MH3_SOGetError, "SOGetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F790, MH3_SOGetError, "SOGetError");
 
 extern "C" void MH3_SOIsInitialized(CpuContext* cpu) {
     InterruptsOff off(cpu);
@@ -1211,17 +1211,17 @@ extern "C" void MH3_SOIsInitialized(CpuContext* cpu) {
     off.Restore();
     cpu->gpr[3] = state != 0 && state < 3;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F7D8, MH3_SOIsInitialized, "SOIsInitialized");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F7D8, MH3_SOIsInitialized, "SOIsInitialized");
 
 extern "C" void MH3_SOAlloc(CpuContext* cpu) {
     cpu->gpr[3] = Alloc(cpu, Arg(cpu, 3), int32_t(Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F828, MH3_SOAlloc, "SOAlloc");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F828, MH3_SOAlloc, "SOAlloc");
 
 extern "C" void MH3_SOFree(CpuContext* cpu) {
     Free(cpu, Arg(cpu, 3), Arg(cpu, 4), int32_t(Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F910, MH3_SOFree, "SOFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F910, MH3_SOFree, "SOFree");
 
 extern "C" void MH3_SOGetFd(CpuContext* cpu) {
     const uint32_t out = Arg(cpu, 4);
@@ -1233,12 +1233,12 @@ extern "C" void MH3_SOGetFd(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(error);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F944, MH3_SOGetFd, "SOGetFd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F944, MH3_SOGetFd, "SOGetFd");
 
 extern "C" void MH3_SOSetError(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetError(cpu, int32_t(Arg(cpu, 4))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051FA2C, MH3_SOSetError, "SOSetError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051FA2C, MH3_SOSetError, "SOSetError");
 
 extern "C" void MH3_SOStartFd(CpuContext* cpu) {
     const uint32_t fdOut = Arg(cpu, 4), openedOut = Arg(cpu, 5);
@@ -1253,17 +1253,17 @@ extern "C" void MH3_SOStartFd(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(error);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051FA88, MH3_SOStartFd, "SOStartFd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051FA88, MH3_SOStartFd, "SOStartFd");
 
 extern "C" void MH3_SOFinishStartup(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(FinishStartup(cpu, int32_t(Arg(cpu, 4)), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051FD60, MH3_SOFinishStartup, "SOFinishStartup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051FD60, MH3_SOFinishStartup, "SOFinishStartup");
 
 extern "C" void MH3_SOSocketQuiet(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Socket(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051FF7C, MH3_SOSocketQuiet, "SOSocketQuiet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051FF7C, MH3_SOSocketQuiet, "SOSocketQuiet");
 
 extern "C" void MH3_SOSocket(CpuContext* cpu) {
     const uint32_t domain = Arg(cpu, 3), type = Arg(cpu, 4), protocol = Arg(cpu, 5);
@@ -1275,84 +1275,84 @@ extern "C" void MH3_SOSocket(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(Socket(cpu, domain, type, protocol));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520050, MH3_SOSocket, "SOSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520050, MH3_SOSocket, "SOSocket");
 
 extern "C" void MH3_SOClose(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SimpleIoctl(cpu, kClose, {Arg(cpu, 3)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520140, MH3_SOClose, "SOClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520140, MH3_SOClose, "SOClose");
 
 extern "C" void MH3_SOListen(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SimpleIoctl(cpu, kListen, {Arg(cpu, 3), Arg(cpu, 4)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805201E4, MH3_SOListen, "SOListen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805201E4, MH3_SOListen, "SOListen");
 
 extern "C" void MH3_SOAccept(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddressOut(cpu, kAccept, Arg(cpu, 3), Arg(cpu, 4), true));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520298, MH3_SOAccept, "SOAccept");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520298, MH3_SOAccept, "SOAccept");
 
 extern "C" void MH3_SOBind(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddressIn(cpu, kBind, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805203D8, MH3_SOBind, "SOBind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805203D8, MH3_SOBind, "SOBind");
 
 extern "C" void MH3_SOConnect(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddressIn(cpu, kConnect, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805204C0, MH3_SOConnect, "SOConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805204C0, MH3_SOConnect, "SOConnect");
 
 extern "C" void MH3_SOGetSockName(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddressOut(cpu, kGetSockName, Arg(cpu, 3), Arg(cpu, 4), false));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805205A8, MH3_SOGetSockName, "SOGetSockName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805205A8, MH3_SOGetSockName, "SOGetSockName");
 
 extern "C" void MH3_SOGetPeerName(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(AddressOut(cpu, kGetPeerName, Arg(cpu, 3), Arg(cpu, 4), false));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805206A4, MH3_SOGetPeerName, "SOGetPeerName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805206A4, MH3_SOGetPeerName, "SOGetPeerName");
 
 extern "C" void MH3_SORecvFrom(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Receive(cpu, Arg(cpu, 3), Arg(cpu, 4), int32_t(Arg(cpu, 5)), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805207A0, MH3_SORecvFrom, "SORecvFrom");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805207A0, MH3_SORecvFrom, "SORecvFrom");
 
 extern "C" void MH3_SORecv(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Receive(cpu, Arg(cpu, 3), Arg(cpu, 4), int32_t(Arg(cpu, 5)), Arg(cpu, 6), 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805207C8, MH3_SORecv, "SORecv");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805207C8, MH3_SORecv, "SORecv");
 
 extern "C" void MH3_SOSendTo(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Send(cpu, Arg(cpu, 3), Arg(cpu, 4), int32_t(Arg(cpu, 5)), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805207EC, MH3_SOSendTo, "SOSendTo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805207EC, MH3_SOSendTo, "SOSendTo");
 
 extern "C" void MH3_SOSend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Send(cpu, Arg(cpu, 3), Arg(cpu, 4), int32_t(Arg(cpu, 5)), Arg(cpu, 6), 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520814, MH3_SOSend, "SOSend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520814, MH3_SOSend, "SOSend");
 
 // SOFcntl(s, command, ...): the one variadic integer is r5.
 extern "C" void MH3_SOFcntl(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SimpleIoctl(cpu, kFcntl, {Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520838, MH3_SOFcntl, "SOFcntl");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520838, MH3_SOFcntl, "SOFcntl");
 
 extern "C" void MH3_SOShutdown(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SimpleIoctl(cpu, kShutdown, {Arg(cpu, 3), Arg(cpu, 4)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520968, MH3_SOShutdown, "SOShutdown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520968, MH3_SOShutdown, "SOShutdown");
 
 extern "C" void MH3_SOPoll(CpuContext* cpu) {
     const int64_t timeout = int64_t((uint64_t(Arg(cpu, 5)) << 32) | Arg(cpu, 6));
     cpu->gpr[3] = uint32_t(Poll(cpu, Arg(cpu, 3), Arg(cpu, 4), timeout));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520A1C, MH3_SOPoll, "SOPoll");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520A1C, MH3_SOPoll, "SOPoll");
 
 extern "C" void MH3_SOInetAtoN(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(InetAtoN(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520B78, MH3_SOInetAtoN, "SOInetAtoN");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520B78, MH3_SOInetAtoN, "SOInetAtoN");
 
 // SOInetNtoA(addr): "%d.%d.%d.%d" of the address's bytes in a static buffer.
 extern "C" void MH3_SOInetNtoA(CpuContext* cpu) {
@@ -1362,7 +1362,7 @@ extern "C" void MH3_SOInetNtoA(CpuContext* cpu) {
     std::memcpy(Memory::GetPointer(kNtoaBuffer, uint32_t(length + 1)), text, size_t(length + 1));
     cpu->gpr[3] = kNtoaBuffer;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520C84, MH3_SOInetNtoA, "SOInetNtoA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520C84, MH3_SOInetNtoA, "SOInetNtoA");
 
 extern "C" void MH3_SOGetHostId(CpuContext* cpu) {
     uint32_t fd;
@@ -1376,22 +1376,22 @@ extern "C" void MH3_SOGetHostId(CpuContext* cpu) {
     SetError(cpu, 0);
     cpu->gpr[3] = id;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805211D4, MH3_SOGetHostId, "SOGetHostId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805211D4, MH3_SOGetHostId, "SOGetHostId");
 
 extern "C" void MH3_SOGetInterfaceOpt(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetInterfaceOpt(cpu, Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805217D8, MH3_SOGetInterfaceOpt, "SOGetInterfaceOpt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805217D8, MH3_SOGetInterfaceOpt, "SOGetInterfaceOpt");
 
 extern "C" void MH3_SOGetHostByName(CpuContext* cpu) {
     cpu->gpr[3] = GetHostByName(cpu, Arg(cpu, 3));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8052124C, MH3_SOGetHostByName, "SOGetHostByName");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8052124C, MH3_SOGetHostByName, "SOGetHostByName");
 
 extern "C" void MH3_SOGetAddrInfo(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetAddrInfo(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8052138C, MH3_SOGetAddrInfo, "SOGetAddrInfo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8052138C, MH3_SOGetAddrInfo, "SOGetAddrInfo");
 
 // SOFreeAddrInfo(list): back to the allocator while the library is
 // initialized.
@@ -1405,51 +1405,51 @@ extern "C" void MH3_SOFreeAddrInfo(CpuContext* cpu) {
 
     off.Restore();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80521670, MH3_SOFreeAddrInfo, "SOFreeAddrInfo");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80521670, MH3_SOFreeAddrInfo, "SOFreeAddrInfo");
 
 extern "C" void MH3_SOSetSockOpt(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetSockOpt(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), int32_t(Arg(cpu, 7))));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805216D4, MH3_SOSetSockOpt, "SOSetSockOpt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805216D4, MH3_SOSetSockOpt, "SOSetSockOpt");
 
 extern "C" void MH3_SOInit(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Init(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EEE4, MH3_SOInit, "SOInit");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EEE4, MH3_SOInit, "SOInit");
 
 extern "C" void MH3_SOFinish(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Finish(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F0B0, MH3_SOFinish, "SOFinish");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F0B0, MH3_SOFinish, "SOFinish");
 
 extern "C" void MH3_SOStartup(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(StartupEx(cpu, 60000));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F1AC, MH3_SOStartup, "SOStartup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F1AC, MH3_SOStartup, "SOStartup");
 
 extern "C" void MH3_SOStartupEx(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(StartupEx(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F1B8, MH3_SOStartupEx, "SOStartupEx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F1B8, MH3_SOStartupEx, "SOStartupEx");
 
 extern "C" void MH3_SOCleanup(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Cleanup(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051F5E0, MH3_SOCleanup, "SOCleanup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051F5E0, MH3_SOCleanup, "SOCleanup");
 
 extern "C" void MH3_SOWaitForAddress(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WaitForAddress(cpu, Arg(cpu, 3)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051FE44, MH3_SOWaitForAddress, "SOWaitForAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051FE44, MH3_SOWaitForAddress, "SOWaitForAddress");
 
 // The cores behind SORecvFrom/SORecv and SOSendTo/SOSend: (0, s, buffer,
 // length, flags, address).
 extern "C" void MH3_SOReceive(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Receive(cpu, Arg(cpu, 4), Arg(cpu, 5), int32_t(Arg(cpu, 6)), Arg(cpu, 7), Arg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520CF0, MH3_SOReceive, "SOReceive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520CF0, MH3_SOReceive, "SOReceive");
 
 extern "C" void MH3_SOSendData(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Send(cpu, Arg(cpu, 4), Arg(cpu, 5), int32_t(Arg(cpu, 6)), Arg(cpu, 7), Arg(cpu, 8)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80520FA8, MH3_SOSendData, "SOSendData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80520FA8, MH3_SOSendData, "SOSendData");

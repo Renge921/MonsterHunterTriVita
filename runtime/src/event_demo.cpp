@@ -48,27 +48,27 @@
 #include <utility>
 
 extern "C" {
-void func_803C3FD0(CpuContext*);
-void func_803C4554(CpuContext*);
-void func_803C46C4(CpuContext*);
-void func_803C4914(CpuContext*);
-void func_803C49FC(CpuContext*);
-void func_800F1E44(CpuContext*);
-void func_800F2D3C(CpuContext*);
-void func_800F2E9C(CpuContext*);
-void func_800F2FD8(CpuContext*);
+void func_8038BE8C(CpuContext*);
+void func_8038CA40(CpuContext*);
+void func_8038CBB0(CpuContext*);
+void func_8038CE04(CpuContext*);
+void func_8038CEEC(CpuContext*);
+void func_802A0A04(CpuContext*);
+void func_80284270(CpuContext*);
+void func_802843BC(CpuContext*);
+void func_802844F0(CpuContext*);
 }
 
 namespace {
 
 // The driver's state block.
-constexpr uint32_t kDemo = 0x806D4FA0;
+constexpr uint32_t kDemo = 0x807863D0;
 
 enum : uint32_t {
     kState = kDemo + 0x0,    // u8: 0 start, 1 waiting for a trigger, 2 loading, 3 preparing, 4 playing
     kSlot = kDemo + 0x1,     // u8: the playing entry
     kId = kDemo + 0x2,       // u8: the demo, 0xFF none
-    kClock = kDemo + 0x4,    // s32 demo steps (EventDemoGetSteps 0x803C48A4), the script clock
+    kClock = kDemo + 0x4,    // s32 demo steps (EventDemoGetSteps), the script clock
     kForce0E = kDemo + 0x8,  // u8: 1 lets demo 0x0E start
     kNoStream = kDemo + 0x9, // s8: demo_bgm_load's result, nonzero without streams
     kEntries = kDemo + 0xC,  // three entries of 8 bytes
@@ -82,66 +82,66 @@ enum : uint32_t { kDataArea = 0, kDataFlag = 2, kDataId = 4 };
 constexpr uint32_t kEntryCount = 3;
 constexpr uint32_t kEntryBytes = 8;
 
-constexpr uint32_t kEnabled = 0x806BE650;     // u32 per demo: nonzero when it may play
-constexpr uint32_t kDemoVolume = 0x8079EB40;  // f32: the stream gains while a demo plays
-constexpr uint32_t kOnlineBusy = 0x806AD0F0;  // u8: 1 holds every demo in online mode 2
-constexpr uint32_t kFadeTable = 0x805F90E0;   // {s8 demo, pad, s16 fade out at, s16 fade in at}, until demo < 1
-constexpr uint32_t kKowareTable = 0x805F90F4; // {s16 from, until, every}, until from < 1 (demo 0x17)
-constexpr uint32_t kKowareSpots = 0x805F9108; // VEC3 per kKowareTable entry
-constexpr uint32_t kGlowFrom = 0x80795D70;    // s16 frames (demo 0x1B)
-constexpr uint32_t kGlowUntil = 0x80795D72;
-constexpr uint32_t kGlowFlags = 0x806BDBD1;   // u8: |= 0x81 within them (0x802B4620, inlined)
+constexpr uint32_t kEnabled = 0x8077FED8;     // u32 per demo: nonzero when it may play
+constexpr uint32_t kDemoVolume = 0x808A7A68;  // f32: the stream gains while a demo plays
+constexpr uint32_t kOnlineBusy = 0x8075024C;  // u8: 1 holds every demo in online mode 2
+constexpr uint32_t kFadeTable = 0x806E7F70;   // {s8 demo, pad, s16 fade out at, s16 fade in at}, until demo < 1
+constexpr uint32_t kKowareTable = 0x806E7F84; // {s16 from, until, every}, until from < 1 (demo 0x17)
+constexpr uint32_t kKowareSpots = 0x806E7F98; // VEC3 per kKowareTable entry
+constexpr uint32_t kGlowFrom = 0x8089EB10;    // s16 frames (demo 0x1B)
+constexpr uint32_t kGlowUntil = 0x8089EB12;
+constexpr uint32_t kGlowFlags = 0x807851F1;   // u8: |= 0x81 within them (0x80383960)
 
 // The streams of each demo: u8 music (slot 2), u8 sound effects (slot 0).
-constexpr uint32_t kDemoStreams = 0x8059BADC;
-constexpr uint32_t kBgmManager = 0x80793B50;   // the field music's manager*
-constexpr uint32_t kStreamFiles = 0x80796EF8;  // u8[2]: the stream slots demo_bgm_load read, 0xFF none
+constexpr uint32_t kDemoStreams = 0x806BDD14;
+constexpr uint32_t kBgmManager = 0x8089E2A8;   // the field music's manager*
+constexpr uint32_t kStreamFiles = 0x808A0470;  // u8[2]: the stream slots demo_bgm_load read, 0xFF none
 
-// Online mode bytes (GetOnlineMode 0x800CF26C, PlayMode_ck 0x800CF27C, inlined).
-constexpr uint32_t kOnlineMode = 0x8065AA84;
-constexpr uint32_t kPlayMode = 0x8065AA85;
+// Online mode bytes (GetOnlineMode, PlayMode_ck, inlined).
+constexpr uint32_t kOnlineMode = 0x80768ACC;
+constexpr uint32_t kPlayMode = 0x80768ACD;
 
-// The online demo's bytes (0x80145D74 and 0x80145F48, inlined).
-constexpr uint32_t kOnlineDemo = 0x8079B2E0 - 17296;
+// The online demo's bytes (0x801843EC and 0x801845CC, inlined).
+constexpr uint32_t kOnlineDemo = 0x808A4880 - 17984;
 
 enum : uint32_t {
-    MoveWorks = 0x800CFAF4,     // get_move_work_adrs (kind) -> the first work
-    MoveWorkCount = 0x800CFB34, // get_move_work_max (kind) -> u16
-    AreaNumber = 0x802AFCE8,    // get_now_areano () -> u8
-    PlInEventDemo = 0x8027BCAC, // (0) -> 1
-    Arena = 0x804469B8,         // () -> 1 in the arena (player work +0x22E4)
-    ArenaFades = 0x804469FC,    // () -> 1: the arena keeps its own fades
-    FadeSet = 0x800580A8,       // fade_set (fade, kind)
-    StreamBgmGain = 0x800E4904, // set_str_bgm_main_vol (; f1)
-    StreamSeGain = 0x800E490C,  // set_str_se_main_vol (; f1)
-    DemoBgmLoad = 0x800F19E8,   // demo_bgm_load (demo) -> nonzero without streams
-    StreamsEnd = 0x800F2030,    // the demo's streams stop
-    OptionValue = 0x803BECD4,   // get_option_cfg (n) -> u8
-    BgmVolume = 0x800F2A6C,     // set_BGM_volume (volume)
-    SeVolume = 0x800F2A20,      // set_SE_volume (volume)
-    FieldResume = 0x8028D61C,   // (30)
-    CameraStart = 0x802BC884,   // (demo, 0): the demo's camera script
-    CameraPlaying = 0x802BE450, // () -> 0 once the camera script is done
-    CameraLength = 0x802BC8DC,  // () -> s16 steps
-    DemoLight = 0x802C239C,     // (demo): demo 0x21's light, from the clock
-    SetFlag = 0x8004D274,       // (flag): the story flag the demo sets
-    DemoEnded = 0x8004E94C,     // (demo)
-    OnlineStart0 = 0x801458A4,  // (demo)
-    OnlineStart1 = 0x802D7D48,
-    OnlineStart2 = 0x802C231C,
-    OnlineStart3 = 0x802B4888,
-    OnlineEnd0 = 0x802D7DB0,    // ()
-    OnlineEnd1 = 0x802C2378,
-    OnlineEnd2 = 0x8033A984,    // (14, 28 after demo 44)
-    TourStart = 0x801FF6CC,     // (demo), play mode 5
-    TourEnd = 0x801FF730,       // ()
-    Koware = 0x80119AA4,        // eft028_set_koware (1, VEC3*, 12, 0)
-    StreamReady = 0x800F0540,   // srt_ready_ck (slot) -> 1
-    PlayStream = 0x800E4D04,    // (slot, command): 1 load, 2 prepare, 3 play, 0x28 preload
-    StreamStatus = 0x800E4F5C,  // GetStreamStatus (slot) -> 3 prepared
-    BgmManagerSync = 0x800F3668,// (manager)
-    BgmTrack = 0x800F3988,      // (area, track, u32* volume, u32* other)
-    BgmPlay = 0x800F30B8,       // (1, volume)
+    MoveWorks = 0x802BCF94,     // get_move_work_adrs (kind) -> the first work
+    MoveWorkCount = 0x802BCFD0, // get_move_work_max (kind) -> u16
+    AreaNumber = 0x8037D338,    // get_now_areano () -> u8
+    PlInEventDemo = 0x8034BFFC, // (0) -> 1
+    Arena = 0x8041B014,         // () -> 1 in the arena (player work +0x22E4)
+    ArenaFades = 0x8041B058,    // () -> 1: the arena keeps its own fades
+    FadeSet = 0x80294990,       // fade_set (fade, kind)
+    StreamBgmGain = 0x8036CE68, // set_str_bgm_main_vol (; f1)
+    StreamSeGain = 0x8036CE70,  // set_str_se_main_vol (; f1)
+    DemoBgmLoad = 0x802A05B0,   // demo_bgm_load (demo) -> nonzero without streams
+    StreamsEnd = 0x802A0BE0,    // the demo's streams stop
+    OptionValue = 0x802CAC20,   // get_option_cfg (n) -> u8
+    BgmVolume = 0x802A14A8,     // set_BGM_volume (volume)
+    SeVolume = 0x802A145C,      // set_SE_volume (volume)
+    FieldResume = 0x8019EEC0,   // (30)
+    CameraStart = 0x8037484C,   // (demo, 0): the demo's camera script
+    CameraPlaying = 0x80376638, // () -> 0 once the camera script is done
+    CameraLength = 0x803748A0,  // () -> s16 steps
+    DemoLight = 0x8037AF58,     // (demo): demo 0x21's light, from the clock
+    SetFlag = 0x802C58A0,       // (flag): the story flag the demo sets
+    DemoEnded = 0x802C7428,     // (demo)
+    OnlineStart0 = 0x80183F10,  // (demo)
+    OnlineStart1 = 0x802E0838,
+    OnlineStart2 = 0x8037AEB4,
+    OnlineStart3 = 0x80383CAC,
+    OnlineEnd0 = 0x802E08A8,    // ()
+    OnlineEnd1 = 0x8037AF34,
+    OnlineEnd2 = 0x801E3EEC,    // (14, 28 after demo 44)
+    TourStart = 0x80247328,     // (demo), play mode 5
+    TourEnd = 0x802473C4,       // ()
+    Koware = 0x80059D68,        // eft028_set_koware (1, VEC3*, 12, 0)
+    StreamReady = 0x8029F020,   // srt_ready_ck (slot) -> 1
+    PlayStream = 0x8036D220,    // (slot, command): 1 load, 2 prepare, 3 play, 0x28 preload
+    StreamStatus = 0x8036D3C0,  // GetStreamStatus (slot) -> 3 prepared
+    BgmManagerSync = 0x80284B60,// (manager)
+    BgmTrack = 0x80284E74,      // (area, track, u32* volume, u32* other)
+    BgmPlay = 0x802845C8,       // (1, volume)
 };
 
 constexpr uint8_t kDemoDeviljho = 0x0E, kDemoJhenStart = 0x2B, kDemoJhen = 0x2C, kDemoJhenEnd = 0x2F;
@@ -361,8 +361,8 @@ uint32_t EventDemoUpdate(GuestCall& game, uint32_t entry) {
     if (phase == 1) {
         Memory::Write32(kClock, uint32_t(Clock() + int32_t(GameStep::Ticks())));
         game.Call<DemoLight>({Id()});
-        game.Call<0x803C4914>({Id()});
-        game.Call<0x803C49FC>({Id()});
+        game.Call<0x8038CE04>({Id()});
+        game.Call<0x8038CEEC>({Id()});
 
         if (game.Call<CameraPlaying>() != 0)
             return 0;
@@ -558,7 +558,7 @@ void EventDemoDriver(GuestCall& game) {
 
             const uint8_t id = Memory::Read8(Memory::Read32(entry + kData) + kDataId);
 
-            if (Memory::Read32(kEnabled + id * 4u) == 0 || int32_t(game.Call<0x803C4554>({entry})) <= 0)
+            if (Memory::Read32(kEnabled + id * 4u) == 0 || int32_t(game.Call<0x8038CA40>({entry})) <= 0)
                 continue;
 
             const double volume = Memory::ReadFloat32(kDemoVolume);
@@ -580,8 +580,8 @@ void EventDemoDriver(GuestCall& game) {
 
         if (Memory::Read8(kNoStream) != 0) {
             Memory::Write8(kState, 3);
-        } else if (game.Call<0x800F1E44>() != 0) {
-            game.Call<0x800F2D3C>({Id()});
+        } else if (game.Call<0x802A0A04>() != 0) {
+            game.Call<0x80284270>({Id()});
             Memory::Write8(kState, 3);
         }
 
@@ -592,10 +592,10 @@ void EventDemoDriver(GuestCall& game) {
         game.Call<FadeSet>({0, 2});
 
         if (Memory::Read8(kNoStream) == 0) {
-            if (game.Call<0x800F2E9C>({Id()}) == 0)
+            if (game.Call<0x802843BC>({Id()}) == 0)
                 return;
 
-            game.Call<0x800F2FD8>({Id()});
+            game.Call<0x802844F0>({Id()});
         }
 
         game.Call<BgmVolume>({uint8_t(game.Call<OptionValue>({17}))});
@@ -608,7 +608,7 @@ void EventDemoDriver(GuestCall& game) {
     if (state != 4)
         return;
 
-    const bool ended = game.Call<0x803C46C4>({kEntries + Memory::Read8(kSlot) * kEntryBytes}) != 0;
+    const bool ended = game.Call<0x8038CBB0>({kEntries + Memory::Read8(kSlot) * kEntryBytes}) != 0;
     demoTrace.Step(ended);
 
     if (ended) {
@@ -627,47 +627,47 @@ void EventDemoDriverPort(CpuContext* ctx) {
 } // namespace
 
 extern "C" void MH3_EventDemoDriver(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EventDemoDriver", func_803C3FD0, EventDemoDriverPort);
+    PortCheck::Call(ctx, "EventDemoDriver", func_8038BE8C, EventDemoDriverPort);
 }
 
 extern "C" void MH3_EventDemoTriggered(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EventDemoTriggered", func_803C4554, EventDemoTriggeredPort);
+    PortCheck::Call(ctx, "EventDemoTriggered", func_8038CA40, EventDemoTriggeredPort);
 }
 
 extern "C" void MH3_EventDemoUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EventDemoUpdate", func_803C46C4, EventDemoUpdatePort);
+    PortCheck::Call(ctx, "EventDemoUpdate", func_8038CBB0, EventDemoUpdatePort);
 }
 
 extern "C" void MH3_EventDemoFades(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EventDemoFades", func_803C4914, EventDemoFadesPort);
+    PortCheck::Call(ctx, "EventDemoFades", func_8038CE04, EventDemoFadesPort);
 }
 
 extern "C" void MH3_EventDemoEffects(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EventDemoEffects", func_803C49FC, EventDemoEffectsPort);
+    PortCheck::Call(ctx, "EventDemoEffects", func_8038CEEC, EventDemoEffectsPort);
 }
 
 extern "C" void MH3_DemoStreamsLoaded(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoStreamsLoaded", func_800F1E44, DemoStreamsLoadedPort);
+    PortCheck::Call(ctx, "DemoStreamsLoaded", func_802A0A04, DemoStreamsLoadedPort);
 }
 
 extern "C" void MH3_DemoStreamsPrepare(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoStreamsPrepare", func_800F2D3C, DemoStreamsPreparePort);
+    PortCheck::Call(ctx, "DemoStreamsPrepare", func_80284270, DemoStreamsPreparePort);
 }
 
 extern "C" void MH3_DemoStreamsReady(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoStreamsReady", func_800F2E9C, DemoStreamsReadyPort);
+    PortCheck::Call(ctx, "DemoStreamsReady", func_802843BC, DemoStreamsReadyPort);
 }
 
 extern "C" void MH3_DemoStreamsPlay(CpuContext* ctx) {
-    PortCheck::Call(ctx, "DemoStreamsPlay", func_800F2FD8, DemoStreamsPlayPort);
+    PortCheck::Call(ctx, "DemoStreamsPlay", func_802844F0, DemoStreamsPlayPort);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803C3FD0, MH3_EventDemoDriver, "EventDemoDriver");
-REGISTER_NATIVE_FUNCTION_AS(0x803C4554, MH3_EventDemoTriggered, "EventDemoTriggered");
-REGISTER_NATIVE_FUNCTION_AS(0x803C46C4, MH3_EventDemoUpdate, "EventDemoUpdate");
-REGISTER_NATIVE_FUNCTION_AS(0x803C4914, MH3_EventDemoFades, "EventDemoFades");
-REGISTER_NATIVE_FUNCTION_AS(0x803C49FC, MH3_EventDemoEffects, "EventDemoEffects");
-REGISTER_NATIVE_FUNCTION_AS(0x800F1E44, MH3_DemoStreamsLoaded, "DemoStreamsLoaded");
-REGISTER_NATIVE_FUNCTION_AS(0x800F2D3C, MH3_DemoStreamsPrepare, "DemoStreamsPrepare");
-REGISTER_NATIVE_FUNCTION_AS(0x800F2E9C, MH3_DemoStreamsReady, "DemoStreamsReady");
-REGISTER_NATIVE_FUNCTION_AS(0x800F2FD8, MH3_DemoStreamsPlay, "DemoStreamsPlay");
+REGISTER_NATIVE_FUNCTION_AS(0x8038BE8C, MH3_EventDemoDriver, "EventDemoDriver");
+REGISTER_NATIVE_FUNCTION_AS(0x8038CA40, MH3_EventDemoTriggered, "EventDemoTriggered");
+REGISTER_NATIVE_FUNCTION_AS(0x8038CBB0, MH3_EventDemoUpdate, "EventDemoUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8038CE04, MH3_EventDemoFades, "EventDemoFades");
+REGISTER_NATIVE_FUNCTION_AS(0x8038CEEC, MH3_EventDemoEffects, "EventDemoEffects");
+REGISTER_NATIVE_FUNCTION_AS(0x802A0A04, MH3_DemoStreamsLoaded, "DemoStreamsLoaded");
+REGISTER_NATIVE_FUNCTION_AS(0x80284270, MH3_DemoStreamsPrepare, "DemoStreamsPrepare");
+REGISTER_NATIVE_FUNCTION_AS(0x802843BC, MH3_DemoStreamsReady, "DemoStreamsReady");
+REGISTER_NATIVE_FUNCTION_AS(0x802844F0, MH3_DemoStreamsPlay, "DemoStreamsPlay");

@@ -70,28 +70,28 @@
 #include <string>
 #include <vector>
 
-extern "C" void func_8021F40C(CpuContext* ctx);
+extern "C" void func_802700A4(CpuContext* ctx);
 
 namespace {
 
-constexpr uint32_t kQuestId = 0x8065B238;   // u32: the departing quest
-constexpr uint32_t kDeparture = 0x8065B534; // u16 quest id, +8 u8 Cha-Cha, +9 u8, +11 u8 offline field
-constexpr uint32_t kCharacter = 0x80796D40; // r13 - 0x45A0: the character's save data
+constexpr uint32_t kQuestId = 0x80769280;   // u32: the departing quest
+constexpr uint32_t kDeparture = 0x80769470; // u16 quest id, +8 u8 Cha-Cha, +9 u8, +11 u8 offline field
+constexpr uint32_t kCharacter = 0x808A04F0; // r13 - 0x4390: the character's save data
 enum : uint32_t {
-    VillageSetting = 0x8021F29C, // () -> u8, recorded at departure +9
-    FreeRoamQuest = 0x802FB8A4,  // () -> the season's free-roam quest id, 0 if none
-    ChaChaDeparture = 0x8033C410, // (): Cha-Cha's setting and levels into the departure block
-    PrimInitAll = 0x800E3DA4,
-    FilterReset = 0x80058514,
+    VillageSetting = 0x80269770, // () -> u8, recorded at departure +9
+    FreeRoamQuest = 0x80217F88,  // () -> the season's free-roam quest id, 0 if none
+    ChaChaDeparture = 0x8020E450, // (): Cha-Cha's setting and levels into the departure block
+    PrimInitAll = 0x802A1A48,
+    FilterReset = 0x8029179C,
 };
 
 constexpr uint32_t kFirstCounterQuest = 1000; // free-roam quests are 1..4
-constexpr uint32_t kPlayMode = 0x8065AA85;    // u8
+constexpr uint32_t kPlayMode = 0x80768ACD;    // u8
 constexpr uint8_t kPlayModeOnline = 4;
 constexpr uint8_t kPlayModeArena = 2;         // FieldTaskVs
-constexpr uint32_t MoveWork = 0x800CFAF4;       // get_move_work_adrs(u8 kind) -> move work
-constexpr uint32_t kCurrentArea = 0x806BB806;   // u8, get_now_areano
-constexpr uint32_t kMoveWorkTable = 0x8065AB04; // +16: move works by kind
+constexpr uint32_t MoveWork = 0x802BCF94;       // get_move_work_adrs(u8 kind) -> move work
+constexpr uint32_t kCurrentArea = 0x80782E26;   // u8, get_now_areano
+constexpr uint32_t kMoveWorkTable = 0x80768B4C; // +16: move works by kind
 constexpr uint32_t kPlayerMoveWork = 2;
 enum : uint32_t {
     kPosition = 0x3C
@@ -99,10 +99,10 @@ enum : uint32_t {
 
 constexpr uint64_t kSpawnSettle = 60; // game frames (30 Hz)
 enum : uint32_t {
-    MyPlayerIndex = 0x800CF3E8,
-    GetNowMapNumber = 0x802AFCD8,
-    GetNowAreaNumber = 0x802AFCE8,
-    AreaExits = 0x802AFEC0, // (map, area): the area's exits
+    MyPlayerIndex = 0x802BC844,
+    GetNowMapNumber = 0x8037D328,
+    GetNowAreaNumber = 0x8037D338,
+    AreaExits = 0x8037D5A4, // (map, area): the area's exits
 };
 
 constexpr uint32_t kExitSettle = 60; // exit checks (game steps) in the field
@@ -115,12 +115,13 @@ enum : uint32_t {
     kWorkInPit = 0x136 // u8 per player (two)
 };
 
-constexpr uint32_t kCurrentMap = 0x806BB805; // u8, get_now_mapno
-constexpr uint32_t kMyPlayer = 0x8065AA87;   // u8, what MyPlayerIndex returns
+constexpr uint32_t kCurrentMap = 0x80782E25; // u8, get_now_mapno
+constexpr uint32_t kMyPlayer = 0x80768ACF;   // u8, what MyPlayerIndex returns
 constexpr uint32_t kPlayerBytes = 0xB20;
 constexpr uint8_t kArenaMap = 9;
-constexpr float kArenaWaitingRoomZ = -10000.0f; // below: the waiting room (0x802B06EC)
-constexpr uint32_t kQuestWork = 0x80797100;     // u32: +0x3C the quest's data, its +0x8B the quest's map
+constexpr float kArenaWaitingRoomZ = -10000.0f; // below: the waiting room
+constexpr uint32_t kQuestWork = 0x808A02C0;     // u32: +0x3C the quest's data, its +0x5F the quest's map
+constexpr uint32_t kQuestEntryMap = 0x5F;
 constexpr uint8_t kWaterArenaMap = 10;          // the quest's map; the field loads map 9, area 1
 
 enum : uint32_t {
@@ -217,13 +218,13 @@ static void VillageTaskPort(CpuContext* ctx) {
         }
     }
 
-    func_8021F40C(ctx);
+    func_802700A4(ctx);
 }
 
 extern "C" void MH3_VillageTask(CpuContext* ctx) {
-    PortCheck::Call(ctx, "VillageTask", func_8021F40C, VillageTaskPort);
+    PortCheck::Call(ctx, "VillageTask", func_802700A4, VillageTaskPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8021F40C, MH3_VillageTask, "VillageTask");
+REGISTER_NATIVE_FUNCTION_AS(0x802700A4, MH3_VillageTask, "VillageTask");
 
 void RequestQuestJump(uint32_t quest, QuestCatalog::Set set, int area) {
     Jump& jump = State();
@@ -321,7 +322,7 @@ void FieldJumpFrame(uint64_t gameFrame) {
 
 // The hunter's exit check; first, for --spawn exit:n, the hunter into that
 // exit.
-extern "C" void func_802B2754(CpuContext* ctx);
+extern "C" void func_803804CC(CpuContext* ctx);
 
 // An area for messages: the number its map shows and the game's index.
 static std::string AreaText(int area) {
@@ -434,49 +435,49 @@ extern "C" void MH3_PlayerAreaExit(CpuContext* ctx) {
         }
     }
 
-    func_802B2754(ctx);
+    func_803804CC(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B2754, MH3_PlayerAreaExit, "PlayerAreaExit");
+REGISTER_NATIVE_FUNCTION_AS(0x803804CC, MH3_PlayerAreaExit, "PlayerAreaExit");
 
 // Loads the field's quest file: the jump's quest set.
-extern "C" void func_803AD264(CpuContext* ctx);
-extern "C" void func_803AD744(CpuContext* ctx);
+extern "C" void func_801F95B0(CpuContext* ctx);
+extern "C" void func_801F9A80(CpuContext* ctx);
 static void LoadQuestFilePort(CpuContext* ctx) {
     const Jump& jump = State();
 
     if (jump.done && jump.set == QuestCatalog::Set::Arena) {
-        func_803AD744(ctx);
+        func_801F9A80(ctx);
         return;
     }
 
     if (!jump.done || jump.set != QuestCatalog::Set::Online) {
-        func_803AD264(ctx);
+        func_801F95B0(ctx);
         return;
     }
 
     const uint8_t playMode = Memory::Read8(kPlayMode);
     Memory::Write8(kPlayMode, kPlayModeOnline);
-    func_803AD264(ctx);
+    func_801F95B0(ctx);
     Memory::Write8(kPlayMode, playMode);
 }
 
 extern "C" void MH3_LoadQuestFile(CpuContext* ctx) {
-    PortCheck::Call(ctx, "LoadQuestFile", func_803AD264, LoadQuestFilePort);
+    PortCheck::Call(ctx, "LoadQuestFile", func_801F95B0, LoadQuestFilePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AD264, MH3_LoadQuestFile, "LoadQuestFile");
+REGISTER_NATIVE_FUNCTION_AS(0x801F95B0, MH3_LoadQuestFile, "LoadQuestFile");
 
 // The quest's map setup; then the chosen start area. The arena map (9) holds
 // both arenas: area 0 the land arena, area 1 the water arena, each with its
 // waiting room. Outside the arena's own play mode (2) the setup starts every
 // arena quest in area 0, so a water arena quest (map 10) ran in the land
 // arena; it starts in area 1.
-extern "C" void func_803AF518(CpuContext* ctx);
+extern "C" void func_801FB8F0(CpuContext* ctx);
 static void QuestMapSetupPort(CpuContext* ctx) {
-    func_803AF518(ctx);
+    func_801FB8F0(ctx);
     const Jump& jump = State();
     const uint32_t questWork = Memory::Read32(kQuestWork);
     const uint32_t quest = questWork ? Memory::Read32(questWork + 0x3C) : 0;
-    const bool water = quest && Memory::Read8(quest + 0x8B) == kWaterArenaMap && Memory::Read8(kPlayMode) != kPlayModeArena;
+    const bool water = quest && Memory::Read8(quest + kQuestEntryMap) == kWaterArenaMap && Memory::Read8(kPlayMode) != kPlayModeArena;
     const int area = jump.done && jump.area >= 0 ? jump.area : water ? 1 : -1;
 
     if (area < 0)
@@ -490,7 +491,7 @@ static void QuestMapSetupPort(CpuContext* ctx) {
     if (!work)
         return;
 
-    const uint8_t map = quest ? Memory::Read8(quest + 0x8B) : 0;
+    const uint8_t map = quest ? Memory::Read8(quest + kQuestEntryMap) : 0;
     std::fprintf(stderr, "MH3 quest: starting in %s instead of %s\n", QuestCatalog::AreaName(map, area).c_str(), QuestCatalog::AreaName(map, Memory::Read8(work + kWorkArea)).c_str());
     Memory::Write8(work + kWorkArea, uint8_t(area));
     Memory::Write8(work + kWorkStartArea, uint8_t(area));
@@ -498,6 +499,6 @@ static void QuestMapSetupPort(CpuContext* ctx) {
 }
 
 extern "C" void MH3_QuestMapSetup(CpuContext* ctx) {
-    PortCheck::Call(ctx, "QuestMapSetup", func_803AF518, QuestMapSetupPort);
+    PortCheck::Call(ctx, "QuestMapSetup", func_801FB8F0, QuestMapSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AF518, MH3_QuestMapSetup, "QuestMapSetup");
+REGISTER_NATIVE_FUNCTION_AS(0x801FB8F0, MH3_QuestMapSetup, "QuestMapSetup");

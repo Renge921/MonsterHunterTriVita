@@ -46,7 +46,8 @@ constexpr uint8_t kMh3spCa[] = {
 static_assert(sizeof(kMh3spCa) == 924);
 
 // The pinned CA in the DOL: Nintendo Class 2 CA, 924 bytes of DER.
-constexpr uint32_t kPinnedCa = 0x80572840;
+constexpr uint32_t kPinnedCaPal = 0x80572840;
+constexpr uint32_t kPinnedCaJpn = 0x8063DDC0;
 constexpr std::string_view kPinnedCaPrefix{"\x30\x82\x03\x98\x30\x82\x03\x01\xA0\x03\x02\x01\x02\x02\x01", 15};
 
 struct StringPatch {
@@ -57,8 +58,8 @@ struct StringPatch {
     uint32_t length; // bytes the patch writes (the original's slot)
 };
 
-// RMHP08 addresses of the strings MH3SP.xml searches for.
-constexpr StringPatch kStrings[]{
+// RMHP08 (European) addresses of the strings MH3SP.xml searches for.
+constexpr StringPatch kStringsPal[]{
     {0x80601200, "mmh-t1-opn04.mmh-service.capcom.co.jp", "opn.", "", 38},
     {0x80630920, "https://naswii.nintendowifi.net/ac", "http://nas.", "/ac", 34},
     {0x806309A0, "https://naswii.nintendowifi.net/pr", "http://nas.", "/pr", 34},
@@ -66,6 +67,17 @@ constexpr StringPatch kStrings[]{
     {0x806311A8, "natneg1.gs.nintendowifi.net", "natneg1.", "", 28},
     {0x806311C4, "natneg2.gs.nintendowifi.net", "natneg2.", "", 28},
     {0x806311E0, "natneg3.gs.nintendowifi.net", "natneg3.", "", 28},
+};
+
+// RMHJ08 (Japanese) addresses of the strings.
+constexpr StringPatch kStringsJpn[]{
+    {0x806421FC, "mmh-t1-opn02.mmh-service.capcom.co.jp", "opn.", "", 38},
+    {0x80729C38, "https://naswii.nintendowifi.net/ac", "http://nas.", "/ac", 34},
+    {0x80729CB8, "https://naswii.nintendowifi.net/pr", "http://nas.", "/pr", 34},
+    {0x8072A4C0, "%s.available.gs.nintendowifi.net", "available.", "", 32},
+    {0x8072CE50, "natneg1.gs.nintendowifi.net", "natneg1.", "", 28},
+    {0x8072CE6C, "natneg2.gs.nintendowifi.net", "natneg2.", "", 28},
+    {0x8072CE88, "natneg3.gs.nintendowifi.net", "natneg3.", "", 28},
 };
 
 // The longest domain every slot holds: natneg1.<domain> in 27 characters.
@@ -158,7 +170,13 @@ std::atomic<bool> community{false};
 // Online play was refused while cheats are on (AdmitOnline).
 std::atomic<bool> refused{false};
 
-constexpr uint32_t kOnlineMode = 0x8065AA84; // u8, GetOnlineMode (0x800CF26C): 2 the City, online
+constexpr uint32_t kOnlineModePal = 0x8065AA84; // u8, GetOnlineMode (0x800CF26C): 2 the City, online
+constexpr uint32_t kOnlineModeJpn = 0x80768ACC; // u8, GetOnlineMode (0x802BC6BC): 2 the City, online
+
+inline uint32_t OnlineModeAddress() {
+    return Matches(kPinnedCaJpn, kPinnedCaPrefix) ? kOnlineModeJpn : kOnlineModePal;
+}
+
 constexpr const char* kRules[]{"Do not harass other players."};
 constexpr const char* kRefused[]{"Cheats are not allowed online,", "please don't harass other players."};
 } // namespace
@@ -184,7 +202,7 @@ void NoteTlsServer(NetHost::Tls& tls) {
 
 std::span<const char* const> OnlineNotice(bool loading) {
     if (loading)
-        return community && Memory::Read8(kOnlineMode) == 2 ? std::span<const char* const>(kRules) : std::span<const char* const>();
+        return community && Memory::Read8(OnlineModeAddress()) == 2 ? std::span<const char* const>(kRules) : std::span<const char* const>();
 
     // Over the online screens' message window: the connection error the
     // refusal leads to. Their work pointer and window outlive net_data.rso:
@@ -241,15 +259,25 @@ void ApplyOnlinePatches() {
     if (server.nasPort)
         NetHost::AddPortOverride(80, server.nasPort);
 
-    if (!Matches(kPinnedCa, kPinnedCaPrefix))
-        MH3_THROW(std::runtime_error("Online patch: the pinned CA is not where RMHP08 has it"));
+    uint32_t pinnedCa = 0;
+    std::span<const StringPatch> strings;
+
+    if (Matches(kPinnedCaJpn, kPinnedCaPrefix)) {
+        pinnedCa = kPinnedCaJpn;
+        strings = kStringsJpn;
+    } else if (Matches(kPinnedCaPal, kPinnedCaPrefix)) {
+        pinnedCa = kPinnedCaPal;
+        strings = kStringsPal;
+    } else {
+        MH3_THROW(std::runtime_error("Online patch: the pinned CA is not where RMHP08 or RMHJ08 has it"));
+    }
 
     // The certificate's slot keeps its size; a shorter one is padded with zeros.
     const auto ca = RootCa();
-    std::memset(Memory::GetPointer(kPinnedCa, sizeof(kMh3spCa)), 0, sizeof(kMh3spCa));
-    std::memcpy(Memory::GetPointer(kPinnedCa, uint32_t(ca.size())), ca.data(), ca.size());
+    std::memset(Memory::GetPointer(pinnedCa, sizeof(kMh3spCa)), 0, sizeof(kMh3spCa));
+    std::memcpy(Memory::GetPointer(pinnedCa, uint32_t(ca.size())), ca.data(), ca.size());
 
-    for (const auto& patch : kStrings) {
+    for (const auto& patch : strings) {
         if (!Matches(patch.address, patch.original))
             MH3_THROW(std::runtime_error("Online patch: unexpected string at " + std::to_string(patch.address)));
 
@@ -332,11 +360,27 @@ uint32_t BeginNegotiation(CpuContext* cpu) {
         return sda + uint32_t(offset);
     };
 
-    if (Memory::Read32(global(kAvailability)) != 1)
-        return kSocketError;
+    const bool jpn = Matches(kPinnedCaJpn, kPinnedCaPrefix);
 
-    const int32_t ips[3]{kMatchup1Ip, kMatchup2Ip, kMatchup3Ip};
-    const int32_t overrides[3]{kMatchup1Hostname, kMatchup2Hostname, kMatchup3Hostname};
+    const int32_t availOffset = jpn ? -13824 : -13832;
+    const int32_t negListOffset = jpn ? -13712 : -13784;
+    const int32_t ips[3]{jpn ? -13708 : -13780, jpn ? -13704 : -13776, jpn ? -13700 : -13772};
+    const int32_t overrides[3]{jpn ? -13672 : -13744, jpn ? -13676 : -13748, jpn ? -13680 : -13752};
+    const uint32_t defaultHostnames = jpn ? 0x8072CE50 : 0x806311A8;
+
+    const uint32_t fnMemset = jpn ? 0x8000443c : 0x80004350;
+    const uint32_t fnArrayNew = jpn ? 0x805e49c4 : 0x8050B170;
+    const uint32_t fnArrayLength = jpn ? 0x805e4af4 : 0x8050B2B0;
+    const uint32_t fnArrayNth = jpn ? 0x805e4afc : 0x8050B2C0;
+    const uint32_t fnArrayAppend = jpn ? 0x805e4b2c : 0x8050B2F0;
+    const uint32_t fnArrayDeleteAt = jpn ? 0x805e4dd0 : 0x8050B5A0;
+    const uint32_t fnSocket = jpn ? 0x805e67d8 : 0x8050BF00;
+    const uint32_t fnInetAddr = jpn ? 0x805e6afc : 0x8050C140;
+    const uint32_t fnGetHostByName = jpn ? 0x805e6c64 : 0x8050C2C0;
+    const uint32_t fnSendInitPackets = jpn ? 0x806032e8 : 0x80513510;
+
+    if (Memory::Read32(global(availOffset)) != 1)
+        return kSocketError;
 
     for (int server = 0; server < 3; ++server) {
         if (Memory::Read32(global(ips[server])))
@@ -345,32 +389,32 @@ uint32_t BeginNegotiation(CpuContext* cpu) {
         uint32_t name = Memory::Read32(global(overrides[server]));
 
         if (!name)
-            name = kDefaultHostnames + server * 28;
+            name = defaultHostnames + server * 28;
 
         // NameToIp: a dotted address, else a DNS lookup's first address.
-        uint32_t ip = call.Call<InetAddr>({name});
+        uint32_t ip = call(fnInetAddr, {name});
 
         if (ip == 0xFFFFFFFF) {
-            const uint32_t host = call.Call<GetHostByName>({name});
+            const uint32_t host = call(fnGetHostByName, {name});
             ip = host ? Memory::Read32(Memory::Read32(Memory::Read32(host + 12))) : 0;
         }
 
         Memory::Write32(global(ips[server]), ip);
     }
 
-    if (!Memory::Read32(global(kMatchup1Ip)) || !Memory::Read32(global(kMatchup2Ip)) || !Memory::Read32(global(kMatchup3Ip)))
+    if (!Memory::Read32(global(ips[0])) || !Memory::Read32(global(ips[1])) || !Memory::Read32(global(ips[2])))
         return kDnsError;
 
     // AddNegotiator: a zeroed negotiator appended to the list.
     const uint32_t blank = frame[200];
-    call.Call<Memset>({blank, 0, kNegotiatorBytes});
+    call(fnMemset, {blank, 0, kNegotiatorBytes});
 
-    if (!Memory::Read32(global(kNegotiators)))
-        Memory::Write32(global(kNegotiators), call.Call<ArrayNew>({kNegotiatorBytes, 4, 0}));
+    if (!Memory::Read32(global(negListOffset)))
+        Memory::Write32(global(negListOffset), call(fnArrayNew, {kNegotiatorBytes, 4, 0}));
 
-    const uint32_t list = Memory::Read32(global(kNegotiators));
-    call.Call<ArrayAppend>({list, blank});
-    const uint32_t negotiator = call.Call<ArrayNth>({list, call.Call<ArrayLength>({list}) - 1});
+    const uint32_t list = Memory::Read32(global(negListOffset));
+    call(fnArrayAppend, {list, blank});
+    const uint32_t negotiator = call(fnArrayNth, {list, call(fnArrayLength, {list}) - 1});
 
     if (!negotiator)
         return kAllocError;
@@ -381,7 +425,7 @@ uint32_t BeginNegotiation(CpuContext* cpu) {
     Memory::Write32(negotiator + kProgressCallback, frame.Arg(6));
     Memory::Write32(negotiator + kCompletedCallback, frame.Arg(7));
     Memory::Write32(negotiator + kUserData, frame.Arg(8));
-    const uint32_t socket = call.Call<Socket>({2, 2, 17}); // AF_INET, SOCK_DGRAM, IPPROTO_UDP
+    const uint32_t socket = call(fnSocket, {2, 2, 17}); // AF_INET, SOCK_DGRAM, IPPROTO_UDP
     Memory::Write32(negotiator + kNegotiateSocket, socket);
     Memory::Write32(negotiator + kRetryCount, 0);
     Memory::Write8(negotiator + kGotRemoteData, 0);
@@ -393,16 +437,16 @@ uint32_t BeginNegotiation(CpuContext* cpu) {
 
     if (socket == 0xFFFFFFFF) {
         // RemoveNegotiator.
-        for (int32_t i = 0; i < int32_t(call.Call<ArrayLength>({list})); ++i)
-            if (call.Call<ArrayNth>({list, uint32_t(i)}) == negotiator) {
-                call.Call<ArrayDeleteAt>({list, uint32_t(i)});
+        for (int32_t i = 0; i < int32_t(call(fnArrayLength, {list})); ++i)
+            if (call(fnArrayNth, {list, uint32_t(i)}) == negotiator) {
+                call(fnArrayDeleteAt, {list, uint32_t(i)});
                 break;
             }
 
         return kSocketError;
     }
 
-    call.Call<SendInitPackets>({negotiator});
+    call(fnSendInitPackets, {negotiator});
     return kNoError;
 }
 } // namespace
@@ -411,4 +455,5 @@ extern "C" void MH3_NNBeginNegotiationWithSocket(CpuContext* cpu) {
     const uint32_t result = BeginNegotiation(cpu);
     cpu->gpr[3] = result;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513940, MH3_NNBeginNegotiationWithSocket, "NNBeginNegotiationWithSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513940, MH3_NNBeginNegotiationWithSocket, "NNBeginNegotiationWithSocket");
+REGISTER_NATIVE_FUNCTION_AS(0x8060369C, MH3_NNBeginNegotiationWithSocket, "NNBeginNegotiationWithSocket");

@@ -403,16 +403,16 @@ extern "C" void func_80124948(CpuContext* ctx);
 extern "C" void MH3_EnemyCarcassTimed(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyCarcassTimed", PortCheck::Returns::Gpr3, func_80124948, EnemyCarcassTimedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80124948, MH3_EnemyCarcassTimed, "EnemyCarcassTimed");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80124948, MH3_EnemyCarcassTimed, "EnemyCarcassTimed");
 
 extern "C" void func_801249F0(CpuContext* ctx);
 extern "C" void MH3_EnemyDownStep(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyDownStep", PortCheck::Returns::Gpr3, func_801249F0, EnemyDownStepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801249F0, MH3_EnemyDownStep, "EnemyDownStep");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801249F0, MH3_EnemyDownStep, "EnemyDownStep");
 
 extern "C" void func_80124CC0(CpuContext* ctx);
 extern "C" void MH3_EnemyDownAction(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyDownAction", func_80124CC0, EnemyDownActionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80124CC0, MH3_EnemyDownAction, "EnemyDownAction");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80124CC0, MH3_EnemyDownAction, "EnemyDownAction");

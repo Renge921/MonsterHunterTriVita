@@ -1,6 +1,7 @@
 // Game-side visibility of scene-queue models (scene_cull.h).
 #include "scene_cull.h"
 #include <aurora/fast_map.h>
+#include "character_creation.h"
 #include "guest_span.h"
 #include "memory.h"
 #include "model_assets.h"
@@ -26,7 +27,7 @@ namespace {
 constexpr float Margin = 0.02f;
 
 // ScnMdl's G3dProc (ModelSceneTask) and its draw-callback fields.
-constexpr uint32_t ScnMdlProc = 0x8007DE60;
+constexpr uint32_t ScnMdlProc = 0x8053A784;
 constexpr uint32_t CallbackObject = 0xd4, CallbackMask = 0xd8, CallbackFlags = 0xda, ProcDisabled = 0xcc, ResMdl = 0xe8;
 constexpr uint32_t ViewMatrixCount = 0x68; // ResMdlInfo numViewMtx, from the MDL0
 
@@ -228,6 +229,10 @@ void Demand(const NativeModelOwner& owner) {
 
 bool SkipNativeSceneModel(uint32_t object) {
     if (!object)
+        return false;
+
+    // Never cull models during character creation (charmake active)
+    if (MH3CharacterCreationActive())
         return false;
 
     ++stats.models;

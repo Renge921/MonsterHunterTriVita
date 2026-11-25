@@ -465,6 +465,6 @@ extern "C" void MH3_KeyboardUpdate(CpuContext* ctx) {
 }
 #endif
 
-REGISTER_NATIVE_FUNCTION_AS(0x800407FC, MH3_KeyboardOpen, "KeyboardOpen");
-REGISTER_NATIVE_FUNCTION_AS(0x80040828, MH3_KeyboardBuffer, "KeyboardBuffer");
-REGISTER_NATIVE_FUNCTION_AS(0x800407D4, MH3_KeyboardUpdate, "KeyboardUpdate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800407FC, MH3_KeyboardOpen, "KeyboardOpen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80040828, MH3_KeyboardBuffer, "KeyboardBuffer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800407D4, MH3_KeyboardUpdate, "KeyboardUpdate");

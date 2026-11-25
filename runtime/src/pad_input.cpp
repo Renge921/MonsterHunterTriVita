@@ -37,27 +37,27 @@
 namespace {
 
 enum : uint32_t {
-    kSystem = 0x8065AA60,        // system_w
+    kSystem = 0x80768AA8,        // system_w
     kInputSource = 0x8D8,        // system_w: fn(system_w) -> 1 when input comes from elsewhere (no pads)
     kMotorOn = 0x32,             // system_w: u8 WPADIsMotorEnabled
     kInfoWait = 0x7E0,           // system_w: s8[4], info countdown (120 when set)
     kInfoPending = 0x7E4,        // system_w: u8[4], 1 = ask WPADGetInfoAsync when the wait starts
-    kPsw = 0x8065B7D0,           // Psw: pad work, 0x350 bytes a channel
+    kPsw = 0x80754428,           // Psw: pad work, 0x350 bytes a channel
     kPswSize = 0x350,
-    kGcPad = 0x8065C510,         // GameCube pad work, 0x350 bytes a channel
-    kInfo = 0x8065D250,          // WPADInfo[4], 0x18 bytes each
-    kGcMap = 0x8065D2B0,         // u16[16]: GameCube pad bits, mapped to kGameBits
-    kClassicMap = 0x8065D2D0,    // u16[16]: Classic bits
-    kRemoteMap = 0x8065D2F0,     // u16[16]: Wii Remote bits
-    kGameBits = 0x80581630,      // u16[16]: the game's button bits
-    kKeySources = 0x80581800,    // {u16 key bit, u16 key value}[17]
-    kNunchukKeys = 0x805816F0,   // {s16 which, u16 mask}[17] per device
-    kClassicKeysA = 0x80581734,
-    kClassicKeysB = 0x80581778,
-    kRemoteKeys = 0x805817BC,
-    kFloatZero = 0x80797FA8,     // f32 0.0
-    kLastProbe = 0x80796D00,     // channel 0's probe result and device
-    kLastDevice = 0x80796D04,
+    kGcPad = 0x80755168,         // GameCube pad work, 0x350 bytes a channel
+    kInfo = 0x80755EA8,          // WPADInfo[4], 0x18 bytes each
+    kGcMap = 0x80755F08,         // u16[16]: GameCube pad bits, mapped to kGameBits
+    kClassicMap = 0x80755F28,    // u16[16]: Classic bits
+    kRemoteMap = 0x80755F48,     // u16[16]: Wii Remote bits
+    kGameBits = 0x806C1A88,      // u16[16]: the game's button bits
+    kKeySources = 0x806C1C38,    // {u16 key bit, u16 key value}[17]
+    kNunchukKeys = 0x806C1B28,   // {s16 which, u16 mask}[17] per device
+    kClassicKeysA = 0x806C1B6C,
+    kClassicKeysB = 0x806C1BB0,
+    kRemoteKeys = 0x806C1BF4,
+    kFloatZero = 0x808A6B50,     // f32 0.0
+    kLastProbe = 0x808A0430,     // channel 0's probe result and device
+    kLastDevice = 0x808A0434,
 };
 
 // Psw (per channel).
@@ -112,24 +112,24 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    PadCleared = 0x80042890,       // (channel): no pads (input from elsewhere)
-    PadDisconnected = 0x80042920,  // (channel)
-    ClassicSticks = 0x80042FDC,    // (channel, Psw): Classic stick directions
-    NunchukStick = 0x800432C0,     // (channel, Psw): Nunchuk stick direction
-    GcSticks = 0x80042C0C,         // (channel, GameCube work)
-    GcError = 0x80042BAC,          // (channel) -> s8 PADStatus error
-    GcButtons = 0x80042B98,        // (channel) -> u16 PADStatus buttons
-    PadGameKeys = 0x80044368,      // (u8 channel)
-    SetKeyLocks = 0x802AA6F0,      // (u8 channel, offline): lock table
-    GameOption = 0x803BED2C,       // (channel, option, value) -> 1 when set
-    GetOnlineMode = 0x800CF26C,
-    IsNetworkBusy = 0x804360A0,
-    WPADProbe = 0x804EF040,
-    WPADRead = 0x804EF9D0,
-    WPADClampStick = 0x804F8A00,   // (channel, status, kind)
-    WPADClampTrigger = 0x804F8B60, // (channel, status, kind)
-    WPADGetInfoAsync = 0x804EF3C0,
-    InfoCallback = 0x80041F08,
+    PadCleared = 0x80299640,       // (channel): no pads (input from elsewhere)
+    PadDisconnected = 0x802996D0,  // (channel)
+    ClassicSticks = 0x80299754,    // (channel, Psw): Classic stick directions
+    NunchukStick = 0x80299A4C,     // (channel, Psw): Nunchuk stick direction
+    GcSticks = 0x80042C0C,         // unported PAL address (PadReadGc disabled)
+    GcError = 0x80042BAC,          // unported PAL address (PadReadGc disabled)
+    GcButtons = 0x80042B98,        // unported PAL address (PadReadGc disabled)
+    PadGameKeys = 0x8029AE00,      // (u8 channel)
+    SetKeyLocks = 0x801E2650,      // (u8 channel, offline): lock table
+    GameOption = 0x802CACF4,       // (channel, option, value) -> 1 when set
+    GetOnlineMode = 0x802BC6BC,
+    IsNetworkBusy = 0x8040D9AC,
+    WPADProbe = 0x8047E730,
+    WPADRead = 0x8047F060,
+    WPADClampStick = 0x80487EF4,   // (channel, status, kind)
+    WPADClampTrigger = 0x80488050, // (channel, status, kind)
+    WPADGetInfoAsync = 0x8047EA78,
+    InfoCallback = 0x80298D28,
 };
 
 uint16_t R16(uint32_t a) {
@@ -487,214 +487,217 @@ static void PadGameKeysPort(CpuContext* ctx) {
 }
 
 // The pad module's other callers into the pointer (pad_pointer.cpp).
-namespace {
+// Disabled unported PAL constants for RMHJ08 (PollControllers/PadInit/PadConnectCallback are disabled below):
+// namespace {
+//
+// enum : uint32_t {
+//     kRingRead = 0x80796CD0,       // u16: the first Wii Remote sample of this step
+//     kRingLatest = 0x80796CD2,     // u16
+//     kPointerUsed = 0x80796CF5,    // u8: PadPointerStart this step
+//     kKpadReady = 0x80796CB0,      // u8: initKPAD done
+//     kWpadHeap = 0x80796CFC,       // the WPAD heap
+//     kWpadAllocator = 0x8066B8E8,  // MEMAllocator
+//     kExpHeapFunctions = 0x8079F730, // MEMAllocator functions for an expanded heap
+//     kMapSources = 0x80581650,     // u16[48]: kGcMap, kClassicMap, kRemoteMap as built in
+//     kGcLockReload = 0x2E4,        // Psw: kKeys + kKeyLockReload, mode 0
+// };
+//
+// enum : uint32_t {
+//     PADInit = 0x804A54C0,
+//     PADRead = 0x804A53F0,
+//     HeapCreate = 0x80041F00,          // (start, size) -> heap
+//     OSPanic = 0x804CDD30,
+//     WPADRegisterAllocator = 0x804EDC90, // (alloc, free)
+//     WPADInit = 0x804EDBB0,
+//     WPADSetConnectCallback = 0x804EF160,
+//     WPADSetExtensionCallback = 0x804EF1F0,
+//     WPADSetSamplingCallback = 0x804EF0D0,
+//     WPADSetAutoSamplingBuf = 0x804EFAC0, // (channel, buffer, count)
+//     WPADGetLatestIndexInBuf = 0x804EFC70,
+//     WPADIsMotorEnabled = 0x804EF6F0,
+//     WPADControlDpd = 0x804F1B20,
+//     WPADControlSpeaker = 0x804EFF80,
+//     WPADSetDataFormat = 0x804EF2A0,
+//     PadPointerTimeout = 0x80044C68,
+//     KpadInit = 0x800450AC,
+//     KpadReset = 0x800451DC,
+//     InitKpad = 0x80044CF0,            // initKPAD
+//     PadConnectCallback = 0x8004351C,
+//     PadExtensionCallback = 0x8004378C,
+//     PadSampled = 0x80043908,          // the sampling callback
+// };
+//
+// uint32_t InputFromElsewhere(GuestCall& game) {
+//     return game(Memory::Read32(kSystem + kInputSource), {kSystem});
+// }
+//
+// } // namespace
+//
+// static void PollControllersPort(CpuContext* ctx) {
+//     GuestFrame frame(ctx, 0x20);
+//     GuestCall game{ctx};
+//     Memory::Write16(kRingRead, Memory::Read16(kRingLatest));
+//     Memory::Write16(kRingLatest, uint16_t(game.Call<WPADGetLatestIndexInBuf>({0})));
+//     Memory::Write8(kSystem + kMotorOn, game.Call<WPADIsMotorEnabled>() != 0);
+//
+//     if (InputFromElsewhere(game) == 0)
+//         game.Call<PADRead>();
+//
+//     for (uint32_t channel = 0; channel < 4; ++channel) {
+//         game.Call<0x80042088>({channel});
+//         game.Call<0x800429A4>({channel});
+//         std::memcpy(Memory::GetPointer(kPsw + channel * kPswSize, 0x2E), Memory::GetPointer(kGcPad + channel * kPswSize, 0x2E), 0x2E);
+//     }
+//
+//     // The IR camera goes off after a while without the pointer.
+//     if (InputFromElsewhere(game) == 1) {
+//         Memory::Write8(kPointerUsed, 1);
+//     } else {
+//         game.Call<PadPointerTimeout>({0});
+//         Memory::Write8(kPointerUsed, 0);
+//     }
+// }
+//
+// static void PadInitPort(CpuContext* ctx) {
+//     GuestFrame frame(ctx, 0x40);
+//     GuestCall game{ctx};
+//     game.Call<PADInit>();
+//
+//     if (Memory::Read32(kWpadHeap) == 0) {
+//         Memory::Write32(kWpadHeap, game.Call<HeapCreate>({0x90308000, 0x40000}));
+//
+//         if (Memory::Read32(kWpadHeap) == 0) {
+//             ctx->cr &= ~(1u << (31 - 6)); // no float arguments
+//             game.Call<OSPanic>({0x805816B0, 464, 0x805816BC});
+//         }
+//     }
+//
+//     // MEMInitAllocatorForExpHeap (0x804C2B20, inlined), 32-byte aligned.
+//     Memory::Write32(kWpadAllocator, kExpHeapFunctions);
+//     Memory::Write32(kWpadAllocator + 4, Memory::Read32(kWpadHeap));
+//     Memory::Write32(kWpadAllocator + 8, 32);
+//     Memory::Write32(kWpadAllocator + 12, 0);
+//     game.Call<WPADRegisterAllocator>({0x80041AC8, 0x80041AD8});
+//     game.Call<WPADInit>();
+//     game.Call<KpadInit>();
+//
+//     for (uint32_t channel = 0; channel < 4; ++channel)
+//         game.Call<WPADSetConnectCallback>({channel, PadConnectCallback});
+//
+//     game.Call<0x804EDC60>({0x8004390C});
+//     game.Call<0x804EDC80>({0x8004391C});
+//     game.Call<0x804EF000>({5});
+//
+//     for (uint32_t i = 0; i < 48; ++i)
+//         W16(kGcMap + i * 2, R16(kMapSources + i * 2));
+//
+//     for (uint32_t channel = 0; channel < 4; ++channel) {
+//         const uint32_t pad = kPsw + channel * kPswSize;
+//         std::memset(Memory::GetPointer(pad, kPswSize), 0, kPswSize);
+//         std::memset(Memory::GetPointer(kGcPad + channel * kPswSize, kPswSize), 0, kPswSize);
+//         std::memset(Memory::GetPointer(kInfo + channel * 0x18, 0x18), 0, 0x18);
+//
+//         for (uint32_t i = 0; i < 16; ++i) {
+//             for (uint32_t axis = 0; axis < 3; ++axis) {
+//                 Memory::Write32(pad + kRemoteHistory + i * 12 + axis * 4, Memory::Read32(kFloatZero));
+//                 Memory::Write32(pad + kNunchukHistory + i * 12 + axis * 4, Memory::Read32(kFloatZero));
+//             }
+//         }
+//
+//         std::memset(Memory::GetPointer(pad + kGcLockReload, 16), 3, 16);
+//     }
+// }
+//
+// // WPAD's connect callback (channel, result): a remote that connected gets its
+// // data format and sampling ring for its extension, and the pointer's KPAD
+// // starts over.
+// static void PadConnectCallbackPort(CpuContext* ctx) {
+//     GuestFrame frame(ctx, 0x20);
+//     GuestCall game{ctx};
+//     const uint32_t channel = frame.Arg(3);
+//     const int32_t result = int32_t(frame.Arg(4));
+//     const uint32_t pad = kPsw + channel * kPswSize;
+//
+//     if (result == 0) {
+//         const bool elsewhere = InputFromElsewhere(game) == 1;
+//
+//         if (!elsewhere || Memory::Read8(kKpadReady) == 0) {
+//             game.Call<WPADSetExtensionCallback>({channel, PadExtensionCallback});
+//             game.Call<WPADSetSamplingCallback>({channel, PadSampled});
+//
+//             if (elsewhere)
+//                 game.Call<InitKpad>();
+//         }
+//
+//         const uint32_t device = frame[8];
+//         game.Call<WPADProbe>({channel, device});
+//         Memory::Write32(pad + kProbe, 0);
+//         const uint32_t type = Memory::Read32(device);
+//         uint32_t format = 0, ring = 0;
+//
+//         if (type - 0xFB <= 1 || type == 0) {
+//             format = 2;
+//             ring = 0x80667748 + channel * 4200;
+//         } else if (type == 1) {
+//             format = 5;
+//             ring = 0x80662928 + channel * 5000;
+//         } else if (type == 2) {
+//             format = 8;
+//             ring = 0x8065D4C8 + channel * 5400;
+//         }
+//
+//         if (ring) {
+//             game.Call<WPADControlDpd>({channel, 0, 0});
+//             game.Call<WPADSetDataFormat>({channel, format});
+//             game.Call<WPADSetAutoSamplingBuf>({channel, ring, 100});
+//             game.Call<WPADControlSpeaker>({channel, 0, 0});
+//         }
+//
+//         Memory::Write8(kSystem + kInfoWait + channel, 120);
+//     } else if (result == -1) {
+//         Memory::Write32(pad + kProbe, uint32_t(result));
+//         game.Call<PadCleared>({channel});
+//     } else {
+//         Memory::Write32(pad + kProbe, uint32_t(result));
+//     }
+//
+//     game.Call<KpadReset>();
+// }
 
-enum : uint32_t {
-    kRingRead = 0x80796CD0,       // u16: the first Wii Remote sample of this step
-    kRingLatest = 0x80796CD2,     // u16
-    kPointerUsed = 0x80796CF5,    // u8: PadPointerStart this step
-    kKpadReady = 0x80796CB0,      // u8: initKPAD done
-    kWpadHeap = 0x80796CFC,       // the WPAD heap
-    kWpadAllocator = 0x8066B8E8,  // MEMAllocator
-    kExpHeapFunctions = 0x8079F730, // MEMAllocator functions for an expanded heap
-    kMapSources = 0x80581650,     // u16[48]: kGcMap, kClassicMap, kRemoteMap as built in
-    kGcLockReload = 0x2E4,        // Psw: kKeys + kKeyLockReload, mode 0
-};
-
-enum : uint32_t {
-    PADInit = 0x804A54C0,
-    PADRead = 0x804A53F0,
-    HeapCreate = 0x80041F00,          // (start, size) -> heap
-    OSPanic = 0x804CDD30,
-    WPADRegisterAllocator = 0x804EDC90, // (alloc, free)
-    WPADInit = 0x804EDBB0,
-    WPADSetConnectCallback = 0x804EF160,
-    WPADSetExtensionCallback = 0x804EF1F0,
-    WPADSetSamplingCallback = 0x804EF0D0,
-    WPADSetAutoSamplingBuf = 0x804EFAC0, // (channel, buffer, count)
-    WPADGetLatestIndexInBuf = 0x804EFC70,
-    WPADIsMotorEnabled = 0x804EF6F0,
-    WPADControlDpd = 0x804F1B20,
-    WPADControlSpeaker = 0x804EFF80,
-    WPADSetDataFormat = 0x804EF2A0,
-    PadPointerTimeout = 0x80044C68,
-    KpadInit = 0x800450AC,
-    KpadReset = 0x800451DC,
-    InitKpad = 0x80044CF0,            // initKPAD
-    PadConnectCallback = 0x8004351C,
-    PadExtensionCallback = 0x8004378C,
-    PadSampled = 0x80043908,          // the sampling callback
-};
-
-uint32_t InputFromElsewhere(GuestCall& game) {
-    return game(Memory::Read32(kSystem + kInputSource), {kSystem});
-}
-
-} // namespace
-
-static void PollControllersPort(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x20);
-    GuestCall game{ctx};
-    Memory::Write16(kRingRead, Memory::Read16(kRingLatest));
-    Memory::Write16(kRingLatest, uint16_t(game.Call<WPADGetLatestIndexInBuf>({0})));
-    Memory::Write8(kSystem + kMotorOn, game.Call<WPADIsMotorEnabled>() != 0);
-
-    if (InputFromElsewhere(game) == 0)
-        game.Call<PADRead>();
-
-    for (uint32_t channel = 0; channel < 4; ++channel) {
-        game.Call<0x80042088>({channel});
-        game.Call<0x800429A4>({channel});
-        std::memcpy(Memory::GetPointer(kPsw + channel * kPswSize, 0x2E), Memory::GetPointer(kGcPad + channel * kPswSize, 0x2E), 0x2E);
-    }
-
-    // The IR camera goes off after a while without the pointer.
-    if (InputFromElsewhere(game) == 1) {
-        Memory::Write8(kPointerUsed, 1);
-    } else {
-        game.Call<PadPointerTimeout>({0});
-        Memory::Write8(kPointerUsed, 0);
-    }
-}
-
-static void PadInitPort(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x40);
-    GuestCall game{ctx};
-    game.Call<PADInit>();
-
-    if (Memory::Read32(kWpadHeap) == 0) {
-        Memory::Write32(kWpadHeap, game.Call<HeapCreate>({0x90308000, 0x40000}));
-
-        if (Memory::Read32(kWpadHeap) == 0) {
-            ctx->cr &= ~(1u << (31 - 6)); // no float arguments
-            game.Call<OSPanic>({0x805816B0, 464, 0x805816BC});
-        }
-    }
-
-    // MEMInitAllocatorForExpHeap (0x804C2B20, inlined), 32-byte aligned.
-    Memory::Write32(kWpadAllocator, kExpHeapFunctions);
-    Memory::Write32(kWpadAllocator + 4, Memory::Read32(kWpadHeap));
-    Memory::Write32(kWpadAllocator + 8, 32);
-    Memory::Write32(kWpadAllocator + 12, 0);
-    game.Call<WPADRegisterAllocator>({0x80041AC8, 0x80041AD8});
-    game.Call<WPADInit>();
-    game.Call<KpadInit>();
-
-    for (uint32_t channel = 0; channel < 4; ++channel)
-        game.Call<WPADSetConnectCallback>({channel, PadConnectCallback});
-
-    game.Call<0x804EDC60>({0x8004390C});
-    game.Call<0x804EDC80>({0x8004391C});
-    game.Call<0x804EF000>({5});
-
-    for (uint32_t i = 0; i < 48; ++i)
-        W16(kGcMap + i * 2, R16(kMapSources + i * 2));
-
-    for (uint32_t channel = 0; channel < 4; ++channel) {
-        const uint32_t pad = kPsw + channel * kPswSize;
-        std::memset(Memory::GetPointer(pad, kPswSize), 0, kPswSize);
-        std::memset(Memory::GetPointer(kGcPad + channel * kPswSize, kPswSize), 0, kPswSize);
-        std::memset(Memory::GetPointer(kInfo + channel * 0x18, 0x18), 0, 0x18);
-
-        for (uint32_t i = 0; i < 16; ++i) {
-            for (uint32_t axis = 0; axis < 3; ++axis) {
-                Memory::Write32(pad + kRemoteHistory + i * 12 + axis * 4, Memory::Read32(kFloatZero));
-                Memory::Write32(pad + kNunchukHistory + i * 12 + axis * 4, Memory::Read32(kFloatZero));
-            }
-        }
-
-        std::memset(Memory::GetPointer(pad + kGcLockReload, 16), 3, 16);
-    }
-}
-
-// WPAD's connect callback (channel, result): a remote that connected gets its
-// data format and sampling ring for its extension, and the pointer's KPAD
-// starts over.
-static void PadConnectCallbackPort(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x20);
-    GuestCall game{ctx};
-    const uint32_t channel = frame.Arg(3);
-    const int32_t result = int32_t(frame.Arg(4));
-    const uint32_t pad = kPsw + channel * kPswSize;
-
-    if (result == 0) {
-        const bool elsewhere = InputFromElsewhere(game) == 1;
-
-        if (!elsewhere || Memory::Read8(kKpadReady) == 0) {
-            game.Call<WPADSetExtensionCallback>({channel, PadExtensionCallback});
-            game.Call<WPADSetSamplingCallback>({channel, PadSampled});
-
-            if (elsewhere)
-                game.Call<InitKpad>();
-        }
-
-        const uint32_t device = frame[8];
-        game.Call<WPADProbe>({channel, device});
-        Memory::Write32(pad + kProbe, 0);
-        const uint32_t type = Memory::Read32(device);
-        uint32_t format = 0, ring = 0;
-
-        if (type - 0xFB <= 1 || type == 0) {
-            format = 2;
-            ring = 0x80667748 + channel * 4200;
-        } else if (type == 1) {
-            format = 5;
-            ring = 0x80662928 + channel * 5000;
-        } else if (type == 2) {
-            format = 8;
-            ring = 0x8065D4C8 + channel * 5400;
-        }
-
-        if (ring) {
-            game.Call<WPADControlDpd>({channel, 0, 0});
-            game.Call<WPADSetDataFormat>({channel, format});
-            game.Call<WPADSetAutoSamplingBuf>({channel, ring, 100});
-            game.Call<WPADControlSpeaker>({channel, 0, 0});
-        }
-
-        Memory::Write8(kSystem + kInfoWait + channel, 120);
-    } else if (result == -1) {
-        Memory::Write32(pad + kProbe, uint32_t(result));
-        game.Call<PadCleared>({channel});
-    } else {
-        Memory::Write32(pad + kProbe, uint32_t(result));
-    }
-
-    game.Call<KpadReset>();
-}
-
-extern "C" void func_80042088(CpuContext* ctx);
+extern "C" void func_80298E9C(CpuContext* ctx);
 extern "C" void MH3_PadReadWii(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PadReadWii", func_80042088, PadReadWiiPort);
+    PortCheck::Call(ctx, "PadReadWii", func_80298E9C, PadReadWiiPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80042088, MH3_PadReadWii, "PadReadWii");
+REGISTER_NATIVE_FUNCTION_AS(0x80298E9C, MH3_PadReadWii, "PadReadWii");
 
-extern "C" void func_800429A4(CpuContext* ctx);
-extern "C" void MH3_PadReadGc(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PadReadGc", func_800429A4, PadReadGcPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x800429A4, MH3_PadReadGc, "PadReadGc");
+// Disabled unported PAL address for RMHJ08:
+// extern "C" void func_800429A4(CpuContext* ctx);
+// extern "C" void MH3_PadReadGc(CpuContext* ctx) {
+//     PortCheck::Call(ctx, "PadReadGc", func_800429A4, PadReadGcPort);
+// }
+// REGISTER_NATIVE_FUNCTION_AS(0x800429A4, MH3_PadReadGc, "PadReadGc");
 
-extern "C" void func_80044368(CpuContext* ctx);
+extern "C" void func_8029AE00(CpuContext* ctx);
 extern "C" void MH3_PadGameKeys(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PadGameKeys", func_80044368, PadGameKeysPort);
+    PortCheck::Call(ctx, "PadGameKeys", func_8029AE00, PadGameKeysPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80044368, MH3_PadGameKeys, "PadGameKeys");
+REGISTER_NATIVE_FUNCTION_AS(0x8029AE00, MH3_PadGameKeys, "PadGameKeys");
 
-extern "C" void func_80041F6C(CpuContext* ctx);
-extern "C" void MH3_PollControllers(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PollControllers", func_80041F6C, PollControllersPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x80041F6C, MH3_PollControllers, "PollControllers");
-
-extern "C" void func_80041B08(CpuContext* ctx);
-extern "C" void MH3_PadInit(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PadInit", func_80041B08, PadInitPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x80041B08, MH3_PadInit, "PadInit");
-
-extern "C" void func_8004351C(CpuContext* ctx);
-extern "C" void MH3_PadConnectCallback(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PadConnectCallback", func_8004351C, PadConnectCallbackPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8004351C, MH3_PadConnectCallback, "PadConnectCallback");
+// Disabled unported PAL address for RMHJ08:
+// extern "C" void func_80041F6C(CpuContext* ctx);
+// extern "C" void MH3_PollControllers(CpuContext* ctx) {
+//     PortCheck::Call(ctx, "PollControllers", func_80041F6C, PollControllersPort);
+// }
+// REGISTER_NATIVE_FUNCTION_AS(0x80041F6C, MH3_PollControllers, "PollControllers");
+//
+// extern "C" void func_80041B08(CpuContext* ctx);
+// extern "C" void MH3_PadInit(CpuContext* ctx) {
+//     PortCheck::Call(ctx, "PadInit", func_80041B08, PadInitPort);
+// }
+// REGISTER_NATIVE_FUNCTION_AS(0x80041B08, MH3_PadInit, "PadInit");
+//
+// extern "C" void func_8004351C(CpuContext* ctx);
+// extern "C" void MH3_PadConnectCallback(CpuContext* ctx) {
+//     PortCheck::Call(ctx, "PadConnectCallback", func_8004351C, PadConnectCallbackPort);
+// }
+// REGISTER_NATIVE_FUNCTION_AS(0x8004351C, MH3_PadConnectCallback, "PadConnectCallback");

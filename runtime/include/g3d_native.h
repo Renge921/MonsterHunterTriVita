@@ -42,5 +42,9 @@ void ChrAnmResultGetMtx(uint32_t result, uint32_t out);         // 0x8008E6FC
 // 0x8008F440; scratch: 12 guest bytes
 void ChrAnmResultSetMtx(uint32_t result, uint32_t m, uint32_t scratch);
 
-uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node); // 0x800D7814
+// calc_world.cpp's per-node step, chosen by the model's scaling rule:
+//   rule 0 (no Maya compensation)   JPN 0x80533FE4, PAL 0x800D7814
+//   rule 1 (Maya segment scale)     JPN 0x80533470, PAL 0x800D7D88
+uint32_t WorldMtxNodeStep(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node);            // 0x800D7814
+uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node); // 0x800D7D88
 } // namespace G3dNative

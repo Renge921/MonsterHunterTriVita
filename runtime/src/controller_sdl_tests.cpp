@@ -88,6 +88,36 @@ int main() {
         Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_SOUTH, true), "press south");
         SDL_UpdateJoysticks();
         Check(ReadHostController().buttons == 0x40, "reconnect and Classic B mapping");
+        Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_SOUTH, false), "release south");
+
+        // Fast-forward toggle via L + Select (Back), with Select suppressed until released.
+        Check(!FastForwardEnabled(), "fast-forward disabled initially");
+        Check(SDL_SetJoystickVirtualAxis(stick, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 32767), "press left trigger for fast-forward");
+        Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_BACK, true), "press back for fast-forward");
+        SDL_UpdateJoysticks();
+        state = ReadHostController();
+        Check(FastForwardEnabled(), "fast-forward toggles on with L+Select");
+        Check(state.buttons == 0x2000, "Select suppressed when toggling fast-forward");
+        state = ReadHostController();
+        Check(FastForwardEnabled() && state.buttons == 0x2000, "holding L+Select keeps fast-forward on and Select suppressed");
+        Check(SDL_SetJoystickVirtualAxis(stick, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, -32768), "release left trigger while holding Select");
+        SDL_UpdateJoysticks();
+        state = ReadHostController();
+        Check(FastForwardEnabled() && state.buttons == 0, "Select remains suppressed after releasing L");
+        Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_BACK, false), "release back");
+        SDL_UpdateJoysticks();
+        Check(ReadHostController().buttons == 0, "released after fast-forward toggle");
+        Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_BACK, true), "press back alone");
+        SDL_UpdateJoysticks();
+        Check(!FastForwardEnabled() || ReadHostController().buttons == 0x1000, "Select passes through when pressed alone");
+        Check(SDL_SetJoystickVirtualAxis(stick, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, 32767), "press left trigger to toggle fast-forward off");
+        SDL_UpdateJoysticks();
+        state = ReadHostController();
+        Check(!FastForwardEnabled() && state.buttons == 0x2000, "fast-forward toggles off and Select suppressed");
+        Check(SDL_SetJoystickVirtualButton(stick, SDL_GAMEPAD_BUTTON_BACK, false), "release back off");
+        Check(SDL_SetJoystickVirtualAxis(stick, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, -32768), "release left trigger off");
+        SDL_UpdateJoysticks();
+
         Check(SDL_DetachVirtualJoystick(id), "detach reconnected gamepad");
         SDL_CloseJoystick(stick);
         SDL_UpdateJoysticks();

@@ -44,30 +44,30 @@
 extern "C" void MH3_Sqrt(CpuContext* ctx) {
     ctx->fpr[1].d = std::sqrt(ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804685FC, MH3_Sqrt, "sqrt");
+REGISTER_NATIVE_FUNCTION_AS(0x80465C4C, MH3_Sqrt, "sqrt");
 
 extern "C" void MH3_Sqrtf(CpuContext* ctx) {
     ctx->fpr[1].d = double(float(std::sqrt(ctx->fpr[1].d)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804645F4, MH3_Sqrtf, "sqrtf");
+REGISTER_NATIVE_FUNCTION_AS(0x80465E98, MH3_Sqrtf, "sqrtf");
 
 extern "C" void MH3_Atan2(CpuContext* ctx) {
     ctx->fpr[1].d = std::atan2(ctx->fpr[1].d, ctx->fpr[2].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80464BE0, MH3_Atan2, "atan2");
+REGISTER_NATIVE_FUNCTION_AS(0x804621B4, MH3_Atan2, "atan2");
 
 extern "C" void MH3_Atan2f(CpuContext* ctx) {
     ctx->fpr[1].d = double(float(std::atan2(ctx->fpr[1].d, ctx->fpr[2].d)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80464488, MH3_Atan2f, "atan2f");
+REGISTER_NATIVE_FUNCTION_AS(0x80465C3C, MH3_Atan2f, "atan2f");
 
 // SinCosRad: the angle in 1/256 turns (times 256 / 2 pi), its magnitude
 // wrapped below 65536 and cut to an index into the 256 entries {sin, cos,
 // dsin, dcos} at 0x805744A0; each value interpolated with the fraction (the
 // paired-single madd, one rounding) and the sine negated for a negative angle.
 void SinCosRadHost(double radians, float& sine, float& cosine) {
-    constexpr uint32_t kTable = 0x805744A0;
-    const float index = float(radians) * MemoryInline::FlatReadFloat32(0x8079FF60 - 31528); // 256 / 2 pi
+    constexpr uint32_t kTable = 0x8065AC80;
+    const float index = float(radians) * 40.7436637878418f; // 256 / 2 pi
     float magnitude = std::fabs(index);
 
     while (magnitude >= 65536.0f)
@@ -88,11 +88,11 @@ static void SinCosRadPort(CpuContext* ctx) {
     Memory::WriteFloat32(ctx->gpr[3], sine);
 }
 
-extern "C" void func_8009C7C4(CpuContext* ctx);
+extern "C" void func_80504D88(CpuContext* ctx);
 extern "C" void MH3_SinCosRad(CpuContext* ctx) {
-    PortCheck::Call(ctx, "SinCosRad", func_8009C7C4, SinCosRadPort);
+    PortCheck::Call(ctx, "SinCosRad", func_80504D88, SinCosRadPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009C7C4, MH3_SinCosRad, "SinCosRad");
+REGISTER_NATIVE_FUNCTION_AS(0x80504D88, MH3_SinCosRad, "SinCosRad");
 
 // 0x8009C838 (ef_util.cpp), called per particle by the field kinds 0, 4 and 6:
 // out = the Y axis of the rotation by the angles (x, y, z) radians,
@@ -103,11 +103,11 @@ REGISTER_NATIVE_FUNCTION_AS(0x8009C7C4, MH3_SinCosRad, "SinCosRad");
 // paired-single lanes' (float, and on ARM32 unfused, as the translated code
 // does them). Returns out. The registered body names only the registers it
 // uses, so translated callers call it directly.
-extern "C" void func_8009C838(CpuContext* ctx);
+extern "C" void func_80504DFC(CpuContext* ctx);
 namespace {
-constexpr uint32_t kSinCosTable = 0x805744A0;
-constexpr uint32_t kRad2Index = 0x80798438; // 256 / 2 pi
-constexpr uint32_t kIndexPeriod = 0x80798430;
+constexpr uint32_t kSinCosTable = 0x8065AC80;
+constexpr float kRad2Index = 40.7436637878418f; // 256 / 2 pi (PAL 0x80798438)
+constexpr float kIndexPeriod = 65536.0f;        // PAL 0x80798430
 
 struct SinCos {
     float s, c;
@@ -140,7 +140,7 @@ uint32_t RotationYAxis(uint32_t angles, uint32_t out) {
     // NW4R's pOut check always passes; the pointer is folded instead.
     out = GuestFlat::CachedAlias(out);
 
-    const float k = MemoryInline::FlatReadFloat32(kRad2Index), period = MemoryInline::FlatReadFloat32(kIndexPeriod);
+    const float k = kRad2Index, period = kIndexPeriod;
     const SinCos x = LookUp(MemoryInline::FlatReadFloat32(angles) * k, period);
     const SinCos y = LookUp(MemoryInline::FlatReadFloat32(angles + 4) * k, period);
     const SinCos z = LookUp(MemoryInline::FlatReadFloat32(angles + 8) * k, period);
@@ -165,7 +165,7 @@ uint32_t RotationYAxisChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
         c->gpr[1] = r1;
         c->gpr[3] = r3;
         c->gpr[4] = r4;
-        PortCheck::RunOutput(c, "RotationYAxis", func_8009C838, RotationYAxisPort, {{r4, 12}});
+        PortCheck::RunOutput(c, "RotationYAxis", func_80504DFC, RotationYAxisPort, {{r4, 12}});
         return c->gpr[3];
     }
 #else
@@ -178,7 +178,7 @@ uint32_t RotationYAxisChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_RotationYAxis(CpuContext* ctx) {
     ctx->gpr[3] = RotationYAxisChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009C838, MH3_RotationYAxis, "RotationYAxis");
+REGISTER_NATIVE_FUNCTION_AS(0x80504DFC, MH3_RotationYAxis, "RotationYAxis");
 
 namespace {
 // 0x8009CA94 (ef_util.cpp), the emitters' rotation and the particle managers'
@@ -189,7 +189,7 @@ namespace {
 // each sine and cosine looked up as RotationYAxis does, the products and
 // multiply-adds the paired-single lanes' in the original's grouping.
 void RotationMtx(uint32_t out, float x, float y, float z) {
-    const float k = MemoryInline::FlatReadFloat32(kRad2Index), period = MemoryInline::FlatReadFloat32(kIndexPeriod);
+    const float k = kRad2Index, period = kIndexPeriod;
     const SinCos rx = LookUp(x * k, period), ry = LookUp(y * k, period), rz = LookUp(z * k, period);
     const float m[12] = {
         rz.c * ry.c,
@@ -223,8 +223,8 @@ bool NormalizeHost(float v[3]) {
         return false;
 
     const double estimate = PPC_Frsqrte(length2);
-    const double half = PpcFmulsInline(estimate, MemoryInline::FlatReadFloat32(0x80798460));
-    const double step = PPC_Fnmsubs(PpcFmulsInline(estimate, estimate), length2, MemoryInline::FlatReadFloat32(0x80798464));
+    const double half = PpcFmulsInline(estimate, 0.5f);
+    const double step = PPC_Fnmsubs(PpcFmulsInline(estimate, estimate), length2, 3.0f);
     const float scale = float(PpcFmulsInline(step, half));
     v[0] = x * scale;
     v[1] = y * scale;
@@ -254,8 +254,8 @@ bool VecNormalize(uint32_t dst, uint32_t src) {
 // 0x8009C754 (ef_util.cpp): the sine and cosine of `radians` looked up as
 // RotationYAxis does, wrapped by the period at 0x80798468.
 SinCos SinCosByPeriod(double radians) {
-    const float index = float(radians) * MemoryInline::FlatReadFloat32(kRad2Index);
-    return LookUp(index, MemoryInline::FlatReadFloat32(0x80798468));
+    const float index = float(radians) * kRad2Index;
+    return LookUp(index, kIndexPeriod);
 }
 
 // 0x8009B4AC (ef_util.cpp): the rotation (no translation) taking the Y axis
@@ -267,16 +267,16 @@ SinCos SinCosByPeriod(double radians) {
 // 0x8079844C). It asserts |v| is 1 within 0x80798444 (the one and zero at
 // 0x80798440 and 0x8079843C).
 void MtxFromDirection(const float v[3], float m[12]) {
-    const float one = MemoryInline::FlatReadFloat32(0x80798440), zero = MemoryInline::FlatReadFloat32(0x8079843C);
+    const float one = 1.0f, zero = 0.0f;
     const float off = PsVec::Mag(v[0], v[1], v[2]) - one;
 
-    if (!(std::fabs(off) < MemoryInline::FlatReadFloat32(0x80798444)))
+    if (!(std::fabs(off) < 1.0e-5f))
         MH3_THROW(std::runtime_error("NW4R panic (ef_util.cpp:431): Failed assertion nw4r::math::FAbs(VECLen(v) - 1) < epsilon"));
 
     const float x = v[0], y = v[1], z = v[2];
     float a = one, b = zero, s = zero;
 
-    if (!(one - std::fabs(z) < MemoryInline::FlatReadFloat32(0x8079844C))) {
+    if (!(one - std::fabs(z) < 0x1.0p-23f)) {
         const float zz = z * z;
         s = Nw4rMath::FSqrt(one - zz);
         a = y / s;
@@ -294,7 +294,7 @@ void MtxFromDirection(const float v[3], float m[12]) {
 // three columns scaled by s, a zero component taken as 0x80798444; the
 // translation column kept. out may be m.
 void MtxScaleColumns(uint32_t out, uint32_t m, uint32_t scale) {
-    const float fallback = MemoryInline::FlatReadFloat32(0x80798444);
+    const float fallback = 1.0e-5f;
     float s[3];
 
     for (uint32_t c = 0; c < 3; ++c) {
@@ -320,7 +320,7 @@ void MtxScaleColumns(uint32_t out, uint32_t m, uint32_t scale) {
 // 0x8009CC84 (ef_util.cpp), the particle managers' wrap matrix: out = m with
 // its rows scaled by s (a zero component taken as 0x80798470). out may be m.
 void MtxScaleRows(uint32_t out, uint32_t scale, uint32_t m) {
-    const float fallback = MemoryInline::FlatReadFloat32(0x80798470);
+    const float fallback = 1.0e-5f;
     float v[12];
 
     for (uint32_t i = 0; i < 12; ++i)
@@ -415,62 +415,62 @@ void EfMtxFromDirection(const float v[3], float m[12]) {
 
 // MH3_PORT_CHECK=Name compares each port's output (and VecNormalize's r3) on
 // every call.
-extern "C" void func_8009CA94(CpuContext* ctx);
+extern "C" void func_80504F40(CpuContext* ctx);
 extern "C" void MH3_RotationMtx(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("RotationMtx")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "RotationMtx", func_8009CA94, RotationMtxPort, {{ctx->gpr[3], 48}});
+        return PortCheck::RunOutput(ctx, "RotationMtx", func_80504F40, RotationMtxPort, {{ctx->gpr[3], 48}});
 #endif
     RotationMtxPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009CA94, MH3_RotationMtx, "RotationMtx");
+REGISTER_NATIVE_FUNCTION_AS(0x80504F40, MH3_RotationMtx, "RotationMtx");
 
-extern "C" void func_8009C4E8(CpuContext* ctx);
+extern "C" void func_80504CB4(CpuContext* ctx);
 extern "C" void MH3_VecNormalize(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("VecNormalize")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "VecNormalize", PortCheck::Returns::Gpr3, func_8009C4E8, VecNormalizePort, {{ctx->gpr[3], 12}});
+        return PortCheck::RunOutput(ctx, "VecNormalize", PortCheck::Returns::Gpr3, func_80504CB4, VecNormalizePort, {{ctx->gpr[3], 12}});
 #endif
     VecNormalizePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009C4E8, MH3_VecNormalize, "VecNormalize");
+REGISTER_NATIVE_FUNCTION_AS(0x80504CB4, MH3_VecNormalize, "VecNormalize");
 
-extern "C" void func_8009CC04(CpuContext* ctx);
+extern "C" void func_805050AC(CpuContext* ctx);
 extern "C" void MH3_MtxScaleColumns(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("MtxScaleColumns")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "MtxScaleColumns", func_8009CC04, MtxScaleColumnsPort, {{ctx->gpr[3], 48}});
+        return PortCheck::RunOutput(ctx, "MtxScaleColumns", func_805050AC, MtxScaleColumnsPort, {{ctx->gpr[3], 48}});
 #endif
     MtxScaleColumnsPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009CC04, MH3_MtxScaleColumns, "MtxScaleColumns");
+REGISTER_NATIVE_FUNCTION_AS(0x805050AC, MH3_MtxScaleColumns, "MtxScaleColumns");
 
-extern "C" void func_8009CC84(CpuContext* ctx);
+extern "C" void func_8050512C(CpuContext* ctx);
 extern "C" void MH3_MtxScaleRows(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("MtxScaleRows")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "MtxScaleRows", func_8009CC84, MtxScaleRowsPort, {{ctx->gpr[3], 48}});
+        return PortCheck::RunOutput(ctx, "MtxScaleRows", func_8050512C, MtxScaleRowsPort, {{ctx->gpr[3], 48}});
 #endif
     MtxScaleRowsPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009CC84, MH3_MtxScaleRows, "MtxScaleRows");
+REGISTER_NATIVE_FUNCTION_AS(0x8050512C, MH3_MtxScaleRows, "MtxScaleRows");
 
-extern "C" void func_8009C754(CpuContext* ctx);
+extern "C" void func_80504D18(CpuContext* ctx);
 extern "C" void MH3_SinCosByPeriod(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("SinCosByPeriod")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "SinCosByPeriod", func_8009C754, SinCosByPeriodPort, {{ctx->gpr[3], 8}});
+        return PortCheck::RunOutput(ctx, "SinCosByPeriod", func_80504D18, SinCosByPeriodPort, {{ctx->gpr[3], 8}});
 #endif
     SinCosByPeriodPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009C754, MH3_SinCosByPeriod, "SinCosByPeriod");
+REGISTER_NATIVE_FUNCTION_AS(0x80504D18, MH3_SinCosByPeriod, "SinCosByPeriod");
 
-extern "C" void func_8009B4AC(CpuContext* ctx);
+extern "C" void func_80504468(CpuContext* ctx);
 extern "C" void MH3_MtxFromDirection(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("MtxFromDirection")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "MtxFromDirection", func_8009B4AC, MtxFromDirectionPort, {{ctx->gpr[3], 48}});
+        return PortCheck::RunOutput(ctx, "MtxFromDirection", func_80504468, MtxFromDirectionPort, {{ctx->gpr[3], 48}});
 #endif
     MtxFromDirectionPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009B4AC, MH3_MtxFromDirection, "MtxFromDirection");
+REGISTER_NATIVE_FUNCTION_AS(0x80504468, MH3_MtxFromDirection, "MtxFromDirection");

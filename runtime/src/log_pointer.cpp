@@ -35,11 +35,11 @@
 
 namespace {
 
-constexpr uint32_t kWork = 0x806BFE88;
+constexpr uint32_t kWork = 0x8073ACE0;
 
 // The pointing work.
 enum : uint32_t {
-    kEnabled = 0x00,     // u8: may open this step (0x802DB96C)
+    kEnabled = 0x00,     // u8: may open this step
     kState = 0x01,       // u8: 0 closed, 1 open, 2 over a target, 3 over one it can't take, 4 dragging
     kCursorX = 0x04,     // s16 screen pixels
     kCursorY = 0x06,
@@ -64,39 +64,39 @@ enum : uint32_t {
     kTargetRecord = 0x3C,
 };
 
-constexpr uint32_t kOptions = 0x8065B510;         // u8[]: get_option_cfg, inlined
-constexpr uint32_t kPointerX = 0x8066B938;        // f32 screen pixels (PadPointerSmooth)
-constexpr uint32_t kPointerY = 0x8066B93C;
-constexpr uint32_t kPointerValid = 0x80796CD4;    // s32: 1 on screen, 2 appeared this step
-constexpr uint32_t kRemoteSet = 0x8065B89A;       // Psw+0xCA: the Wii Remote's buttons, pressed at +4
-constexpr uint32_t kNunchukSet = 0x8065B8CC;      // Psw+0xFC
-constexpr uint32_t kLayoutTables = 0x806AF3A8;    // get_menu_lsp_tbl, inlined
+constexpr uint32_t kOptions = 0x8076944C;         // u8[]: get_option_cfg, inlined
+constexpr uint32_t kPointerX = 0x807645A0;        // f32 screen pixels (PadPointerSmooth)
+constexpr uint32_t kPointerY = 0x807645A4;
+constexpr uint32_t kPointerValid = 0x808A0404;    // s32: 1 on screen, 2 appeared this step
+constexpr uint32_t kRemoteSet = 0x807544F2;       // Psw+0xCA: the Wii Remote's buttons, pressed at +4
+constexpr uint32_t kNunchukSet = 0x80754524;      // Psw+0xFC
+constexpr uint32_t kLayoutTables = 0x8073CE18;    // get_menu_lsp_tbl, inlined
 
 enum : uint32_t {
-    PadPointerStart = 0x800440BC,
-    PadPointerRead = 0x80044DDC,
-    PadPointerReset = 0x80043C10,
-    GetControlType = 0x80043BAC,
-    GetScreenSize = 0x80040354,    // (MH_VEC2*)
-    WPADIsDpdEnabled = 0x804F1A30,
-    SubTransSetPrio = 0x800490D4,  // (priority, draw, 0, 0)
-    PlaySystemSound = 0x800DBC94,  // sysSE_req (id)
-    PointerSound = 0x800DBC7C,     // ()
-    MenuOpen = 0x8037695C,         // () -> 1: no remote buttons
-    PointerLogAllowed = 0x802DB96C, // () sets kEnabled
-    PointerLogHitTest = 0x802DBBF4, // () -> 1 over a target
-    PointerLogOverLog = 0x802DC5CC, // (s16* cursor) -> 1
-    PointerLogTargetLogged = 0x802DC8C0, // (target, record) -> 1, 2 refused; 0 takeable
-    MonsterLogged = 0x802DE560,    // (u8 id) -> nonzero
-    MonsterLog = 0x802DE510,       // (u8 id)
-    ListAdd = 0x8034C618,          // (record) -> 0 added, 1 there already, 2 full
-    ShowMessage = 0x8035B764,      // (1, message, 0)
-    LayoutFrames = 0x802E0BB8,     // (layout) -> u16
-    LayoutTableFrames = 0x802E0CE4, // (table) -> u16
-    ClearHitTargets = 0x8034CA24,  // ()
-    DrawCursor = 0x802DE2C4,
-    DrawTarget = 0x802DD7C4,
-    DrawLog = 0x802DD56C,
+    PadPointerStart = 0x8029A9FC,
+    PadPointerRead = 0x8029B87C,
+    PadPointerReset = 0x8029A744,
+    GetControlType = 0x8029A6D8,
+    GetScreenSize = 0x80033134,    // (MH_VEC2*)
+    WPADIsDpdEnabled = 0x80480FF4,
+    SubTransSetPrio = 0x802BFD6C,  // (priority, draw, 0, 0)
+    PlaySystemSound = 0x802B4C8C,  // sysSE_req (id)
+    PointerSound = 0x802B4A9C,     // ()
+    MenuOpen = 0x80271ABC,         // () -> 1: no remote buttons
+    PointerLogAllowed = 0x801885A8, // () sets kEnabled
+    PointerLogHitTest = 0x80188838, // () -> 1 over a target
+    PointerLogOverLog = 0x80189244, // (s16* cursor) -> 1
+    PointerLogTargetLogged = 0x80189524, // (target, record) -> 1, 2 refused; 0 takeable
+    MonsterLogged = 0x8018B9E0,    // (u8 id) -> nonzero
+    MonsterLog = 0x8018B998,       // (u8 id)
+    ListAdd = 0x801DE9BC,          // (record) -> 0 added, 1 there already, 2 full
+    ShowMessage = 0x801B2D44,      // (1, message, 0)
+    LayoutFrames = 0x801B4B54,     // (layout) -> u16
+    LayoutTableFrames = 0x801B4C80, // (table) -> u16
+    ClearHitTargets = 0x801DEE40,  // ()
+    DrawCursor = 0x8018B728,
+    DrawTarget = 0x8018A40C,
+    DrawLog = 0x8018A158,
 };
 
 // Sound effects.
@@ -359,7 +359,7 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
         game.Call<SubTransSetPrio>({7, DrawTarget, 0, 0});
         game.Call<SubTransSetPrio>({10, DrawLog, 0, 0});
         const uint32_t pressedAt = frame[8], heldAt = frame[10];
-        game.Call<0x802DC954>({heldAt, pressedAt});
+        game.Call<0x801895BC>({heldAt, pressedAt});
         const auto held = [&] {
             return uint32_t(Memory::Read16(heldAt));
         };
@@ -371,7 +371,7 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
         bool open = false;
 
         if (R8(kBHeld) == 0) {
-            if (game.Call<0x802DC9F4>({held()}) == 1) {
+            if (game.Call<0x80189660>({held()}) == 1) {
                 open = true;
                 game.Call<PadPointerReset>();
                 game.Call<PointerSound>();
@@ -379,7 +379,7 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
                 W8(kBHeld, 1);
             }
         } else {
-            open = game.Call<0x802DC9F4>({held()}) == 1;
+            open = game.Call<0x80189660>({held()}) == 1;
         }
 
         // It stays open while it opens.
@@ -390,11 +390,11 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
             W8(kBHeld, 0);
         } else {
             if (PointerByPad())
-                game.Call<0x802DCB60>({kWork, held()});
+                game.Call<0x801897A4>({kWork, held()});
             else
-                game.Call<0x802DCDBC>({kWork});
+                game.Call<0x801899CC>({kWork});
 
-            if (game.Call<0x802DBB84>() == 1) {
+            if (game.Call<0x801887C8>() == 1) {
                 W8(kActive, 1);
                 bool blink = false;
 
@@ -402,7 +402,7 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
                     blink |= AdvanceFrames(game);
 
                 const auto grab = [&] {
-                    return game.Call<0x802DCA78>({kWork, held(), pressed()}) == 1;
+                    return game.Call<0x801896D8>({kWork, held(), pressed()}) == 1;
                 };
 
                 switch (R8(kState)) {
@@ -544,17 +544,17 @@ static void PointerLogUpdatePort(CpuContext* ctx) {
         PortCheck::Call(ctx, #name, func_##address, name##Port);                                                                                                                                       \
     }
 
-MH3_LOG_POINTER_PORT(802DB354, PointerLogUpdate)
-REGISTER_NATIVE_FUNCTION_AS(0x802DB354, MH3_PointerLogUpdate, "PointerLogUpdate");
-MH3_LOG_POINTER_PORT(802DCDBC, PointerLogCursor)
-REGISTER_NATIVE_FUNCTION_AS(0x802DCDBC, MH3_PointerLogCursor, "PointerLogCursor");
-MH3_LOG_POINTER_PORT(802DCB60, PointerLogPadCursor)
-REGISTER_NATIVE_FUNCTION_AS(0x802DCB60, MH3_PointerLogPadCursor, "PointerLogPadCursor");
-MH3_LOG_POINTER_PORT(802DBB84, PointerLogIrReady)
-REGISTER_NATIVE_FUNCTION_AS(0x802DBB84, MH3_PointerLogIrReady, "PointerLogIrReady");
-MH3_LOG_POINTER_PORT(802DC954, PointerLogButtons)
-REGISTER_NATIVE_FUNCTION_AS(0x802DC954, MH3_PointerLogButtons, "PointerLogButtons");
-MH3_LOG_POINTER_PORT(802DC9F4, PointerLogOpenHeld)
-REGISTER_NATIVE_FUNCTION_AS(0x802DC9F4, MH3_PointerLogOpenHeld, "PointerLogOpenHeld");
-MH3_LOG_POINTER_PORT(802DCA78, PointerLogGrab)
-REGISTER_NATIVE_FUNCTION_AS(0x802DCA78, MH3_PointerLogGrab, "PointerLogGrab");
+MH3_LOG_POINTER_PORT(80187FA0, PointerLogUpdate)
+REGISTER_NATIVE_FUNCTION_AS(0x80187FA0, MH3_PointerLogUpdate, "PointerLogUpdate");
+MH3_LOG_POINTER_PORT(801899CC, PointerLogCursor)
+REGISTER_NATIVE_FUNCTION_AS(0x801899CC, MH3_PointerLogCursor, "PointerLogCursor");
+MH3_LOG_POINTER_PORT(801897A4, PointerLogPadCursor)
+REGISTER_NATIVE_FUNCTION_AS(0x801897A4, MH3_PointerLogPadCursor, "PointerLogPadCursor");
+MH3_LOG_POINTER_PORT(801887C8, PointerLogIrReady)
+REGISTER_NATIVE_FUNCTION_AS(0x801887C8, MH3_PointerLogIrReady, "PointerLogIrReady");
+MH3_LOG_POINTER_PORT(801895BC, PointerLogButtons)
+REGISTER_NATIVE_FUNCTION_AS(0x801895BC, MH3_PointerLogButtons, "PointerLogButtons");
+MH3_LOG_POINTER_PORT(80189660, PointerLogOpenHeld)
+REGISTER_NATIVE_FUNCTION_AS(0x80189660, MH3_PointerLogOpenHeld, "PointerLogOpenHeld");
+MH3_LOG_POINTER_PORT(801896D8, PointerLogGrab)
+REGISTER_NATIVE_FUNCTION_AS(0x801896D8, MH3_PointerLogGrab, "PointerLogGrab");

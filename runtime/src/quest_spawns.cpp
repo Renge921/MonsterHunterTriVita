@@ -671,106 +671,106 @@ extern "C" void func_80125FB8(CpuContext* ctx);
 extern "C" void MH3_VecInit(CpuContext* ctx) {
     PortCheck::Call(ctx, "VecInit", func_80125FB8, VecInitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80125FB8, MH3_VecInit, "VecInit");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80125FB8, MH3_VecInit, "VecInit");
 
 extern "C" void func_801423C0(CpuContext* ctx);
 extern "C" void MH3_TakeEnemyWork(CpuContext* ctx) {
     PortCheck::Call(ctx, "TakeEnemyWork", PortCheck::Returns::Gpr3, func_801423C0, TakeEnemyWorkPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801423C0, MH3_TakeEnemyWork, "TakeEnemyWork");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801423C0, MH3_TakeEnemyWork, "TakeEnemyWork");
 
 extern "C" void func_80142444(CpuContext* ctx);
 extern "C" void MH3_CopySpawnRecord(CpuContext* ctx) {
     PortCheck::Call(ctx, "CopySpawnRecord", func_80142444, CopySpawnRecordPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80142444, MH3_CopySpawnRecord, "CopySpawnRecord");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80142444, MH3_CopySpawnRecord, "CopySpawnRecord");
 
 extern "C" void func_801425F4(CpuContext* ctx);
 extern "C" void MH3_SetEnemyRecord(CpuContext* ctx) {
     PortCheck::Call(ctx, "SetEnemyRecord", func_801425F4, SetEnemyRecordPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801425F4, MH3_SetEnemyRecord, "SetEnemyRecord");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801425F4, MH3_SetEnemyRecord, "SetEnemyRecord");
 
 extern "C" void func_801427F0(CpuContext* ctx);
 extern "C" void MH3_SpawnArea(CpuContext* ctx) {
     PortCheck::Call(ctx, "SpawnArea", PortCheck::Returns::Gpr3, func_801427F0, SpawnAreaPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801427F0, MH3_SpawnArea, "SpawnArea");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801427F0, MH3_SpawnArea, "SpawnArea");
 
 extern "C" void func_801429BC(CpuContext* ctx);
 extern "C" void MH3_SpawnAngle(CpuContext* ctx) {
     PortCheck::Call(ctx, "SpawnAngle", PortCheck::Returns::Fpr1, func_801429BC, SpawnAnglePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801429BC, MH3_SpawnAngle, "SpawnAngle");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801429BC, MH3_SpawnAngle, "SpawnAngle");
 
 extern "C" void func_80142BD8(CpuContext* ctx);
 extern "C" void MH3_NewEnemy(CpuContext* ctx) {
     PortCheck::Call(ctx, "NewEnemy", PortCheck::Returns::Gpr3, func_80142BD8, NewEnemyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80142BD8, MH3_NewEnemy, "NewEnemy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80142BD8, MH3_NewEnemy, "NewEnemy");
 
 extern "C" void func_80142C24(CpuContext* ctx);
 extern "C" void MH3_CreateQuestEnemy(CpuContext* ctx) {
     PortCheck::Call(ctx, "CreateQuestEnemy", PortCheck::Returns::Gpr3, func_80142C24, CreateQuestEnemyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80142C24, MH3_CreateQuestEnemy, "CreateQuestEnemy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80142C24, MH3_CreateQuestEnemy, "CreateQuestEnemy");
 
 extern "C" void func_80142D4C(CpuContext* ctx);
 extern "C" void MH3_SpawnLive(CpuContext* ctx) {
     PortCheck::Call(ctx, "SpawnLive", func_80142D4C, SpawnLivePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80142D4C, MH3_SpawnLive, "SpawnLive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80142D4C, MH3_SpawnLive, "SpawnLive");
 
 extern "C" void func_801434A0(CpuContext* ctx);
 extern "C" void MH3_TakeSummonEntry(CpuContext* ctx) {
     PortCheck::Call(ctx, "TakeSummonEntry", PortCheck::Returns::Gpr3, func_801434A0, TakeSummonEntryPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801434A0, MH3_TakeSummonEntry, "TakeSummonEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801434A0, MH3_TakeSummonEntry, "TakeSummonEntry");
 
 extern "C" void func_80143578(CpuContext* ctx);
 extern "C" void MH3_InitSummonEntry(CpuContext* ctx) {
     PortCheck::Call(ctx, "InitSummonEntry", func_80143578, InitSummonEntryPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80143578, MH3_InitSummonEntry, "InitSummonEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80143578, MH3_InitSummonEntry, "InitSummonEntry");
 
 extern "C" void func_8014365C(CpuContext* ctx);
 extern "C" void MH3_NewSummonEntry(CpuContext* ctx) {
     PortCheck::Call(ctx, "NewSummonEntry", PortCheck::Returns::Gpr3, func_8014365C, NewSummonEntryPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014365C, MH3_NewSummonEntry, "NewSummonEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8014365C, MH3_NewSummonEntry, "NewSummonEntry");
 
 extern "C" void func_801436B8(CpuContext* ctx);
 extern "C" void MH3_SpawnHeld(CpuContext* ctx) {
     PortCheck::Call(ctx, "SpawnHeld", PortCheck::Returns::Gpr3, func_801436B8, SpawnHeldPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801436B8, MH3_SpawnHeld, "SpawnHeld");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x801436B8, MH3_SpawnHeld, "SpawnHeld");
 
 extern "C" void func_80143A18(CpuContext* ctx);
 extern "C" void MH3_HoldSummon(CpuContext* ctx) {
     PortCheck::Call(ctx, "HoldSummon", PortCheck::Returns::Gpr3, func_80143A18, HoldSummonPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80143A18, MH3_HoldSummon, "HoldSummon");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80143A18, MH3_HoldSummon, "HoldSummon");
 
 extern "C" void func_80141BEC(CpuContext* ctx);
 extern "C" void MH3_SummonRelease(CpuContext* ctx) {
     PortCheck::Call(ctx, "SummonRelease", PortCheck::Returns::Gpr3, func_80141BEC, SummonReleasePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80141BEC, MH3_SummonRelease, "SummonRelease");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80141BEC, MH3_SummonRelease, "SummonRelease");
 
 extern "C" void func_80141E20(CpuContext* ctx);
 extern "C" void MH3_SummonedCount(CpuContext* ctx) {
     PortCheck::Call(ctx, "SummonedCount", PortCheck::Returns::Gpr3, func_80141E20, SummonedCountPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80141E20, MH3_SummonedCount, "SummonedCount");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80141E20, MH3_SummonedCount, "SummonedCount");
 
 extern "C" void func_80126B34(CpuContext* ctx);
 extern "C" void MH3_SummonReaches(CpuContext* ctx) {
     PortCheck::Call(ctx, "SummonReaches", PortCheck::Returns::Gpr3, func_80126B34, SummonReachesPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80126B34, MH3_SummonReaches, "SummonReaches");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80126B34, MH3_SummonReaches, "SummonReaches");
 
 extern "C" void func_8012E76C(CpuContext* ctx);
 extern "C" void MH3_EnemyKindOf(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyKindOf", PortCheck::Returns::Gpr3, func_8012E76C, EnemyKindOfPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012E76C, MH3_EnemyKindOf, "EnemyKindOf");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012E76C, MH3_EnemyKindOf, "EnemyKindOf");

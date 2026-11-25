@@ -21,15 +21,14 @@
 namespace {
 
 enum : uint32_t {
-    MasterCheck = 0x8026FE38,      // Pl_master_ck(PLW*) -> 1 for the local player
-    ActionCheck = 0x8026FECC,      // Pl_act_ck(PLW*, u8 kind, u16 action) -> 1
-    ActionFlagCheck = 0x8026FEFC,  // (PLW*, flags) -> nonzero
-    TurnLocked = 0x8027A3A4,       // (PLW*) -> 1: pitch holds
-    MotionNo = 0x8026A36C,         // Get_motion_no(PLW*) -> u16
-    AddTurnBlend = 0x802602AC,     // (PLW*, mode, s16 amount): +0x648, within +-100
-    BlendFrame = 0x8026A3B0,       // (PLW*; f1 blend) -> f1 frame
-    SetChannelMotion = 0x8026A294, // (PLW*, channel, motion, 0, s16 frame)
-    SetChannelWeight = 0x8026A2A0, // (PLW*, channel; f1 weight)
+    MasterCheck = 0x8033DBA4,      // Pl_master_ck(PLW*) -> 1 for the local player
+    ActionCheck = 0x8033DC3C,      // Pl_act_ck(PLW*, u8 kind, u16 action) -> 1
+    ActionFlagCheck = 0x8033DC64,  // (PLW*, flags) -> nonzero
+    TurnLocked = 0x8034A61C,       // (PLW*) -> 1: pitch holds
+    MotionNo = 0x803385C8,         // Get_motion_no(PLW*) -> u16
+    BlendFrame = 0x8033860C,       // (PLW*; f1 blend) -> f1 frame
+    SetChannelMotion = 0x803382F0, // (PLW*, channel, motion, 0, s16 frame)
+    SetChannelWeight = 0x80338414, // (PLW*, channel; f1 weight)
 };
 
 enum : uint32_t {
@@ -45,10 +44,23 @@ enum : uint32_t {
     kTurnBlend = 0x648, // s16, -100..100
 };
 
-constexpr uint32_t kOne = 0x8079C2C8;          // f32 1.0
-constexpr uint32_t kZero = 0x8079C2C0;         // f32 0.0
-constexpr uint32_t kBlendPerUnit = 0x8079C48C; // f32 0.01
-constexpr uint32_t kMinusOne = 0x8079C310;     // f32 -1.0
+constexpr uint32_t kOne = 0x808A7070;          // f32 1.0
+constexpr uint32_t kZero = 0x808A7068;         // f32 0.0
+constexpr uint32_t kBlendPerUnit = 0x808A7230; // f32 0.01
+constexpr uint32_t kMinusOne = 0x808A70B8;     // f32 -1.0
+
+inline void AddTurnBlendHost(uint32_t plw, uint32_t mode, int32_t amount) {
+    // 0x802602AC in PAL (inlined in RMHJ08): advance +0x648 within [-100, 100]; mode 1 zeros on sign flip.
+    const int32_t prev = int16_t(Memory::Read16(plw + kTurnBlend));
+    int32_t cur = int16_t(prev + amount);
+    if (cur <= -100)
+        cur = -100;
+    else if (cur >= 100)
+        cur = 100;
+    if (mode == 1 && prev * cur < 0)
+        cur = 0;
+    Memory::Write16(plw + kTurnBlend, uint16_t(cur));
+}
 
 struct Plw {
     uint32_t base;
@@ -139,7 +151,7 @@ static void PlayerTurnPort(CpuContext* ctx) {
     const uint32_t motion = game.Call<MotionNo>({p.base}) & 0xFFFF;
     const int32_t lean = motion == 3 ? 128 : motion == 4 ? 160 : 0;
     auto blend = [&](uint32_t mode, int32_t amount) {
-        game.Call<AddTurnBlend>({p.base, mode, Share(amount)});
+        AddTurnBlendHost(p.base, mode, Share(amount));
     };
 
     uint32_t diff = 0;
@@ -257,12 +269,14 @@ static void VillagePlayerTurnPort(CpuContext* ctx) {
     ClampLean(p);
 }
 
+extern "C" void func_8032DB8C(CpuContext* ctx);
 extern "C" void MH3_PlayerTurn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PlayerTurn", func_80260304, PlayerTurnPort);
+    PortCheck::Call(ctx, "PlayerTurn", func_8032DB8C, PlayerTurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80260304, MH3_PlayerTurn, "PlayerTurn");
+REGISTER_NATIVE_FUNCTION_AS(0x8032DB8C, MH3_PlayerTurn, "PlayerTurn");
 
+extern "C" void func_80251BB8(CpuContext* ctx);
 extern "C" void MH3_VillagePlayerTurn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "VillagePlayerTurn", func_8020A258, VillagePlayerTurnPort);
+    PortCheck::Call(ctx, "VillagePlayerTurn", func_80251BB8, VillagePlayerTurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8020A258, MH3_VillagePlayerTurn, "VillagePlayerTurn");
+REGISTER_NATIVE_FUNCTION_AS(0x80251BB8, MH3_VillagePlayerTurn, "VillagePlayerTurn");

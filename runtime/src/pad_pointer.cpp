@@ -58,7 +58,7 @@
 
 namespace {
 
-constexpr uint32_t kKpad = 0x8065D310; // KPADInsideStatus, 0x1B8 bytes
+constexpr uint32_t kKpad = 0x80755F68; // KPADInsideStatus, 0x1B8 bytes
 
 // KPADInsideStatus.
 enum : uint32_t {
@@ -123,75 +123,75 @@ enum : uint32_t {
 
 // kpad.c's tunables (small data).
 enum : uint32_t {
-    kDistUnitInit = 0x80793348,       // f32 1.0
-    kScreenRotationInit = 0x80793350, // VEC2
-    kSensorRotationInit = 0x80793358, // VEC2
-    kObjInterval = 0x80793360,        // f32 0.2
-    kAccHorizonPw = 0x80793364,       // f32 0.05
-    kAhCirclePw = 0x80793368,         // f32 0.06
-    kAhCircleCt = 0x8079336C,         // u16 100
-    kAhCircleRadius = 0x80793370,     // f32 0.07
-    kErrOutsideFrame = 0x80793374,    // f32 0.05
-    kErrDistMax = 0x80793378,         // f32: 1 + the IR sensitivity (KpadInit)
-    kErrDistSpeed = 0x8079337C,       // f32 0.04
-    kErrFirstInpr = 0x80793380,       // f32 0.9
-    kErrNextInpr = 0x80793384,        // f32 0.9
-    kErrAccInpr = 0x80793388,         // f32 0.9
-    kErrUpInpr = 0x8079338C,          // f32 0.7
-    kErrNearPos = 0x80793390,         // f32 0.1
-    kAccMax = 0x80793394,             // f32 3.4
-    kCenterInit = 0x80796CB8,         // VEC2
-    kErrDistMin = 0x80796CC0,         // f32: interval / tan (KpadInit)
-    kDistScaleInit = 0x80796CC4,
-    kVec2Zero = 0x80796CC8,
-    kTanHalfView = 0x80798000,        // f32 0.383864
-    kNoGravityScale = 0x80797FF0,     // f32 0.01
-    kUnitGravity = 0x80797FE8,        // s16[3] (1, 1, 1)
+    kDistUnitInit = 0x8089E3B8,       // f32 1.0
+    kScreenRotationInit = 0x8089E3C0, // VEC2
+    kSensorRotationInit = 0x8089E3C8, // VEC2
+    kObjInterval = 0x8089E3D0,        // f32 0.2
+    kAccHorizonPw = 0x8089E3D4,       // f32 0.05
+    kAhCirclePw = 0x8089E3D8,         // f32 0.06
+    kAhCircleCt = 0x8089E3DC,         // u16 100
+    kAhCircleRadius = 0x8089E3E0,     // f32 0.07
+    kErrOutsideFrame = 0x8089E3E4,    // f32 0.05
+    kErrDistMax = 0x8089E3E8,         // f32: 1 + the IR sensitivity (KpadInit)
+    kErrDistSpeed = 0x8089E3EC,       // f32 0.04
+    kErrFirstInpr = 0x8089E3F0,       // f32 0.9
+    kErrNextInpr = 0x8089E3F4,        // f32 0.9
+    kErrAccInpr = 0x8089E3F8,         // f32 0.9
+    kErrUpInpr = 0x8089E3FC,          // f32 0.7
+    kErrNearPos = 0x8089E400,         // f32 0.1
+    kAccMax = 0x8089E404,             // f32 3.4
+    kCenterInit = 0x808A03E8,         // VEC2
+    kErrDistMin = 0x808A03F0,         // f32: interval / tan (KpadInit)
+    kDistScaleInit = 0x808A03F4,
+    kVec2Zero = 0x808A03F8,
+    kTanHalfView = 0x808A6BA8,        // f32 0.383864
+    kNoGravityScale = 0x808A6B98,     // f32 0.01
+    kUnitGravity = 0x808A6B90,        // s16[3] (1, 1, 1)
 };
 
 // The game's pointer (small data).
 enum : uint32_t {
-    kRingRead = 0x80796CD0,       // u16: the first sample of this step
-    kRingLatest = 0x80796CD2,     // u16
-    kPointerValid = 0x80796CD4,   // s32: 0 none, 1 on screen, 2 appeared this step
-    kPointerWasValid = 0x80796CD8,
-    kCentreX = 0x80796CDC,        // f32 half the screen
-    kCentreY = 0x80796CE0,
-    kCentreCopy = 0x80796CE4,     // f32[2]
-    kPointerX = 0x80796CEC,       // f32 -1..1
-    kPointerY = 0x80796CF0,
-    kIrOn = 0x80796CF4,           // u8
-    kPointerUsed = 0x80796CF5,    // u8: PadPointerStart this step
-    kIrOffWait = 0x80796CF8,      // s32 steps (ticks here)
-    kPointerStarted = 0x80796D08, // u8
-    kPointerD0C = 0x80796D0C,     // s32
-    kPointerD10 = 0x80796D10,     // s16[4]
-    kGap = 0x80796D18,            // f32: the cursor's distance to the pointer
-    kDeadZone = 0x80796D1C,       // f32 8 pixels
-    kPointerFrozen = 0x80796D20,  // u8
-    kPointerD21 = 0x80796D21,     // u8
+    kRingRead = 0x808A0400,       // u16: the first sample of this step
+    kRingLatest = 0x808A0402,     // u16
+    kPointerValid = 0x808A0404,   // s32: 0 none, 1 on screen, 2 appeared this step
+    kPointerWasValid = 0x808A0408,
+    kCentreX = 0x808A040C,        // f32 half the screen
+    kCentreY = 0x808A0410,
+    kCentreCopy = 0x808A0414,     // f32[2]
+    kPointerX = 0x808A041C,       // f32 -1..1
+    kPointerY = 0x808A0420,
+    kIrOn = 0x808A0424,           // u8
+    kPointerUsed = 0x808A0425,    // u8: PadPointerStart this step
+    kIrOffWait = 0x808A0428,      // s32 steps (ticks here)
+    kPointerStarted = 0x808A0438, // u8
+    kPointerD0C = 0x808A043C,     // s32
+    kPointerD10 = 0x808A0440,     // s16[4]
+    kGap = 0x808A0448,            // f32: the cursor's distance to the pointer
+    kDeadZone = 0x808A044C,       // f32 8 pixels
+    kPointerFrozen = 0x808A0450,  // u8
+    kPointerD21 = 0x808A0451,     // u8
 };
 
-constexpr uint32_t kHistoryX = 0x8066B8F8, kHistoryY = 0x8066B918; // s16[16] screen pixels
-constexpr uint32_t kCursor = 0x8066B938, kCursorVel = 0x8066B944;  // VEC2 screen pixels
-constexpr uint32_t kScreenWidth = 0x8065B4C0, kScreenHeight = 0x8065B4C4;
-constexpr uint32_t kCursorEase = 0x80797FD8; // f32 0.25
-constexpr uint32_t kDeadZoneInit = 0x80797FD4; // f32 8.0
+constexpr uint32_t kHistoryX = 0x80764560, kHistoryY = 0x80764580; // s16[16] screen pixels
+constexpr uint32_t kCursor = 0x807645A0, kCursorVel = 0x807645AC;  // VEC2 screen pixels
+constexpr uint32_t kScreenWidth = 0x807693FC, kScreenHeight = 0x80769400;
+constexpr uint32_t kCursorEase = 0x808A6B80; // f32 0.25
+constexpr uint32_t kDeadZoneInit = 0x808A6B7C; // f32 8.0
 
 // The Wii Remote samples (WPADSetAutoSamplingBuf), 100 each.
-constexpr uint32_t kClassicRing = 0x8065D4C8, kClassicSampleSize = 0x36;
-constexpr uint32_t kNunchukRing = 0x80662928, kNunchukSampleSize = 0x32;
+constexpr uint32_t kClassicRing = 0x80756120, kClassicSampleSize = 0x36;
+constexpr uint32_t kNunchukRing = 0x8075B580, kNunchukSampleSize = 0x32;
 constexpr uint32_t kRingLength = 100;
 
 enum : uint32_t {
-    GetControlType = 0x80043BAC,       // get_ControlType (channel) -> u8: 0 remote, 1 Nunchuk, 2 Classic, 255 none
-    WPADGetDataFormat = 0x804EF250,    // (channel) -> format
-    WPADGetAccGravityUnit = 0x804EEE30, // (channel, 0, s16[3]*)
-    WPADIsDpdEnabled = 0x804F1A30,     // (channel) -> 0/1
-    WPADControlDpd = 0x804F1B20,       // (channel, command, callback) -> 0 done
-    WPADSetDataFormat = 0x804EF2A0,    // (channel, format)
-    WPADGetDpdSensitivity = 0x804F19F0, // () -> u8
-    WPADGetSensorBarPosition = 0x804EDD00, // () -> u8: 1 above the screen
+    GetControlType = 0x8029A6D8,       // get_ControlType (channel) -> u8: 0 remote, 1 Nunchuk, 2 Classic, 255 none
+    WPADGetDataFormat = 0x8047E928,    // (channel) -> format
+    WPADGetAccGravityUnit = 0x8047E540, // (channel, 0, s16[3]*)
+    WPADIsDpdEnabled = 0x80480FF4,     // (channel) -> 0/1
+    WPADControlDpd = 0x804810C8,       // (channel, command, callback) -> 0 done
+    WPADSetDataFormat = 0x8047E96C,    // (channel, format)
+    WPADGetDpdSensitivity = 0x80480FC0, // () -> u8
+    WPADGetSensorBarPosition = 0x8047D448, // () -> u8: 1 above the screen
 };
 
 float Float(uint32_t a) {
@@ -1088,11 +1088,11 @@ static void PadPointerStartPort(CpuContext* ctx) {
         break;
     }
     case 1:
-        game.Call<0x80044BA0>({0});
+        game.Call<0x8029B5F4>({0});
 
         if (Memory::Read32(kPointerValid) != 0 && Memory::Read8(kPointerFrozen) == 0) {
-            game.Call<0x80043F10>();
-            game.Call<0x80043D1C>();
+            PadPointerToScreenPort(ctx);
+            game.Call<0x8029A84C>();
         }
 
         break;
@@ -1138,10 +1138,6 @@ static void KpadResetPort(CpuContext*) {
     KpadReset();
 }
 
-static void KpadPosScalePort(CpuContext* ctx) {
-    KpadPosScale(ctx->gpr[3]);
-}
-
 static void KpadReadAccPort(CpuContext* ctx) {
     KpadReadAcc(ctx->gpr[3]);
 }
@@ -1156,22 +1152,6 @@ static void KpadAccHorizonPort(CpuContext* ctx) {
 
 static void KpadAccVerticalPort(CpuContext* ctx) {
     KpadAccVertical(ctx->gpr[3]);
-}
-
-static void KpadGetObjectsPort(CpuContext* ctx) {
-    KpadGetObjects(ctx->gpr[3], ctx->gpr[4]);
-}
-
-static void KpadObjectsOutsidePort(CpuContext* ctx) {
-    KpadObjectsOutside(ctx->gpr[3], ctx->gpr[4]);
-}
-
-static void KpadObjectsSamePort(CpuContext* ctx) {
-    KpadObjectsSame(ctx->gpr[3]);
-}
-
-static void KpadPairHorizonPort(CpuContext* ctx) {
-    KpadPairHorizon(ctx->gpr[3]);
 }
 
 static void KpadDpdVariablePort(CpuContext* ctx) {
@@ -1194,79 +1174,48 @@ static void KpadSelect1FirstPort(CpuContext* ctx) {
     ctx->gpr[3] = uint32_t(int32_t(KpadSelect1First(ctx->gpr[3])));
 }
 
-static void KpadPairDirectionPort(CpuContext* ctx) {
-    float out[2];
-    ctx->fpr[1].d = KpadPairDirection(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], out);
-    SetFloat(ctx->gpr[6], out[0]);
-    SetFloat(ctx->gpr[6] + 4, out[1]);
-}
-
-static void KpadClampPort(CpuContext* ctx) {
-    ctx->fpr[1].d = KpadClamp(float(ctx->fpr[1].d), float(ctx->fpr[2].d));
-}
-
 #define MH3_POINTER_PORT(address, name)                                                                                                                                                                \
     extern "C" void func_##address(CpuContext* ctx);                                                                                                                                                   \
     extern "C" void MH3_##name(CpuContext* ctx) {                                                                                                                                                      \
         PortCheck::Call(ctx, #name, func_##address, name##Port);                                                                                                                                       \
     }
 
-MH3_POINTER_PORT(80044DDC, PadPointerRead)
-REGISTER_NATIVE_FUNCTION_AS(0x80044DDC, MH3_PadPointerRead, "PadPointerRead");
-MH3_POINTER_PORT(800440BC, PadPointerStart)
-REGISTER_NATIVE_FUNCTION_AS(0x800440BC, MH3_PadPointerStart, "PadPointerStart");
-MH3_POINTER_PORT(80044BA0, PadPointerOn)
-REGISTER_NATIVE_FUNCTION_AS(0x80044BA0, MH3_PadPointerOn, "PadPointerOn");
-MH3_POINTER_PORT(80044C68, PadPointerTimeout)
-REGISTER_NATIVE_FUNCTION_AS(0x80044C68, MH3_PadPointerTimeout, "PadPointerTimeout");
-MH3_POINTER_PORT(80043F10, PadPointerToScreen)
-REGISTER_NATIVE_FUNCTION_AS(0x80043F10, MH3_PadPointerToScreen, "PadPointerToScreen");
-MH3_POINTER_PORT(80043D1C, PadPointerSmooth)
-REGISTER_NATIVE_FUNCTION_AS(0x80043D1C, MH3_PadPointerSmooth, "PadPointerSmooth");
-MH3_POINTER_PORT(80043C10, PadPointerReset)
-REGISTER_NATIVE_FUNCTION_AS(0x80043C10, MH3_PadPointerReset, "PadPointerReset");
-MH3_POINTER_PORT(800450AC, KpadInit)
-REGISTER_NATIVE_FUNCTION_AS(0x800450AC, MH3_KpadInit, "KpadInit");
-MH3_POINTER_PORT(800451DC, KpadReset)
-REGISTER_NATIVE_FUNCTION_AS(0x800451DC, MH3_KpadReset, "KpadReset");
-MH3_POINTER_PORT(80044FF4, KpadPosScale)
-REGISTER_NATIVE_FUNCTION_AS(0x80044FF4, MH3_KpadPosScale, "KpadPosScale");
-MH3_POINTER_PORT(80045720, KpadReadAcc)
-REGISTER_NATIVE_FUNCTION_AS(0x80045720, MH3_KpadReadAcc, "KpadReadAcc");
-MH3_POINTER_PORT(800453B0, KpadPlay)
-REGISTER_NATIVE_FUNCTION_AS(0x800453B0, MH3_KpadPlay, "KpadPlay");
-MH3_POINTER_PORT(80045464, KpadAccHorizon)
-REGISTER_NATIVE_FUNCTION_AS(0x80045464, MH3_KpadAccHorizon, "KpadAccHorizon");
-MH3_POINTER_PORT(800455F8, KpadAccVertical)
-REGISTER_NATIVE_FUNCTION_AS(0x800455F8, MH3_KpadAccVertical, "KpadAccVertical");
-MH3_POINTER_PORT(800468A0, KpadReadDpd)
-REGISTER_NATIVE_FUNCTION_AS(0x800468A0, MH3_KpadReadDpd, "KpadReadDpd");
-MH3_POINTER_PORT(800458BC, KpadGetObjects)
-REGISTER_NATIVE_FUNCTION_AS(0x800458BC, MH3_KpadGetObjects, "KpadGetObjects");
-MH3_POINTER_PORT(80045960, KpadObjectsOutside)
-REGISTER_NATIVE_FUNCTION_AS(0x80045960, MH3_KpadObjectsOutside, "KpadObjectsOutside");
-MH3_POINTER_PORT(800459D8, KpadObjectsSame)
-REGISTER_NATIVE_FUNCTION_AS(0x800459D8, MH3_KpadObjectsSame, "KpadObjectsSame");
-MH3_POINTER_PORT(80045A4C, KpadSelect2Continue)
-REGISTER_NATIVE_FUNCTION_AS(0x80045A4C, MH3_KpadSelect2Continue, "KpadSelect2Continue");
-MH3_POINTER_PORT(80045CA8, KpadSelect1Continue)
-REGISTER_NATIVE_FUNCTION_AS(0x80045CA8, MH3_KpadSelect1Continue, "KpadSelect1Continue");
-MH3_POINTER_PORT(80045E48, KpadPairDirection)
-REGISTER_NATIVE_FUNCTION_AS(0x80045E48, MH3_KpadPairDirection, "KpadPairDirection");
-MH3_POINTER_PORT(80045F14, KpadSelect2First)
-REGISTER_NATIVE_FUNCTION_AS(0x80045F14, MH3_KpadSelect2First, "KpadSelect2First");
-MH3_POINTER_PORT(80046074, KpadSelect1First)
-REGISTER_NATIVE_FUNCTION_AS(0x80046074, MH3_KpadSelect1First, "KpadSelect1First");
-MH3_POINTER_PORT(80046220, KpadPairHorizon)
-REGISTER_NATIVE_FUNCTION_AS(0x80046220, MH3_KpadPairHorizon, "KpadPairHorizon");
-MH3_POINTER_PORT(800462EC, KpadDpdVariable)
-REGISTER_NATIVE_FUNCTION_AS(0x800462EC, MH3_KpadDpdVariable, "KpadDpdVariable");
+MH3_POINTER_PORT(8029B87C, PadPointerRead)
+REGISTER_NATIVE_FUNCTION_AS(0x8029B87C, MH3_PadPointerRead, "PadPointerRead");
+MH3_POINTER_PORT(8029A9FC, PadPointerStart)
+REGISTER_NATIVE_FUNCTION_AS(0x8029A9FC, MH3_PadPointerStart, "PadPointerStart");
+MH3_POINTER_PORT(8029B5F4, PadPointerOn)
+REGISTER_NATIVE_FUNCTION_AS(0x8029B5F4, MH3_PadPointerOn, "PadPointerOn");
+MH3_POINTER_PORT(8029B708, PadPointerTimeout)
+REGISTER_NATIVE_FUNCTION_AS(0x8029B708, MH3_PadPointerTimeout, "PadPointerTimeout");
+MH3_POINTER_PORT(8029A84C, PadPointerSmooth)
+REGISTER_NATIVE_FUNCTION_AS(0x8029A84C, MH3_PadPointerSmooth, "PadPointerSmooth");
+MH3_POINTER_PORT(8029A744, PadPointerReset)
+REGISTER_NATIVE_FUNCTION_AS(0x8029A744, MH3_PadPointerReset, "PadPointerReset");
+MH3_POINTER_PORT(8029BAE8, KpadInit)
+REGISTER_NATIVE_FUNCTION_AS(0x8029BAE8, MH3_KpadInit, "KpadInit");
+MH3_POINTER_PORT(8029BC9C, KpadReset)
+REGISTER_NATIVE_FUNCTION_AS(0x8029BC9C, MH3_KpadReset, "KpadReset");
+MH3_POINTER_PORT(8029C180, KpadReadAcc)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C180, MH3_KpadReadAcc, "KpadReadAcc");
+MH3_POINTER_PORT(8029BE58, KpadPlay)
+REGISTER_NATIVE_FUNCTION_AS(0x8029BE58, MH3_KpadPlay, "KpadPlay");
+MH3_POINTER_PORT(8029BF00, KpadAccHorizon)
+REGISTER_NATIVE_FUNCTION_AS(0x8029BF00, MH3_KpadAccHorizon, "KpadAccHorizon");
+MH3_POINTER_PORT(8029C070, KpadAccVertical)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C070, MH3_KpadAccVertical, "KpadAccVertical");
+MH3_POINTER_PORT(8029D0BC, KpadReadDpd)
+REGISTER_NATIVE_FUNCTION_AS(0x8029D0BC, MH3_KpadReadDpd, "KpadReadDpd");
+MH3_POINTER_PORT(8029C38C, KpadSelect2Continue)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C38C, MH3_KpadSelect2Continue, "KpadSelect2Continue");
+MH3_POINTER_PORT(8029C5DC, KpadSelect1Continue)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C5DC, MH3_KpadSelect1Continue, "KpadSelect1Continue");
+MH3_POINTER_PORT(8029C75C, KpadSelect2First)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C75C, MH3_KpadSelect2First, "KpadSelect2First");
+MH3_POINTER_PORT(8029C964, KpadSelect1First)
+REGISTER_NATIVE_FUNCTION_AS(0x8029C964, MH3_KpadSelect1First, "KpadSelect1First");
+MH3_POINTER_PORT(8029CB40, KpadDpdVariable)
+REGISTER_NATIVE_FUNCTION_AS(0x8029CB40, MH3_KpadDpdVariable, "KpadDpdVariable");
 
-extern "C" void func_800441E4(CpuContext* ctx);
-extern "C" void MH3_KpadClamp(CpuContext* ctx) {
-    if (PortCheck::Enabled("KpadClamp")) [[unlikely]]
-        PortCheck::RunPure(ctx, "KpadClamp", PortCheck::Returns::Fpr1, func_800441E4, KpadClampPort);
-    else
-        KpadClampPort(ctx);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x800441E4, MH3_KpadClamp, "KpadClamp");
+// Disabled for RMHJ08: PadPointerToScreen, KpadPosScale, KpadGetObjects, KpadObjectsOutside,
+// KpadObjectsSame, KpadPairDirection, KpadPairHorizon, and KpadClamp are inlined in DOL.

@@ -12,11 +12,11 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOL_HASH = 'db5c9939f677c33d15d446aa4ad19c28044d0b80c5b3cc75adc7f1340ecab162'
+DOL_HASH = '994d489161983c438987fb59abe1d9127ed25e4892088a0a61e12e3b47244972'
 # RMHP08's SEL initializer (0x804DA544), independently checked against its
 # linked section table. Includes BSS/small BSS, absent from DOL file sections.
-SEL_BASES = [0, 0x80004000, 0x8003F260, 0, 0, 0x8056FC40, 0x8057CFE0,
-             0x8065A980, 0x807932E0, 0x80797F60, 0, 0x80796C20, 0x8079FCA0]
+SEL_BASES = [0, 0x80004000, 0x80031C80, 0, 0, 0x8062C9C0, 0x8066A320,
+             0x80731E80, 0x8089C880, 0x808A13C0, 0, 0x808A0140, 0x808A9260]
 
 
 def span(data, offset, size):

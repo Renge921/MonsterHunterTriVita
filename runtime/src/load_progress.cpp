@@ -37,8 +37,8 @@
 
 namespace {
 
-// Loader task work (0x806970E8, decompiled from 0x800CE618..0x800CECC8).
-constexpr uint32_t kLoader = 0x806970E8;
+// Loader task work (0x80753FD8 in RMHJ08, PAL: 0x806970E8).
+constexpr uint32_t kLoader = 0x80753FD8;
 enum : uint32_t {
     kState = 0x00,    // u32: 0 idle, 1 opening the front entry, 2 reading it, 3 read
     kCount = 0x04,    // s32: queued entries, the front one included (at most 99)

@@ -11,7 +11,7 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DOL_HASH = "db5c9939f677c33d15d446aa4ad19c28044d0b80c5b3cc75adc7f1340ecab162"
+DOL_HASH = "994d489161983c438987fb59abe1d9127ed25e4892088a0a61e12e3b47244972"
 
 
 def discover_indirect_pointer_seeds(dol, sections):
@@ -125,11 +125,11 @@ def main():
     inventory = json.loads((ROOT / "build/disc-inventory.json").read_text())
     text = [s for s in inventory["sections"] if s["kind"] == "text"]
     by_sel = {s["index"] + 1: s for s in text}
-    symbols = {0x80006310: "__start", 0x804CB5A0: "OSExceptionInit",
-               0x804CB930: "OSDefaultExceptionHandler"}
+    symbols = {0x8000403C: "__start", 0x80421C48: "OSExceptionInit",
+               0x80421FB0: "OSDefaultExceptionHandler"}
     # Startup iterates these null-terminated tables, including tail-call
     # constructor stubs that have no standard stack prologue.
-    for base, label in [(0x8056FAA0, "ctor"), (0x8056FC20, "dtor")]:
+    for base, label in [(0x8062C800, "ctor"), (0x8062C980, "dtor")]:
         section = next(s for s in inventory["sections"] if int(s["address"], 16) == base)
         terminated = False
         for offset in range(0, section["bytes"], 4):
@@ -148,9 +148,9 @@ def main():
     # leaf getters/setters and tail-call entries have no stack prologue and are
     # absent from SEL exports. Bounds exclude the vtable's zero header/trailer.
     # Runtime dispatch confirmed font slot 0x8063053C and UI slot 0x80653E20.
-    for start, end, label in [(0x80630520, 0x80630578, "FontVtable"),
-                              (0x80653DF0, 0x80653EBC, "SaveUiVtable"),
-                              (0x80659EC0, 0x8065A008, "SaveUiDerivedVtable")]:
+    for start, end, label in [(0x8071ADF0, 0x8071AE48, "FontVtable"),
+                              (0x80722C10, 0x80722CDC, "SaveUiVtable"),
+                              (0x80728F70, 0x807290B8, "SaveUiDerivedVtable")]:
         section = next(s for s in inventory["sections"]
                        if int(s["address"], 16) <= start and
                        end <= int(s["address"], 16) + s["bytes"])
@@ -166,7 +166,7 @@ def main():
     from prepare_rso_translation import MODULES, Rso
     boot_text = []
     for module, base, digest in MODULES:
-        data = (ROOT / f"Assets/DATA/files/01/{module}_data.rso").read_bytes()
+        data = (ROOT / f"Assets/DATA/files/rel/{module}_data.rso").read_bytes()
         if hashlib.sha256(data).hexdigest() != digest:
             raise ValueError(f"Unverified boot RSO: {module}")
         offset, size = Rso(data).sections[1]
@@ -203,10 +203,10 @@ def main():
     for address in discover_vtable_pointer_seeds(dol, inventory["sections"], set(symbols)):
         symbols.setdefault(address, f"vtable_seed_{address:08X}")
     # All 18 instructions and the final blr are checked, not just endpoints.
-    families = [(0x804573BC, "_save_fpr_", 54, 8),
-                (0x80457408, "_rest_fpr_", 50, 8),
-                (0x80457454, "_save_gpr_", 36, 4),
-                (0x804574A0, "_rest_gpr_", 32, 4)]
+    families = [(0x804542BC, "_save_fpr_", 54, 8),
+                (0x80454308, "_rest_fpr_", 50, 8),
+                (0x80454354, "_save_gpr_", 36, 4),
+                (0x804543A0, "_rest_gpr_", 32, 4)]
     for base, prefix, opcode, stride in families:
         section = next(s for s in text if int(s["address"], 16) <= base < int(s["address"], 16) + s["bytes"])
         offset = section["file_offset"] + base - int(section["address"], 16)

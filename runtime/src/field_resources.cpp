@@ -120,7 +120,7 @@ extern "C" void MH3_FieldResourceDescriptor(CpuContext *cpu) {
 
     cpu->gpr[3] = descriptor;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AE5C8, MH3_FieldResourceDescriptor, "FieldResourceDescriptor");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802AE5C8, MH3_FieldResourceDescriptor, "FieldResourceDescriptor");
 
 extern "C" void MH3_ScheduleFieldResources(CpuContext *cpu) {
     GuestFrame frame(cpu, 0x60);
@@ -133,4 +133,4 @@ extern "C" void MH3_ScheduleFieldResources(CpuContext *cpu) {
         MH3_THROW(std::runtime_error("Native field resource scheduling failed: map " + std::to_string(map) + ", area " + std::to_string(area) + ", descriptor areas " + std::to_string(state.areaCount) +
                                  ", status " + std::to_string(status)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AE624, MH3_ScheduleFieldResources, "ScheduleFieldResources");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802AE624, MH3_ScheduleFieldResources, "ScheduleFieldResources");

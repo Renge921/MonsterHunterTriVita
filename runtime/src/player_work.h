@@ -28,12 +28,12 @@ constexpr uint32_t kMotionHold = 0xF5;   // MHchar u8: 0x8026A334 / 0x8026A340
 constexpr uint32_t kMotionNumber = 0x54; // MHchar u16 (Get_motion_no 0x8026A36C)
 
 enum : uint32_t {
-    SetMotion = 0x8026A288,   // Pl_chr_set (plw, u16 motion, s32 blend, s32 flags): restarts it
-    SetMotionX = 0x8026A2AC,  // Pl_chr_setX (plw, u16 motion, s32 blend, s32 flags): unless playing
-    MotionEnded = 0x8026A3A0, // (plw) -> 1 when the motion has ended (0x800E21FC)
-    MasterCheck = 0x8026FE38, // Pl_master_ck (plw) -> 1 for the local player
-    SetActFlags = 0x8026FF24, // (plw, flags): sets flag bits (+0x360 for bit 31, else +0x35C)
-    Rand = 0x800CEF20,        // ran_suu (u32 generator) -> u16
+    SetMotion = 0x803381CC,   // Pl_chr_set (plw, u16 motion, s32 blend, s32 flags): restarts it
+    SetMotionX = 0x80338420,  // Pl_chr_setX (plw, u16 motion, s32 blend, s32 flags): unless playing
+    MotionEnded = 0x803385FC, // (plw) -> 1 when the motion has ended (0x802A4878)
+    MasterCheck = 0x8033DBA4, // Pl_master_ck (plw) -> 1 for the local player
+    SetActFlags = 0x8033DC88, // (plw, flags): sets flag bits (+0x360 for bit 31, else +0x35C)
+    Rand = 0x802BC314,        // ran_suu (u32 generator) -> u16
 };
 
 struct Player {

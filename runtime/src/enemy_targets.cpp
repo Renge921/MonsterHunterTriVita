@@ -379,13 +379,13 @@ extern "C" void func_80128C5C(CpuContext* ctx);
 extern "C" void MH3_EnemyTargetPoint(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyTargetPoint", func_80128C5C, TargetPoint);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80128C5C, MH3_EnemyTargetPoint, "EnemyTargetPoint");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80128C5C, MH3_EnemyTargetPoint, "EnemyTargetPoint");
 
 extern "C" void func_8013C844(CpuContext* ctx);
 extern "C" void MH3_EnemyAreaGoal(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyAreaGoal", func_8013C844, AreaGoal);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013C844, MH3_EnemyAreaGoal, "EnemyAreaGoal");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013C844, MH3_EnemyAreaGoal, "EnemyAreaGoal");
 
 extern "C" void func_8013DAE0(CpuContext* ctx);
 extern "C" void MH3_EnemyAiStepLeave(CpuContext* ctx) {
@@ -394,4 +394,4 @@ extern "C" void MH3_EnemyAiStepLeave(CpuContext* ctx) {
         c->gpr[3] = result;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013DAE0, MH3_EnemyAiStepLeave, "EnemyAiStepLeave");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8013DAE0, MH3_EnemyAiStepLeave, "EnemyAiStepLeave");

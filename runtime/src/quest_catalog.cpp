@@ -1,17 +1,19 @@
-// MH3's quest files (05/questNN_eng.bin), read on the host.
+// MH3's quest files (PAL: 05/questNN_eng.bin, JPN: quest/questNN.bin), read on the host.
 //
 // A quest file: "OMOM", u32 count, then count {u32 offset, u32 size} of the
-// quest entries (the game loads them as is, 0x803AD264):
-//   +0x00 name (0x2C bytes), +0x2C u16 id, +0x2E goal text,
-//   +0x8A u8 stars, +0x8B u8 map,
-//   +0x314 up to 3 large monsters of 8 bytes (+0 monster id, +3 1 = present),
-//   +0x330 3 objectives {u32 type, u16 target, u16 count},
-//   +0x4B8 the area spawn tables: u32 count, u32 header size, u32, then
-//   {offset, size} pairs from +0x4B8 of 0x30-byte spawns (+0 u32 monster id).
+// quest entries (the game loads them as is, PAL 0x803AD264 / JPN 0x801F95B0):
+//   PAL offsets (JPN has shorter XOR-0xFF Shift-JIS text fields; metadata starts at +0x1E / +0x218 / +0x3BC):
+//   +0x00 name (PAL 0x2C / JPN 0x1E bytes), +0x2C/+0x1E u16 id, +0x2E/+0x20 goal text,
+//   +0x8A/+0x5E u8 stars, +0x8B/+0x5F u8 map,
+//   +0x314/+0x218 up to 3 large monsters of 8 bytes (+0 monster id, +3 1 = present),
+//   +0x330/+0x234 3 objectives {u32 type, u16 target, u16 count},
+//   +0x4B8/+0x3BC the area spawn tables: u32 count, u32 header size, u32, then
+//   {offset, size} pairs from +0x4B8/+0x3BC of 0x30-byte spawns (+0 u32 monster id).
 // Monster names are the game's list in 00/data00_eng.bin (after "NO_DATA").
 #include "quest_catalog.h"
 #include "fatal.h"
 #include "disc_image.h"
+#include "language_import.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -35,33 +37,55 @@ uint16_t U16(const std::vector<uint8_t>& d, size_t o) {
     return uint16_t(U32(d, o) >> 16);
 }
 
-std::string Text(const uint8_t* p, size_t max) {
-    std::string s(reinterpret_cast<const char*>(p), strnlen(reinterpret_cast<const char*>(p), max));
+std::string Text(const uint8_t* p, size_t max, bool jpn) {
+    const size_t len = strnlen(reinterpret_cast<const char*>(p), max);
+    std::string s;
+
+    if (jpn) {
+        std::vector<uint8_t> raw(len);
+
+        for (size_t i = 0; i < len; ++i)
+            raw[i] = p[i] ^ 0xFF;
+
+        s = LanguageImport::FromShiftJis(raw);
+    } else {
+        s.assign(reinterpret_cast<const char*>(p), len);
+    }
+
     std::replace(s.begin(), s.end(), '\n', ' ');
     return s;
 }
 
-enum : size_t {
-    kName = 0x00,
-    kId = 0x2C,
-    kGoal = 0x2E,
-    kGoalEnd = 0x88,
-    kStars = 0x8A,
-    kMap = 0x8B,
-    kLarge = 0x314,
-    kObjectives = 0x330,
-    kSpawnTables = 0x4B8,
-    kSpawnSize = 0x30,
+bool IsJapanese() {
+    return GameDiscImage().FileSizeOrZero("quest/quest00.bin") > 0;
+}
+
+struct QuestFormat {
+    bool jpn;
+    size_t name;
+    size_t id;
+    size_t goal;
+    size_t goalEnd;
+    size_t stars;
+    size_t map;
+    size_t large;
+    size_t objectives;
+    size_t spawnTables;
 };
 
+constexpr QuestFormat kFormatPal{false, 0x00, 0x2C, 0x2E, 0x88, 0x8A, 0x8B, 0x314, 0x330, 0x4B8};
+constexpr QuestFormat kFormatJpn{true, 0x00, 0x1E, 0x20, 0x5E, 0x5E, 0x5F, 0x218, 0x234, 0x3BC};
+constexpr size_t kSpawnSize = 0x30;
+
 const char* FileName(Set set) {
+    const bool jpn = IsJapanese();
     switch (set) {
     case Set::Village:
-        return "05/quest00_eng.bin";
+        return jpn ? "quest/quest00.bin" : "05/quest00_eng.bin";
     case Set::Online:
-        return "05/quest01_eng.bin";
+        return jpn ? "quest/quest01.bin" : "05/quest01_eng.bin";
     case Set::Arena:
-        return "05/quest03_eng.bin";
+        return jpn ? "quest/quest03.bin" : "05/quest03_eng.bin";
     }
 
     return "";
@@ -75,42 +99,45 @@ std::vector<Quest> Load(Set set) {
     if (data.size() < 8 || std::string(data.begin(), data.begin() + 4) != "OMOM")
         MH3_THROW(std::runtime_error(std::string("Not a quest file: ") + FileName(set)));
 
+    const bool jpn = IsJapanese();
+    const QuestFormat& fmt = jpn ? kFormatJpn : kFormatPal;
+
     std::vector<Quest> quests;
     const uint32_t count = U32(data, 4);
 
     for (uint32_t i = 0; i < count; ++i) {
         const uint32_t offset = U32(data, 8 + 8 * i), size = U32(data, 12 + 8 * i);
 
-        if (uint64_t(offset) + size > data.size() || size < kSpawnTables)
+        if (uint64_t(offset) + size > data.size() || size < fmt.spawnTables)
             MH3_THROW(std::runtime_error("Bad quest entry"));
 
         const std::vector<uint8_t> e(data.begin() + offset, data.begin() + offset + size);
         Quest q;
-        q.id = U16(e, kId);
-        q.name = Text(&e[kName], kId - kName);
-        q.goal = Text(&e[kGoal], kGoalEnd - kGoal);
-        q.stars = e[kStars];
-        q.map = e[kMap];
+        q.id = U16(e, fmt.id);
+        q.name = Text(&e[fmt.name], fmt.id - fmt.name, jpn);
+        q.goal = Text(&e[fmt.goal], fmt.goalEnd - fmt.goal, jpn);
+        q.stars = e[fmt.stars];
+        q.map = e[fmt.map];
 
         for (size_t k = 0; k < 3; ++k) {
-            const Objective o{U32(e, kObjectives + 8 * k), U16(e, kObjectives + 8 * k + 4), U16(e, kObjectives + 8 * k + 6)};
+            const Objective o{U32(e, fmt.objectives + 8 * k), U16(e, fmt.objectives + 8 * k + 4), U16(e, fmt.objectives + 8 * k + 6)};
 
             if (o.type || o.target)
                 q.objectives.push_back(o);
 
-            const uint8_t monster = e[kLarge + 8 * k];
+            const uint8_t monster = e[fmt.large + 8 * k];
 
-            if (e[kLarge + 8 * k + 3] == 1 && monster)
+            if (e[fmt.large + 8 * k + 3] == 1 && monster)
                 q.largeMonsters.push_back(monster);
         }
 
         std::set<uint8_t> small;
 
         // Some quests (the Ceadeus and Alatreon fights) have no spawn tables.
-        const uint32_t tables = e.size() >= kSpawnTables + 12 ? U32(e, kSpawnTables) : 0;
+        const uint32_t tables = e.size() >= fmt.spawnTables + 12 ? U32(e, fmt.spawnTables) : 0;
 
         for (uint32_t t = 0; t < tables; ++t) {
-            const size_t at = kSpawnTables + 12 + 8 * t;
+            const size_t at = fmt.spawnTables + 12 + 8 * t;
 
             if (at + 8 > e.size())
                 break;
@@ -118,7 +145,7 @@ std::vector<Quest> Load(Set set) {
             const uint32_t spawns = U32(e, at), bytes = U32(e, at + 4);
 
             for (uint32_t b = 0; b + kSpawnSize <= bytes; b += kSpawnSize) {
-                const size_t s = kSpawnTables + spawns + b;
+                const size_t s = fmt.spawnTables + spawns + b;
 
                 if (s + 4 > e.size())
                     break;
@@ -141,30 +168,42 @@ std::vector<Quest> Load(Set set) {
 }
 
 std::vector<std::string> MonsterNames() {
-    const auto data = GameDiscImage().ReadFile("00/data00_eng.bin");
-    const std::string text(data.begin(), data.end());
-    size_t at = text.find(std::string("NO_DATA\0", 8));
+    static const std::vector<std::string> kFallbackNames = {
+        "", "Rathian", "Rathalos", "Qurupeco", "Gigginox", "Barioth", "Diablos", "Deviljho",
+        "Barroth", "Uragaan", "Jaggi", "Jaggia", "Great Jaggi", "Baggi", "Great Baggi",
+        "Lagiacrus", "Royal Ludroth", "Ludroth", "Gobul", "Agnaktor", "Ceadeus", "Uroktor",
+        "Delex", "Epioth", "Alatreon", "Jhen Mohran", "Giggi", "Aptonoth", "Popo", "Rhenoplos",
+        "Felyne", "Melynx", "Fish", "Altaroth", "Kelbi", "Bnahabra", "Bnahabra", "Bnahabra", "Bnahabra"
+    };
 
-    if (at == std::string::npos)
-        MH3_THROW(std::runtime_error("Monster name list not found"));
+    if (GameDiscImage().FileSizeOrZero("00/data00_eng.bin") > 0) {
+        const auto data = GameDiscImage().ReadFile("00/data00_eng.bin");
+        const std::string text(data.begin(), data.end());
+        size_t at = text.find(std::string("NO_DATA\0", 8));
 
-    std::vector<std::string> names{""};
-    at += 8;
+        if (at != std::string::npos) {
+            std::vector<std::string> names{""};
+            at += 8;
 
-    while (at < text.size()) {
-        while (at < text.size() && text[at] == '\0')
-            ++at;
+            while (at < text.size()) {
+                while (at < text.size() && text[at] == '\0')
+                    ++at;
 
-        const size_t end = text.find('\0', at);
-        const std::string name = text.substr(at, end - at);
+                const size_t end = text.find('\0', at);
+                const std::string name = text.substr(at, end - at);
 
-        if (name == "BrdWyv" || end == std::string::npos)
-            break; // the class names follow
-        names.push_back(name);
-        at = end;
+                if (name == "BrdWyv" || end == std::string::npos)
+                    break; // the class names follow
+                names.push_back(name);
+                at = end;
+            }
+
+            if (!names.empty())
+                return names;
+        }
     }
 
-    return names;
+    return kFallbackNames;
 }
 
 std::string MapName(uint8_t map) {

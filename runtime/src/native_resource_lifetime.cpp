@@ -96,12 +96,12 @@ class HeapLock {
         locked_ = (Memory::Read32(heap + 56) & 4) != 0;
 
         if (locked_)
-            call_(0x804D25A0, {heap_ + 32});
+            call_(0x804290A4, {heap_ + 32});
     }
 
     ~HeapLock() noexcept(false) {
         if (locked_)
-            call_(0x804D2680, {heap_ + 32});
+            call_(0x80429180, {heap_ + 32});
     }
 
     HeapLock(const HeapLock&) = delete;
@@ -189,7 +189,7 @@ uint32_t CreateHeap(CpuContext* cpu, uint32_t address, uint32_t bytes, uint32_t 
     RetireNativeModelPrepMaterials(region.address, region.bytes);
     GuestFrame frame(cpu, 0x40);
     GuestCall call{cpu};
-    call(0x804C1F20, {region.address, 0x45585048, region.address + 80, region.address + region.bytes, options});
+    call(0x8046F8F0, {region.address, 0x45585048, region.address + 80, region.address + region.bytes, options});
     const uint32_t begin = Memory::Read32(region.address + 24), end = Memory::Read32(region.address + 28);
     Checked(mh3_lifetime_expheap_initialize(Memory::GetPointer(region.address, 80), 80, Memory::GetPointer(begin, 16), 16, begin, end));
     return region.address;
@@ -202,7 +202,7 @@ uint32_t DestroyHeap(CpuContext* cpu, uint32_t address) {
     RetireHeapRange(heap.address, heap.end - heap.address);
     RetireNativeModelPrepMaterials(heap.address, heap.end - heap.address);
     GuestFrame frame(cpu, 0x40);
-    GuestCall{cpu}(0x804C20E0, {address});
+    GuestCall{cpu}(0x8046FAB0, {address});
     return address;
 }
 
@@ -213,7 +213,7 @@ uint32_t TryAllocate(CpuContext* cpu, uint32_t address, uint32_t bytes, int32_t 
     HeapLock lock(cpu, address);
     GuestCall call{cpu};
     ReadHeap(address);
-    const uint32_t result = call(alignment < 0 ? 0x804C2560 : 0x804C2480, {address, mh3_lifetime_expheap_request_size(bytes), mh3_lifetime_alignment_magnitude(alignment)});
+    const uint32_t result = call(alignment < 0 ? 0x8046FF24 : 0x8046FE48, {address, mh3_lifetime_expheap_request_size(bytes), mh3_lifetime_alignment_magnitude(alignment)});
 
     if (result) {
         const auto heap = ReadHeap(address);
@@ -350,7 +350,7 @@ void Free(CpuContext* cpu, uint32_t address, uint32_t payload) {
     const uint32_t padding = (block.settings >> 8) & 127;
     Memory::Write32(frame[0x20], payload - 16 - padding);
     Memory::Write32(frame[0x24], payload + block.size);
-    call(0x804C2630, {address + 60, frame[0x20]});
+    call(0x8046FFEC, {address + 60, frame[0x20]});
 }
 
 uint32_t Available(CpuContext* cpu, uint32_t address, int32_t alignment) {
@@ -374,12 +374,12 @@ void AllocatorFree(CpuContext* cpu, uint32_t allocator, uint32_t payload) {
 }
 
 uint32_t SystemAllocate(CpuContext* cpu, uint32_t bytes) {
-    return bytes ? Allocate(cpu, Memory::Read32(0x80796C48), bytes, 8) : 0;
+    return bytes ? Allocate(cpu, Memory::Read32(0x808A0164), bytes, 8) : 0;
 }
 
 void SystemFree(CpuContext* cpu, uint32_t payload) {
     if (payload)
-        Free(cpu, Memory::Read32(0x80796C48), payload);
+        Free(cpu, Memory::Read32(0x808A0164), payload);
 }
 } // namespace
 
@@ -463,12 +463,12 @@ extern "C" void MH3_AllocatorFree(CpuContext* cpu) {
 extern "C" void MH3_WorkMemFree(CpuContext* cpu) {
     const uint32_t payload = cpu->gpr[3];
     GuestFrame frame(cpu, 0x40);
-    AllocatorFree(cpu, 0x8065AAF4, payload);
-    Memory::Write32(0x8065AAC8, Available(cpu, Memory::Read32(0x8065AAF0), 4));
+    AllocatorFree(cpu, 0x80768B3C, payload);
+    Memory::Write32(0x80768B10, Available(cpu, Memory::Read32(0x80768B38), 4));
 }
 
 extern "C" void MH3_ResMemFree(CpuContext* cpu) {
-    const uint32_t payload = cpu->gpr[3], service = Memory::Read32(0x80796E30);
+    const uint32_t payload = cpu->gpr[3], service = Memory::Read32(0x808A04C8);
     GuestFrame frame(cpu, 0x40);
     AllocatorFree(cpu, service + 0x38, payload);
     Memory::Write32(service + 0x14, Available(cpu, Memory::Read32(service + 0x2c), 4));
@@ -486,26 +486,26 @@ extern "C" void MH3_SystemFree(CpuContext* cpu) {
     SystemFree(cpu, cpu->gpr[3]);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8009A7AC, MH3_Copy32Blocks, "NativeCopy32ByteBlocks");
-REGISTER_NATIVE_FUNCTION_AS(0x8009A974, MH3_Zero32Blocks, "NativeZero32ByteBlocks");
-REGISTER_NATIVE_FUNCTION_AS(0x8000429C, MH3_FillMemory, "NativeFillMemory");
-REGISTER_NATIVE_FUNCTION_AS(0x80004350, MH3_Memset, "NativeResourceMemset");
-REGISTER_NATIVE_FUNCTION_AS(0x804C27A0, MH3_CreateExpHeap, "NativeCreateExpHeap");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2850, MH3_DestroyExpHeap, "NativeDestroyExpHeap");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2880, MH3_AllocExpHeap, "NativeAllocExpHeap");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2930, MH3_FreeExpHeap, "NativeFreeExpHeap");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2A00, MH3_AvailableExpHeap, "NativeAvailableExpHeap");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2AE0, MH3_AllocatorAllocThunk, "NativeAllocatorAllocThunk");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2AF0, MH3_AllocatorFreeThunk, "NativeAllocatorFreeThunk");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2B00, MH3_AllocatorAlloc, "NativeAllocatorAlloc");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2B10, MH3_AllocatorFree, "NativeAllocatorFree");
-REGISTER_NATIVE_FUNCTION_AS(0x800CF878, MH3_WorkMemFree, "NativeWorkMemFree");
-REGISTER_NATIVE_FUNCTION_AS(0x800D4CC8, MH3_ResMemFree, "NativeResMemFree");
-REGISTER_NATIVE_FUNCTION_AS(0x800CF680, MH3_HeapAvailable4, "NativeWorkHeapAvailable");
-REGISTER_NATIVE_FUNCTION_AS(0x800D3190, MH3_HeapAvailable4, "NativeResourceHeapAvailable");
-REGISTER_NATIVE_FUNCTION_AS(0x80040484, MH3_SystemAlloc, "NativeSystemAlloc");
-REGISTER_NATIVE_FUNCTION_AS(0x800404DC, MH3_SystemAlloc, "NativeOperatorNew");
-REGISTER_NATIVE_FUNCTION_AS(0x80040520, MH3_SystemAlloc, "NativeOperatorNewArray");
-REGISTER_NATIVE_FUNCTION_AS(0x800404C4, MH3_SystemFree, "NativeSystemFree");
-REGISTER_NATIVE_FUNCTION_AS(0x80040564, MH3_SystemFree, "NativeOperatorDelete");
-REGISTER_NATIVE_FUNCTION_AS(0x800405B0, MH3_SystemFree, "NativeOperatorDeleteArray");
+REGISTER_NATIVE_FUNCTION(0x80528E2C, MH3_Copy32Blocks);
+REGISTER_NATIVE_FUNCTION(0x80528F08, MH3_Zero32Blocks);
+REGISTER_NATIVE_FUNCTION(0x80004388, MH3_FillMemory);
+REGISTER_NATIVE_FUNCTION(0x8000443C, MH3_Memset);
+REGISTER_NATIVE_FUNCTION(0x80470154, MH3_CreateExpHeap);
+REGISTER_NATIVE_FUNCTION(0x80470204, MH3_DestroyExpHeap);
+REGISTER_NATIVE_FUNCTION(0x80470234, MH3_AllocExpHeap);
+REGISTER_NATIVE_FUNCTION(0x804702E4, MH3_FreeExpHeap);
+REGISTER_NATIVE_FUNCTION(0x804703A8, MH3_AvailableExpHeap);
+REGISTER_NATIVE_FUNCTION(0x80470480, MH3_AllocatorAllocThunk);
+REGISTER_NATIVE_FUNCTION(0x80470490, MH3_AllocatorFreeThunk);
+REGISTER_NATIVE_FUNCTION(0x80470498, MH3_AllocatorAlloc);
+REGISTER_NATIVE_FUNCTION(0x804704A8, MH3_AllocatorFree);
+REGISTER_NATIVE_FUNCTION(0x802BCCB4, MH3_WorkMemFree);
+REGISTER_NATIVE_FUNCTION(0x802ACDA8, MH3_ResMemFree);
+// REGISTER_NATIVE_FUNCTION_AS(0x800CF680, MH3_HeapAvailable4, "NativeWorkHeapAvailable");
+// REGISTER_NATIVE_FUNCTION_AS(0x800D3190, MH3_HeapAvailable4, "NativeResourceHeapAvailable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80033230, MH3_SystemAlloc);
+REGISTER_NATIVE_FUNCTION(0x80033268, MH3_SystemAlloc);
+REGISTER_NATIVE_FUNCTION(0x800332C4, MH3_SystemAlloc);
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80033250, MH3_SystemFree);
+REGISTER_NATIVE_FUNCTION(0x80033320, MH3_SystemFree);
+REGISTER_NATIVE_FUNCTION(0x80033378, MH3_SystemFree);

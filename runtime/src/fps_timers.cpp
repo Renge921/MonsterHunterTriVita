@@ -15,7 +15,7 @@
 
 namespace {
 
-constexpr uint32_t kFrameRate = 0x8065B4D0; // f32 frames per second
+constexpr uint32_t kFrameRate = 0x8076940C; // f32 frames per second
 float FrameRate() {
     return Memory::ReadFloat32(kFrameRate);
 }
@@ -48,10 +48,7 @@ void PushFrame(CpuContext* ctx, uint32_t sp) {
 
 } // namespace
 
-// 0x8012E9CC(obj, kind). Kinds 0-5 ask 0x8012E958 about a time window of
-// kind-specific seconds (scaled by a shared factor) in frames; kind 6 returns
-// 1 only when no active move-work slot or effect slot matches the object's
-// ids.
+// 0x80167EB8(obj, kind).
 extern "C" void MH3_TimedCheckByKind(CpuContext* ctx) {
     const CpuContext saved = *ctx;
     const uint32_t obj = saved.gpr[3];
@@ -61,23 +58,22 @@ extern "C" void MH3_TimedCheckByKind(CpuContext* ctx) {
     uint32_t result = 0;
 
     if (kind <= 5) {
-        // Seconds per kind at 0x8079915C, 0x80799164..0x80799174; factor at 0x80799160.
-        static constexpr uint32_t kSeconds[] = {0x8079915C, 0x80799164, 0x80799168, 0x8079916C, 0x80799170, 0x80799174};
-        const float frames = F32(kSeconds[kind]) * (F32(0x80799160) * FrameRate());
-        result = game(0x8012E958, {}, {frames});
+        // Seconds per kind at 0x808A5D84, 0x808A5D8C..0x808A5D9C; factor at 0x808A5D88.
+        static constexpr uint32_t kSeconds[] = {0x808A5D84, 0x808A5D8C, 0x808A5D90, 0x808A5D94, 0x808A5D98, 0x808A5D9C};
+        const float frames = F32(kSeconds[kind]) * (F32(0x808A5D88) * FrameRate());
+        const int32_t gap = int32_t(game(0x801F5F20)) - int32_t(game(0x801F5E78));
+        result = double(gap) < double(frames) ? 1u : 0u;
     } else if (kind == 6) {
         result = 1;
         const uint8_t id10 = Memory::Read8(obj + 10), id2 = Memory::Read8(obj + 2);
 
-        // get_move_work_adrs(3) / get_move_work_max(3), inlined.
-        const uint32_t table = Memory::Read32(0x8065AB04);
-        const uint32_t work = table ? Memory::Read32(table + 16 + 3 * 4) : 0;
-        const uint32_t count = table ? Memory::Read16(table + 3 * 2) : 0;
+        const uint32_t work = game(0x802BCF94, {3});
+        const uint32_t count = game(0x802BCFD0, {3}) & 0xFFFFu;
 
         for (uint32_t i = 0, p = work; i < count && result; ++i, p += 0xB18)
             if (Memory::Read8(p) && Memory::Read8(p + 0x1E1) == id10 && Memory::Read8(p + 3) == id2)
                 result = 0;
-        for (uint32_t p = 0x806A7960; p < 0x806A7960 + 128 * 0x44 && result; p += 0x44)
+        for (uint32_t p = 0x807387E8; p < 0x807387E8 + 128 * 0x44 && result; p += 0x44)
             if (Memory::Read8(p) && Memory::Read8(p + 10) == id10 && Memory::Read8(p + 2) == id2 && Memory::Read8(p + 0xC) == 1)
                 result = 0;
     }
@@ -85,7 +81,7 @@ extern "C" void MH3_TimedCheckByKind(CpuContext* ctx) {
     *ctx = saved;
     ctx->gpr[3] = result;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012E9CC, MH3_TimedCheckByKind, "TimedCheckByKind");
+REGISTER_NATIVE_FUNCTION_AS(0x80167EB8, MH3_TimedCheckByKind, "TimedCheckByKind");
 
 // 0x802EA658(self, player): per-frame skill timers. Returns bit 2 (value 4)
 // for skill 0x97 or an active buff on self+0x48, value 2 while skill 0x96
@@ -98,13 +94,13 @@ extern "C" void MH3_PlayerSkillTimers(CpuContext* ctx) {
     PushFrame(ctx, saved.gpr[1]);
     Guest game{ctx};
     enum : uint32_t {
-        Pl_Skill_ck = 0x80271374,
-        Pl_cat_skill_ck = 0x80272B14,
-        CounterNow = 0x803A88BC,
-        CounterStart = 0x803A8844,
+        Pl_Skill_ck = 0x803400D0,
+        Pl_cat_skill_ck = 0x80341C10,
+        CounterNow = 0x801F5F20,
+        CounterStart = 0x801F5E78,
     };
 
-    const uint32_t kPeriodScale = 0x8079CE1C, kPeriodSeconds = 0x8079CDDC, kWindowSeconds = 0x8079CE20;
+    const uint32_t kPeriodScale = 0x808A5F94, kPeriodSeconds = 0x808A5FD8, kWindowSeconds = 0x808A5FDC;
     auto s16Positive = [](uint32_t address) {
         return int16_t(Memory::Read16(address)) > 0;
     };
@@ -144,7 +140,7 @@ extern "C" void MH3_PlayerSkillTimers(CpuContext* ctx) {
                     Memory::Write32(self + 0x184, uint32_t(period()));
 
                     // 0x8045E620, inlined: the game's LCG rand.
-                    const uint32_t seedAddress = saved.gpr[13] - 0x5138;
+                    const uint32_t seedAddress = saved.gpr[13] - 0x5A60;
                     const uint32_t seed = Memory::Read32(seedAddress) * 0x41C64E6Du + 12345u;
                     Memory::Write32(seedAddress, seed);
                     const int32_t roll = int32_t((seed >> 16) & 0x7FFF);
@@ -170,24 +166,21 @@ extern "C" void MH3_PlayerSkillTimers(CpuContext* ctx) {
     *ctx = saved;
     ctx->gpr[3] = flags;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802EA658, MH3_PlayerSkillTimers, "PlayerSkillTimers");
+REGISTER_NATIVE_FUNCTION_AS(0x80194018, MH3_PlayerSkillTimers, "PlayerSkillTimers");
 
-// 0x8039D174(self, result): sets up the quest-result screen. Starts its
-// display timer (self+0x2FF4, seconds at 0x8079E7C0 in frames). For result 1
-// it resets each player's result row and records the quest time as a new
-// best where it beats the stored one; 8 and 9 start the other result modes.
+// 0x801F3964(self, result):
 extern "C" void MH3_QuestResultInit(CpuContext* ctx) {
     const CpuContext saved = *ctx;
     const uint32_t self = saved.gpr[3];
     const int32_t result = int32_t(saved.gpr[4]);
     PushFrame(ctx, saved.gpr[1]);
     Guest game{ctx};
-    constexpr uint32_t kQuestResultWork = 0x8066C668; // get_qResult_work, inlined
-    constexpr uint32_t kVsUserWork = 0x8066CAA0;      // get_vsUser_work(n), inlined: n < 2
+    constexpr uint32_t kQuestResultWork = 0x80768370; // get_qResult_work (0x802C57D4)
+    constexpr uint32_t kVsUserWork = 0x807687A8;      // get_vsUser_work(n) (0x802C57E0): n < 2
 
     Memory::Write32(self + 0x2FF0, uint32_t(result));
     Memory::Write8(self + 2, 0);
-    Memory::Write32(self + 0x2FF4, uint32_t(int32_t(F32(0x8079E7C0) * FrameRate())));
+    Memory::Write32(self + 0x2FF4, uint32_t(int32_t(F32(0x808A6278) * FrameRate())));
     Memory::Write8(self + 0x2FF8, 0);
 
     if (result == 1) {
@@ -196,7 +189,7 @@ extern "C" void MH3_QuestResultInit(CpuContext* ctx) {
         const uint32_t slot = uint32_t(int32_t(int16_t(Memory::Read16(kQuestResultWork + 0x1E0) - 9000)) * 4);
 
         for (int32_t i = 0; i < int32_t(Memory::Read8(self + 7)); ++i) {
-            // 0x8039D12C, inlined: reset the player's result row.
+            // Reset the player's result row (inlined).
             const uint32_t row = self + 0x33DC + uint32_t(i) * 0x18;
 
             for (uint32_t b : {0u, 2u, 4u, 5u, 9u, 10u})
@@ -223,7 +216,8 @@ extern "C" void MH3_QuestResultInit(CpuContext* ctx) {
             for (int32_t i = 0; i < int32_t(Memory::Read8(self + 7)); ++i)
                 Memory::Write8(self + 0x33E4 + uint32_t(i) * 0x18, 0);
     } else if (result == 8) {
-        game(0x8039739C, {self});
+        Memory::Write16(self + 0x306C, 0x5A);
+        game(0x802B524C);
     } else if (result == 9) {
         Memory::Write32(self + 0x33D4, 0xFFFFFFFF);
         Memory::Write32(self + 0x33D8, 0);
@@ -233,4 +227,4 @@ extern "C" void MH3_QuestResultInit(CpuContext* ctx) {
 
     *ctx = saved;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039D174, MH3_QuestResultInit, "QuestResultInit");
+REGISTER_NATIVE_FUNCTION_AS(0x801F3964, MH3_QuestResultInit, "QuestResultInit");

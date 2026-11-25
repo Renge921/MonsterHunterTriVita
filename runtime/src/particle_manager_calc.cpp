@@ -722,4 +722,4 @@ extern "C" void MH3_FieldRandom(CpuContext* ctx) {
 #endif
     FieldRandomPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AD584, MH3_FieldRandom, "FieldRandom");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AD584, MH3_FieldRandom, "FieldRandom");

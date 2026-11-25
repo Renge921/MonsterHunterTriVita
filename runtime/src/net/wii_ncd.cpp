@@ -397,23 +397,23 @@ int32_t StartupErrorCode(CpuContext* cpu, int32_t error, int32_t kind) {
 extern "C" void MH3_NCDGetCurrentIfConfig(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetCurrentIfConfig(cpu, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CBD4, MH3_NCDGetCurrentIfConfig, "NCDGetCurrentIfConfig");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CBD4, MH3_NCDGetCurrentIfConfig, "NCDGetCurrentIfConfig");
 
 extern "C" void MH3_NCDGetCurrentIpConfig(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetCurrentIpConfig(cpu, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CCCC, MH3_NCDGetCurrentIpConfig, "NCDGetCurrentIpConfig");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CCCC, MH3_NCDGetCurrentIpConfig, "NCDGetCurrentIpConfig");
 
 extern "C" void MH3_NCDGetLinkStatus(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetLinkStatus(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CE24, MH3_NCDGetLinkStatus, "NCDGetLinkStatus");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CE24, MH3_NCDGetLinkStatus, "NCDGetLinkStatus");
 
 extern "C" void MH3_NCDGetWirelessMacAddress(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetWirelessMacAddress(cpu, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CF28, MH3_NCDGetWirelessMacAddress, "NCDGetWirelessMacAddress");
-REGISTER_NATIVE_FUNCTION_AS(0x8051D8C8, MH3_NCDGetWirelessMacAddress, "NCDGetWirelessMacAddress2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CF28, MH3_NCDGetWirelessMacAddress, "NCDGetWirelessMacAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D8C8, MH3_NCDGetWirelessMacAddress, "NCDGetWirelessMacAddress2");
 
 extern "C" void MH3_NCDGetEnabledConfigs(CpuContext* cpu) {
     const uint32_t wired = cpu->gpr[3], wireless = cpu->gpr[4], wirelessOne = cpu->gpr[5];
@@ -431,12 +431,12 @@ extern "C" void MH3_NCDGetEnabledConfigs(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(result);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D050, MH3_NCDGetEnabledConfigs, "NCDiGetEnabledConfigList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D050, MH3_NCDGetEnabledConfigs, "NCDiGetEnabledConfigList");
 
 extern "C" void MH3_NCDConfigKind(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ConfigKind(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D450, MH3_NCDConfigKind, "NCDiConfigKind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D450, MH3_NCDConfigKind, "NCDiConfigKind");
 
 // 0x8051D6C8: the error code for a failed SOStartup's error, less the kind.
 extern "C" void MH3_NCDStartupErrorCode(CpuContext* cpu) {
@@ -454,19 +454,19 @@ extern "C" void MH3_NCDStartupErrorCode(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(StartupErrorCode(cpu, error, kind) - kind);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D6C8, MH3_NCDStartupErrorCode, "NCDGetStartupErrorCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D6C8, MH3_NCDStartupErrorCode, "NCDGetStartupErrorCode");
 
 extern "C" void MH3_NCDStartupErrorCodeOf(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(StartupErrorCode(cpu, int32_t(cpu->gpr[3]), int32_t(cpu->gpr[4])));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D748, MH3_NCDStartupErrorCodeOf, "NCDiStartupErrorCode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D748, MH3_NCDStartupErrorCodeOf, "NCDiStartupErrorCode");
 
 extern "C" void MH3_NCDLock(CpuContext* cpu) {
     Lock(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D360, MH3_NCDLock, "NCDiLock");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D360, MH3_NCDLock, "NCDiLock");
 
 extern "C" void MH3_NCDRequest(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, cpu->gpr[4], int32_t(cpu->gpr[5])));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051D1CC, MH3_NCDRequest, "NCDiRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051D1CC, MH3_NCDRequest, "NCDiRequest");

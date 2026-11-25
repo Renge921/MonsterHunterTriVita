@@ -1050,58 +1050,58 @@ extern "C" void func_803AEF34(CpuContext* ctx);
 extern "C" void MH3_QuestSetup(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestSetup", func_803AEF34, QuestSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AEF34, MH3_QuestSetup, "QuestSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AEF34, MH3_QuestSetup, "QuestSetup");
 
 extern "C" void func_803A88F0(CpuContext* ctx);
 extern "C" void MH3_QuestLoad(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestLoad", func_803A88F0, QuestLoadPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A88F0, MH3_QuestLoad, "QuestLoad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A88F0, MH3_QuestLoad, "QuestLoad");
 
 extern "C" void func_803A89F8(CpuContext* ctx);
 extern "C" void MH3_QuestEntryCopy(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestEntryCopy", func_803A89F8, QuestEntryCopyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803A89F8, MH3_QuestEntryCopy, "QuestEntryCopy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803A89F8, MH3_QuestEntryCopy, "QuestEntryCopy");
 
 extern "C" void func_803ADAD4(CpuContext* ctx);
 extern "C" void MH3_QuestLoadMonsters(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestLoadMonsters", func_803ADAD4, QuestLoadMonstersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ADAD4, MH3_QuestLoadMonsters, "QuestLoadMonsters");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ADAD4, MH3_QuestLoadMonsters, "QuestLoadMonsters");
 
 extern "C" void func_803ADD88(CpuContext* ctx);
 extern "C" void MH3_QuestObjectiveSetup(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestObjectiveSetup", func_803ADD88, QuestObjectiveSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ADD88, MH3_QuestObjectiveSetup, "QuestObjectiveSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ADD88, MH3_QuestObjectiveSetup, "QuestObjectiveSetup");
 
 extern "C" void func_803AE094(CpuContext* ctx);
 extern "C" void MH3_QuestPlaceMonsters(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestPlaceMonsters", func_803AE094, QuestPlaceMonstersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AE094, MH3_QuestPlaceMonsters, "QuestPlaceMonsters");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AE094, MH3_QuestPlaceMonsters, "QuestPlaceMonsters");
 
 extern "C" void func_803AE488(CpuContext* ctx);
 extern "C" void MH3_PlaceMonsters(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlaceMonsters", func_803AE488, PlaceMonstersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AE488, MH3_PlaceMonsters, "PlaceMonsters");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AE488, MH3_PlaceMonsters, "PlaceMonsters");
 
 extern "C" void func_803AEC24(CpuContext* ctx);
 extern "C" void MH3_QuestGatherSetup(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestGatherSetup", func_803AEC24, QuestGatherSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AEC24, MH3_QuestGatherSetup, "QuestGatherSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AEC24, MH3_QuestGatherSetup, "QuestGatherSetup");
 
 extern "C" void func_800EF2D4(CpuContext* ctx);
 extern "C" void MH3_NpcDanceLoad(CpuContext* ctx) {
     PortCheck::Call(ctx, "NpcDanceLoad", func_800EF2D4, NpcDanceLoadPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800EF2D4, MH3_NpcDanceLoad, "NpcDanceLoad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800EF2D4, MH3_NpcDanceLoad, "NpcDanceLoad");
 
 extern "C" void func_8028C730(CpuContext* ctx);
 extern "C" void MH3_FieldOnlineLoad(CpuContext* ctx) {
     PortCheck::Call(ctx, "FieldOnlineLoad", func_8028C730, FieldOnlineLoadPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028C730, MH3_FieldOnlineLoad, "FieldOnlineLoad");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8028C730, MH3_FieldOnlineLoad, "FieldOnlineLoad");

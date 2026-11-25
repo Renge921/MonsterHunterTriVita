@@ -39,16 +39,15 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    Vec3Copy = 0x80041EA4,
-    Identity = 0x80050538,
-    RotateX = 0x80050574,
-    RotateY = 0x800504B0,
-    RotateZ = 0x800505FC,
-    MulVec = 0x800514A4,
-    DrawRequest = 0x800F943C,
+    Identity = 0x8042F3A8,
+    RotateX = 0x8028ABAC,
+    RotateY = 0x8028AB14,
+    RotateZ = 0x8028AC44,
+    MulVec = 0x8028C3A8,
+    DrawRequest = 0x80037B74,
 };
 
-constexpr uint32_t kKeys = 0x805A0DA0, kLengths = 0x805A0C70; // per kind
+constexpr uint32_t kKeys = 0x806808C0, kLengths = 0x80680790; // per kind
 
 // The entries' fades and the materials' konst colour 3. `read`: the original
 // reads the colour first.
@@ -69,25 +68,25 @@ void Fade(GuestCall& game, GuestFrame& frame, uint32_t object, uint32_t access, 
         } else if (state == 1) {
             const int32_t now = count + ticks;
             W32(e + 8, uint32_t(now));
-            W8(e + 5, game.Call<0x800FA95C>({R32(kKeys + kind * 4), uint32_t(now)}));
+            W8(e + 5, game.Call<0x80038F30>({R32(kKeys + kind * 4), uint32_t(now)}));
 
             if (int32_t(R32(kLengths + kind * 4)) <= now)
                 W8(e, 2);
         }
 
-        game.Call<0x8007BF10>({access, R32(R32(data + 4) + 0x118), i});
+        game.Call<0x805390D4>({access, R32(R32(data + 4) + 0x118), i});
 
-        if (game.Call<0x800E29F8>({access}) != 0) {
+        if (R32(access) != 0) {
             const uint32_t word = frame[12], colours = frame[16], colour = frame[8];
-            W32(word, game.Call<0x8007BE90>({access, 0}));
-            game.Call<0x8006F14C>({colours, word});
+            W32(word, game.Call<0x8053908C>({access, 0}));
+            W32(colours, R32(word));
 
             if (read)
-                game.Call<0x80096424>({colours, 3, frame[20]});
+                game.Call<0x8051DEF4>({colours, 3, frame[20]});
 
             W32(colour, R32(e + 2));
-            game.Call<0x80096548>({colours, 3, colour});
-            game.Call<0x8006F140>({colours, 3});
+            game.Call<0x8051DFAC>({colours, 3, colour});
+            game.Call<0x8051D264>({colours, 0});
         }
     }
 }
@@ -113,7 +112,7 @@ void DrawModels(GuestCall& game, uint32_t object, uint32_t at, uint32_t matrix) 
         const uint32_t model = R32(data + 4 + i * 4);
         Copy3(model + 4, at);
         Copy3(model + 0x1C, data + kScale);
-        game.Call<0x800E0880>({model, matrix, 0});
+        game.Call<0x802A259C>({model, matrix, 0});
         game.Virtual(R32(data + 0xC + i * 4), 0x24);
         game.Call<DrawRequest>({object, data + 4 + i * 4, 2, 1, 0});
     }
@@ -125,7 +124,7 @@ void Rise(CpuContext* ctx) {
     const uint32_t object = frame.Arg(3), data = R32(object + kData), owner = R32(object + kOwner);
     const uint32_t access = frame[48], at = frame[36], matrix = frame[104];
 
-    if (game.Call<0x800F9358>({object, 0}) == 0 || AllDone(data)) {
+    if (game.Call<0x80037A84>({object, 0}) == 0 || AllDone(data)) {
         W8(object + 1, 0);
         W8(object + 5, R8(object + 5) + 1);
         return;
@@ -154,11 +153,11 @@ void Rise(CpuContext* ctx) {
         const uint32_t kind = R8(object + kKind);
 
         if (kind != 5 && kind != 0xB && before > 10 && timer <= 10 && RF(owner + 0x40) < RF(owner + 100) - 50.0f)
-            game.Call<0x801072B4>({owner, 4});
+            game.Call<0x80045EF0>({owner, 4});
     }
 
     W8(object + 0x44, R8(owner + 0x16));
-    game.Call<0x800E0AF8>({R32(owner + 0x13C) + 4, 3, at});
+    game.Call<0x802A28C4>({R32(owner + 0x13C) + 4, 3, at});
     Copy3(object + kAt, at);
     game.Call<Identity>({matrix});
     game.Call<RotateX>({R32(object + 0x28), matrix});
@@ -167,7 +166,8 @@ void Rise(CpuContext* ctx) {
     game.Call<RotateZ>({R32(object + 0x2C), matrix});
     Copy3(at, data + kOffset);
     game.Call<MulVec>({at, matrix});
-    game.Call<0x80073FCC>({object + kAt, at});
+    for (int i = 0; i < 3; ++i)
+        Memory::WriteFloat32(object + kAt + i * 4, Memory::ReadFloat32(object + kAt + i * 4) + Memory::ReadFloat32(at + i * 4));
 
     for (uint32_t k = 0; k < 3; ++k)
         W32(matrix + 0xC + k * 0x10, R32(object + kAt + k * 4));
@@ -200,14 +200,16 @@ void Stay(CpuContext* ctx) {
     WF(offset, 0.0f);
     WF(offset + 4, 0.0f);
     WF(offset + 8, z);
-    game.Call<0x80051454>({offset}, {-1.0});
+    for (int i = 0; i < 3; ++i)
+        Memory::WriteFloat32(offset + i * 4, -Memory::ReadFloat32(offset + i * 4));
     W32(object + kTimer, uint32_t(std::min(timer + int32_t(GameStep::Ticks()), 4)));
     game.Call<Identity>({matrix});
-    game.Call<0x800502E0>({R32(object + 0x28), matrix});
+    game.Call<0x8028A954>({R32(object + 0x28), matrix}); // RotateX on Stay? -> JPN 0x8028A954
     game.Call<RotateY>({R32(object + 0x24), matrix});
     game.Call<RotateZ>({R32(object + 0x2C), matrix});
     game.Call<MulVec>({offset, matrix});
-    game.Call<0x800513DC>({sum, object + kAt, offset});
+    for (int i = 0; i < 3; ++i)
+        Memory::WriteFloat32(sum + i * 4, Memory::ReadFloat32(object + kAt + i * 4) + Memory::ReadFloat32(offset + i * 4));
     Copy3(placed, sum);
 
     for (uint32_t k = 0; k < 3; ++k)
@@ -218,14 +220,14 @@ void Stay(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_80118770(CpuContext* ctx);
+extern "C" void func_80057E44(CpuContext* ctx);
 extern "C" void MH3_EffectFadeRise(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EffectFadeRise", func_80118770, Rise);
+    PortCheck::Call(ctx, "EffectFadeRise", func_80057E44, Rise);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80118770, MH3_EffectFadeRise, "EffectFadeRise");
+REGISTER_NATIVE_FUNCTION_AS(0x80057E44, MH3_EffectFadeRise, "EffectFadeRise");
 
-extern "C" void func_801194B4(CpuContext* ctx);
+extern "C" void func_80058C5C(CpuContext* ctx);
 extern "C" void MH3_EffectFadeStay(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EffectFadeStay", func_801194B4, Stay);
+    PortCheck::Call(ctx, "EffectFadeStay", func_80058C5C, Stay);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801194B4, MH3_EffectFadeStay, "EffectFadeStay");
+REGISTER_NATIVE_FUNCTION_AS(0x80058C5C, MH3_EffectFadeStay, "EffectFadeStay");

@@ -1,11 +1,16 @@
-# Guest functions that address guest RAM through another alias than cached
-# MEM1/MEM2 (uncached 0xC.../0xD..., physical, the locked cache 0xE...), one
-# 0xADDRESS per line: the translator gives them MemoryAlias helpers, which fold
-# every alias into the runtime's window (recomp.yml translation.alias_access_path).
-# Functions naming such an address as a constant are found by the translator
-# itself (GuestHardwareAccess.NamesAliasAddress); this list holds the ones a
-# run saw with MH3_AUDIT_GUEST_ALIAS (2026-10-05: boot through the title, the
-# village, Alatreon 19001, arena 9004, quest 1003 area 2).
-0x804CA6B0 # uncached MEM1 globals (0xC00031xx)
-0x804CAD90 # uncached MEM1
-0x804CB040 # uncached MEM1
+# Guest functions that address guest RAM through uncached/alias aliases
+0x80420B8C
+0x80421540
+0x804216C4
+0x80423138
+0x8042344C
+0x80428994
+0x80462B1C
+0x80466724
+0x8046DFE4
+0x804F3EF8
+0x805212DC
+0x8052ED20
+0x8052F1FC
+0x805370D8
+0x80537310

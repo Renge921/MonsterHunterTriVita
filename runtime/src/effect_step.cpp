@@ -49,11 +49,10 @@
 #include <utility>
 #include <vector>
 
-extern "C" void func_800A4C20(CpuContext*);  // nw4r::ef::Effect::Calc(bool onlyBillboard)
-extern "C" void func_800A8AC0(CpuContext*);  // nw4r::ef::Emitter::CalcEmitter()
-extern "C" void func_800A8E5C(CpuContext*);  // nw4r::ef::Emitter::CalcEmission()
-extern "C" void func_800AC35C(CpuContext*);  // nw4r::ef::ParticleManager::Calc()
-void ParticleManagerCalcNative(CpuContext*); // its port (particle_manager_calc.cpp)
+extern "C" void func_804F4C0C(CpuContext*);  // nw4r::ef::Effect::Calc(bool onlyBillboard)
+extern "C" void func_804F72E8(CpuContext*);  // nw4r::ef::Emitter::CalcEmitter()
+extern "C" void func_804F7528(CpuContext*);  // nw4r::ef::Emitter::CalcEmission()
+extern "C" void func_805017B4(CpuContext*);  // nw4r::ef::ParticleManager::Calc()
 void EffectCalcNative(CpuContext*);          // Effect::Calc's port (effect_calc.cpp)
 
 // Native ports (ef_anim_curve.cpp, nw4r_accessors.cpp), called directly.
@@ -389,7 +388,7 @@ CurveFootprint FootprintOf(GuestCall& game, uint32_t manager) {
         return game.cpu->gpr[3];
     };
 
-    constexpr uint32_t kChannelCount = 0x80592428, kChannelBound = 0x80592528; // u8[256] tables
+    constexpr uint32_t kChannelCount = 0x807193F8, kChannelBound = 0x807194F8; // u8[256] tables
     CurveFootprint f;
     const uint32_t res = MemoryInline::FlatRead32(manager + kManagerResource);
     const uint32_t count = native(MH3_ResEmitterNumPtclTrack, {res}) & 0xFFFF;
@@ -745,10 +744,10 @@ static void EffectCalcPort(CpuContext* ctx) {
     *ctx = saved;
 }
 
-extern "C" void func_800A4C20(CpuContext* ctx);
+extern "C" void func_804F4C0C(CpuContext* ctx);
 
 static void CalcEffect(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EffectCalc", func_800A4C20, EffectCalcPort);
+    PortCheck::Call(ctx, "EffectCalc", func_804F4C0C, EffectCalcPort);
 }
 
 namespace {
@@ -786,14 +785,14 @@ bool viewHeld = false;
 
 // func_800D4910's work: the current view into the effect system's view matrix.
 void PutEffectView(CpuContext* cpu) {
-    const uint32_t system = MemoryInline::FlatRead32(0x80796E30);
+    const uint32_t system = MemoryInline::FlatRead32(0x808A04C8);
     const uint32_t view = MemoryInline::FlatRead32(system + 0x29084);
 
     if (!view || !MemoryInline::FlatRead32(system + 0x29074))
         return;
 
     if (!viewHeld) {
-        GuestCall{cpu}.Call<0x802BDCA4>({view}); // get_current_view_mtx
+        GuestCall{cpu}.Call<0x80375DB4>({view}); // get_current_view_mtx
         return;
     }
 
@@ -806,6 +805,11 @@ void RunDeferred(CpuContext* cpu, void*) {
     deferredClock = &deferral.clock;
 
     for (const auto& [effect, onlyBillboard] : deferral.calls) {
+        const uint32_t life = MemoryInline::FlatRead32(effect + kLifeStatus);
+
+        if (life != 1 && life != 2)
+            continue;
+
         cpu->gpr[3] = effect;
         cpu->gpr[4] = onlyBillboard;
         CalcEffect(cpu);
@@ -834,7 +838,7 @@ void FinishPrevious() {
 namespace TouchCheck {
 // The ef heap: MEM1, allocated once at boot (effects, emitters, particle
 // managers and particles all fall inside it).
-constexpr uint32_t kPoolStart = 0x814F6000, kPoolEnd = 0x81580000;
+uint32_t poolStart = 0, poolEnd = 0;
 std::atomic<bool> armed{false};
 struct sigaction previous {};
 std::array<uint32_t, 64> reported{};
@@ -851,19 +855,64 @@ bool Enabled() {
     return enabled;
 }
 
+bool InitPoolRange() {
+    if (poolStart)
+        return true;
+
+    const uint32_t system = MemoryInline::FlatRead32(0x80732C84);
+    if (!system)
+        return false;
+
+    const uint32_t memory = MemoryInline::FlatRead32(system);
+    if (!memory)
+        return false;
+
+    uint32_t lo = UINT32_MAX, hi = 0;
+    const uint32_t poolOffsets[4] = {0x08, 0x10, 0x18, 0x20};
+    const uint32_t elemSizes[4] = {0x100, 0x140, 0xC0, 0x100};
+
+    for (int i = 0; i < 4; ++i) {
+        const uint32_t pool = MemoryInline::FlatRead32(memory + poolOffsets[i]);
+        if (!pool)
+            continue;
+
+        for (uint32_t listOff : {4u, 0x10u}) {
+            const List list{pool + listOff};
+            for (uint32_t obj = list.First(); obj; obj = list.Next(obj)) {
+                lo = std::min(lo, obj);
+                hi = std::max(hi, obj + elemSizes[i]);
+            }
+        }
+    }
+
+    if (lo >= hi)
+        return false;
+
+    // Align strictly inside the pool range to avoid trapping unrelated neighbor allocations.
+    poolStart = (lo + 0xFFFu) & ~0xFFFu;
+    poolEnd = hi & ~0xFFFu;
+
+    if (poolStart >= poolEnd)
+        return false;
+
+    std::fprintf(stderr, "MH3 effect touch check: JPN ef pool range %08x..%08x (raw %08x..%08x, system %08x, memory %08x)\n",
+                 poolStart, poolEnd, lo, hi, system, memory);
+    return true;
+}
+
 uint8_t* Pools() {
-    return static_cast<uint8_t*>(GuestFlat::Host(kPoolStart));
+    return static_cast<uint8_t*>(GuestFlat::Host(poolStart));
 }
 
 void Disarm() {
     if (armed.exchange(false))
-        mprotect(Pools(), kPoolEnd - kPoolStart, PROT_READ | PROT_WRITE);
+        mprotect(Pools(), poolEnd - poolStart, PROT_READ | PROT_WRITE);
 }
 
 void Fault(int signal, siginfo_t* info, void* context) {
     const auto address = reinterpret_cast<uint8_t*>(info->si_addr);
 
-    if (!armed.load() || address < Pools() || address >= Pools() + (kPoolEnd - kPoolStart)) {
+    if (!armed.load() || !poolStart || address < Pools() || address >= Pools() + (poolEnd - poolStart)) {
         if (previous.sa_flags & SA_SIGINFO)
             previous.sa_sigaction(signal, info, context);
         else
@@ -896,11 +945,14 @@ void Fault(int signal, siginfo_t* info, void* context) {
     const bool game = PpcThread::CurrentThread() == PpcThread::Game;
     const CpuContext* cpu = PpcThread::state[PpcThread::Game].context;
     std::fprintf(stderr, "MH3 effect touch check: %08x (%s thread, lr %08x) used effect memory %08x before the task pass joined the calculation\n", function,
-                 game ? "game" : "another", cpu ? cpu->lr : 0, kPoolStart + uint32_t(address - Pools()));
+                 game ? "game" : "another", cpu ? cpu->lr : 0, poolStart + uint32_t(address - Pools()));
 }
 
 void Arm() {
     if (!Enabled())
+        return;
+
+    if (!InitPoolRange())
         return;
 
     static const bool installed = [] {
@@ -926,7 +978,7 @@ void Arm() {
 
     faulted = false;
     armed = true;
-    mprotect(Pools(), kPoolEnd - kPoolStart, PROT_NONE);
+    mprotect(Pools(), poolEnd - poolStart, PROT_NONE);
 }
 } // namespace TouchCheck
 #endif
@@ -961,19 +1013,12 @@ uint32_t TakeRetireDrawWaits() {
 #endif
 
 void Defer(bool enabled) {
-    // Overlapped: the previous step's calls may still run on the worker. The
-    // task pass's tasks before its first use of the effects run beside them,
-    // and that use joins them (Touch); the list is the game thread's.
-    if (overlap) {
-#if defined(MH3_DEVELOPMENT) && !defined(__vita__)
-        if (deferral.launched && !TouchCheck::Enabled())
-#else
-        if (deferral.launched)
-#endif
-            deferral.joinPending.store(true, std::memory_order_relaxed);
-        else
-            FinishPrevious();
-    }
+    // Always join the previous step's deferred Effect::Calc on the guest worker
+    // before RunTasks begins. In RMHJ08, several nw4r::ef helpers are inlined
+    // into unhooked callers and RSO overlays, so lazy joining via Touch() can
+    // race with the worker on ActivityList/pool mutations.
+    if (overlap)
+        FinishPrevious();
 
     // Port checks compare whole RAM around a call: they need the game thread's order.
     deferral.enabled = enabled && GuestWorker::Available() && !PortCheck::Set();
@@ -993,6 +1038,17 @@ void Touch() {
         return;
 
     FinishPrevious();
+}
+
+void CancelDeferred(uint32_t effect) {
+    if (PpcThread::CurrentThread() != PpcThread::Game || deferral.launched)
+        return;
+
+    auto& calls = deferral.calls;
+    calls.erase(std::remove_if(calls.begin(), calls.end(), [effect](const auto& call) { return call.first == effect; }), calls.end());
+
+    auto& uncalculated = deferral.uncalculated;
+    uncalculated.erase(std::remove(uncalculated.begin(), uncalculated.end(), effect), uncalculated.end());
 }
 
 void Collected() {
@@ -1061,7 +1117,7 @@ void Join(CpuContext* cpu) {
 // nw4r::ef::EffectSystem::RetireEffect(system, effect) destroys the effect and
 // frees it for reuse: its deferred calls go (the effect would show nothing
 // more), and while the worker runs the game thread waits for it first.
-extern "C" void func_800A5C6C(CpuContext* ctx);
+extern "C" void func_804F56BC(CpuContext* ctx);
 extern "C" void MH3_EffectSystemRetireEffect(CpuContext* ctx) {
     const uint32_t effect = ctx->gpr[4];
     EffectStep::Touch();
@@ -1086,24 +1142,23 @@ extern "C" void MH3_EffectSystemRetireEffect(CpuContext* ctx) {
     if (deferral.launched) {
         EffectStep::Join(ctx);
     } else {
-        auto& calls = deferral.calls;
-        calls.erase(std::remove_if(calls.begin(), calls.end(), [effect](const auto& call) { return call.first == effect; }), calls.end());
+        EffectStep::CancelDeferred(effect);
     }
 
-    func_800A5C6C(ctx);
+    func_804F56BC(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A5C6C, MH3_EffectSystemRetireEffect, "EffectSystemRetireEffect");
+REGISTER_NATIVE_FUNCTION_AS(0x804F56BC, MH3_EffectSystemRetireEffect, "EffectSystemRetireEffect");
 
 // nw4r::ef::EffectSystem::CreateEffect: a new effect from the system's pools.
-extern "C" void func_800A5AF4(CpuContext* ctx);
+extern "C" void func_804F5598(CpuContext* ctx);
 extern "C" void MH3_EffectSystemCreateEffect(CpuContext* ctx) {
     EffectStep::Touch();
-    func_800A5AF4(ctx);
+    func_804F5598(ctx);
 
     if (ctx->gpr[3] && PpcThread::CurrentThread() == PpcThread::Game)
         deferral.uncalculated.push_back(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A5AF4, MH3_EffectSystemCreateEffect, "EffectSystemCreateEffect");
+REGISTER_NATIVE_FUNCTION_AS(0x804F5598, MH3_EffectSystemCreateEffect, "EffectSystemCreateEffect");
 
 // func_800D4910 (DrawScene, before the buckets): when the effect system draws
 // and has a view matrix, puts the current view (get_current_view_mtx) there.
@@ -1119,7 +1174,7 @@ extern "C" void MH3_EffectSystemView(CpuContext* ctx) {
 
     PutEffectView(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D4910, MH3_EffectSystemView, "EffectSystemView");
+REGISTER_NATIVE_FUNCTION_AS(0x802AC7E0, MH3_EffectSystemView, "EffectSystemView");
 
 // Whether this Effect::Calc is the first whole one of an effect the game thread
 // created in this step. That Calc runs at once and a whole tick, as on the Wii:
@@ -1168,32 +1223,30 @@ extern "C" void MH3_EffectCalc(CpuContext* ctx) {
     CalcEffect(ctx);
     step.firstCalc = false;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A4C20, MH3_EffectCalc, "EffectCalc");
+REGISTER_NATIVE_FUNCTION_AS(0x804F4C0C, MH3_EffectCalc, "EffectCalc");
 
 static void EmitterCalcEmitterPort(CpuContext* ctx) {
     if (!step.particlesOnly)
-        func_800A8AC0(ctx);
+        func_804F72E8(ctx);
 }
 
-extern "C" void func_800A8AC0(CpuContext* ctx);
 extern "C" void MH3_EmitterCalcEmitter(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EmitterCalcEmitter", func_800A8AC0, EmitterCalcEmitterPort);
+    PortCheck::Call(ctx, "EmitterCalcEmitter", func_804F72E8, EmitterCalcEmitterPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A8AC0, MH3_EmitterCalcEmitter, "EmitterCalcEmitter");
+REGISTER_NATIVE_FUNCTION_AS(0x804F72E8, MH3_EmitterCalcEmitter, "EmitterCalcEmitter");
 
 static void EmitterCalcEmissionPort(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     ++(step.particlesOnly ? traceCounts.emissionsGated : traceCounts.emissions);
 #endif
     if (!step.particlesOnly)
-        func_800A8E5C(ctx);
+        func_804F7528(ctx);
 }
 
-extern "C" void func_800A8E5C(CpuContext* ctx);
 extern "C" void MH3_EmitterCalcEmission(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EmitterCalcEmission", func_800A8E5C, EmitterCalcEmissionPort);
+    PortCheck::Call(ctx, "EmitterCalcEmission", func_804F7528, EmitterCalcEmissionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A8E5C, MH3_EmitterCalcEmission, "EmitterCalcEmission");
+REGISTER_NATIVE_FUNCTION_AS(0x804F7528, MH3_EmitterCalcEmission, "EmitterCalcEmission");
 
 #ifdef MH3_DEVELOPMENT
 namespace {
@@ -1258,7 +1311,7 @@ static void ParticleManagerCalcPort(CpuContext* ctx) {
     // Whole ticks with every particle on a whole tick (the stock 1/30 s step)
     // are the original.
     if (step.particleStep == 1.0 && step.particles.Empty()) {
-        ParticleManagerCalcNative(ctx);
+        func_805017B4(ctx);
         return;
     }
 
@@ -1321,7 +1374,7 @@ static void ParticleManagerCalcPort(CpuContext* ctx) {
         work.push_back(w);
     }
 
-    ParticleManagerCalcNative(ctx);
+    func_805017B4(ctx);
     ++betweenCall; // this call's stamps no longer hold
 
     GuestCall game{ctx};
@@ -1372,14 +1425,13 @@ static void ParticleManagerCalcPort(CpuContext* ctx) {
     }
 }
 
-extern "C" void func_800AC35C(CpuContext* ctx);
 extern "C" void MH3_ParticleManagerCalc(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleManagerCalc", func_800AC35C, ParticleManagerCalcPort);
+    PortCheck::Call(ctx, "ParticleManagerCalc", func_805017B4, ParticleManagerCalcPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AC35C, MH3_ParticleManagerCalc, "ParticleManagerCalc");
+REGISTER_NATIVE_FUNCTION_AS(0x805017B4, MH3_ParticleManagerCalc, "ParticleManagerCalc");
 
 // Child emission is a curve event: only when the particle's age crosses a tick.
-extern "C" void func_800A1D0C(CpuContext* ctx);
+extern "C" void func_804FBA3C(CpuContext* ctx);
 static void AnimCurveExecuteChildPort(CpuContext* ctx) {
     const Particle* entry = step.particles.Find(ctx->gpr[4]);
     const uint32_t* stamp = betweenTicks.Find(ctx->gpr[4]);
@@ -1389,10 +1441,10 @@ static void AnimCurveExecuteChildPort(CpuContext* ctx) {
     ++(gated ? traceCounts.childCurvesGated : traceCounts.childCurves);
 #endif
     if (!gated)
-        func_800A1D0C(ctx);
+        func_804FBA3C(ctx);
 }
 
 extern "C" void MH3_AnimCurveExecuteChild(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AnimCurveExecuteChild", func_800A1D0C, AnimCurveExecuteChildPort);
+    PortCheck::Call(ctx, "AnimCurveExecuteChild", func_804FBA3C, AnimCurveExecuteChildPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A1D0C, MH3_AnimCurveExecuteChild, "AnimCurveExecuteChild");
+REGISTER_NATIVE_FUNCTION_AS(0x804FBA3C, MH3_AnimCurveExecuteChild, "AnimCurveExecuteChild");

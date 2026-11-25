@@ -12,7 +12,7 @@
 #include <string_view>
 
 namespace {
-constexpr uint32_t kSram = 0x8074FB00;
+constexpr uint32_t kSram = 0x807ABE40;
 std::filesystem::path SramPath() {
     const char* user = std::getenv("MH3_USER_DIR");
     return (user ? std::filesystem::path(user) : std::filesystem::path("saves")) / "sram.bin";
@@ -54,46 +54,46 @@ void SaveSram() {
 // The RTC/SRAM device is supplied by the dedicated host SRAM service below.
 extern "C" void MH3_EXIInit(CpuContext*) {
     Memory::Write32(0x800000C4, Memory::Read32(0x800000C4) | 0x007F8000);
-    constexpr std::array<uint32_t, 8> handlers = {0x804B1310, 0x804B13D0, 0x804B15F0, 0x804B1310, 0x804B13D0, 0x804B15F0, 0x804B1310, 0x804B13D0};
+    constexpr std::array<uint32_t, 8> handlers = {0x80466FA4, 0x8046705C, 0x80467274, 0x80466FA4, 0x8046705C, 0x80467274, 0x80466FA4, 0x8046705C};
 
     for (unsigned i = 0; i < handlers.size(); ++i)
         Memory::Write32(0x80003040 + (9 + i) * 4, handlers[i]);
     // Probe timestamps and device-2 ID cache used by the original EXI library.
     Memory::Write32(0x800030C0, 0);
     Memory::Write32(0x800030C4, 0);
-    Memory::Write32(0x80749040, 0);
-    Memory::Write32(0x80749080, 0);
-    Memory::Write32(0x80797658, 0);
+    Memory::Write32(0x807CFF70, 0);
+    Memory::Write32(0x807CFF30, 0);
+    Memory::Write32(0x808A0718, 0);
 }
-REGISTER_NATIVE_FUNCTION(0x804B16C0, MH3_EXIInit);
+REGISTER_NATIVE_FUNCTION(0x80467344, MH3_EXIInit);
 
 extern "C" void MH3_EXIProbe(CpuContext* ctx) {
     ctx->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION(0x804B0D80, MH3_EXIProbe);
+REGISTER_NATIVE_FUNCTION(0x80466A24, MH3_EXIProbe);
 extern "C" void MH3_EXIGetID(CpuContext* ctx) {
     if (ctx->gpr[5])
         Memory::Write32(ctx->gpr[5], 0);
 
     ctx->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION(0x804B1AA0, MH3_EXIGetID);
+REGISTER_NATIVE_FUNCTION(0x80467704, MH3_EXIGetID);
 
 // SIInit: initialize the original four transfer queues, channel state and
 // interrupt binding. Controller input will use host PAD/WPAD services.
 extern "C" void MH3_SIInit(CpuContext*) {
-    if (Memory::Read32(0x80797934))
+    if (Memory::Read32(0x808A0CF4))
         return;
 
     for (uint32_t i = 0; i < 4; ++i)
-        Memory::Write32(0x80759AC8 + i * 0x20, 0xFFFFFFFF);
+        Memory::Write32(0x807CFED0 + i * 0x20, 0xFFFFFFFF);
 
-    Memory::Write32(0x8062A8A4, 0);
-    Memory::Write32(0x80003040 + 20 * 4, 0x804DE3A0);
+    Memory::Write32(0x80705BB4, 0);
+    Memory::Write32(0x80003040 + 20 * 4, 0x804682B8);
     Memory::Write32(0x800000C4, Memory::Read32(0x800000C4) & ~0x800u);
-    Memory::Write32(0x80797934, 1);
+    Memory::Write32(0x808A0CF4, 1);
 }
-REGISTER_NATIVE_FUNCTION(0x804DE900, MH3_SIInit);
+REGISTER_NATIVE_FUNCTION(0x80468804, MH3_SIInit);
 
 // No physical GameCube SI devices are attached to this host. Keep the SDK's
 // cached type consistent so its original SIGetTypeAsync delivers callbacks
@@ -104,13 +104,13 @@ extern "C" void MH3_SIGetType(CpuContext* cpu) {
     if (channel >= 4)
         MH3_THROW(std::runtime_error("SIGetType channel outside 0..3"));
 
-    Memory::Write32(0x8062A8B8 + channel * 4, 8); // SI_ERROR_NO_RESPONSE
+    Memory::Write32(0x80705BC8 + channel * 4, 8); // SI_ERROR_NO_RESPONSE
     cpu->gpr[3] = 8;
 }
-REGISTER_NATIVE_FUNCTION(0x804DF360, MH3_SIGetType);
+REGISTER_NATIVE_FUNCTION(0x8046921C, MH3_SIGetType);
 
 // __OSInitSram. SRAM settings are a 64-byte big-endian image. Layout and
-// checksum are verified against MH3's unlock routine at 0x804D3550; see also
+// checksum are verified against MH3's unlock routine at 0x8042A180; see also
 // Dolphin's Source/Core/Core/HW/Sram.h for field descriptions.
 extern "C" void MH3_OSInitSram(CpuContext*) {
     std::memset(Memory::GetPointer(kSram, 0x50), 0, 0x50);
@@ -134,7 +134,7 @@ extern "C" void MH3_OSInitSram(CpuContext*) {
     Memory::Write32(kSram + 0x40, 0x40); // no dirty bytes
     Memory::Write32(kSram + 0x4C, 1);    // synchronized
 }
-REGISTER_NATIVE_FUNCTION(0x804D3350, MH3_OSInitSram);
+REGISTER_NATIVE_FUNCTION(0x80429F80, MH3_OSInitSram);
 
 // Common UnlockSram(commit, offset), called by the translated lock/unlock APIs.
 // The original EXI DMA is replaced by a synchronous atomic host-file update.
@@ -168,14 +168,14 @@ extern "C" void MH3_UnlockSram(CpuContext* ctx) {
 
     ctx->gpr[3] = 1;
 }
-REGISTER_NATIVE_FUNCTION(0x804D3550, MH3_UnlockSram);
+REGISTER_NATIVE_FUNCTION(0x8042A180, MH3_UnlockSram);
 
 // __OSInitAudioSystem uploads a temporary DSP bootstrap and waits for the
 // physical DSP to acknowledge it, restoring its scratch RAM before returning.
 // Native execution has no DSP to reset: the native mixer (runtime/src/audio)
 // produces the audio.
 extern "C" void MH3_OSInitAudioSystem(CpuContext*) {}
-REGISTER_NATIVE_FUNCTION(0x804CC9D0, MH3_OSInitAudioSystem);
+REGISTER_NATIVE_FUNCTION(0x80422F70, MH3_OSInitAudioSystem);
 
 // __write_console(handle, buffer, byteCount*, refCon): leave formatting to
 // MH3's translated C library and route its final byte stream to the host.
@@ -218,13 +218,13 @@ extern "C" void MH3_WriteConsole(CpuContext* ctx) {
     Memory::Write32(ctx->gpr[5], static_cast<uint32_t>(written));
     ctx->gpr[3] = written == size ? 0 : 1;
 }
-REGISTER_NATIVE_FUNCTION(0x80464340, MH3_WriteConsole);
+REGISTER_NATIVE_FUNCTION(0x804618C8, MH3_WriteConsole);
 
 // SISetXY: retain the SDK's scanline/line-count polling configuration. Host
 // controller services do not use the physical SI polling register.
 extern "C" void MH3_SISetXY(CpuContext* cpu) {
-    const uint32_t state = (Memory::Read32(0x8062A8A4) & 0xFC0000FFu) | (cpu->gpr[3] << 16) | (cpu->gpr[4] << 8);
-    Memory::Write32(0x8062A8A4, state);
+    const uint32_t state = (Memory::Read32(0x80705BB4) & 0xFC0000FFu) | (cpu->gpr[3] << 16) | (cpu->gpr[4] << 8);
+    Memory::Write32(0x80705BB4, state);
     cpu->gpr[3] = state;
 }
-REGISTER_NATIVE_FUNCTION(0x804DEC10, MH3_SISetXY);
+REGISTER_NATIVE_FUNCTION(0x80468B00, MH3_SISetXY);

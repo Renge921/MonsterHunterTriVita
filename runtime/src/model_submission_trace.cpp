@@ -136,7 +136,7 @@ void RunDraw(CpuContext* cpu) {
 extern "C" void MH3_ModelDraw(CpuContext* cpu) {
     RunDraw(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80078B00, MH3_ModelDraw, "G3dDrawOpaXlu");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80078B00, MH3_ModelDraw, "G3dDrawOpaXlu");
 
 void TraceNativeModelDispatch(const NativeModelDispatch&) {
     // The model submission trace was removed; model_scope.cpp still calls this.

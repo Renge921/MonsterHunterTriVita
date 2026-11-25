@@ -72,30 +72,30 @@ aurora::MaterialSource Snapshot(uint32_t object) {
 }
 
 void PrepareSlot(uint32_t slot) {
-    const uint32_t base = Memory::Read8(0x8066BDB0 + slot);
-    const uint32_t variant = Memory::Read8(0x8066B985 + slot);
-    const int detail = int8_t(Memory::Read8(0x8066BE22 + slot));
-    const uint32_t patch = Memory::Read8(0x8066BE2C + slot);
+    const uint32_t base = Memory::Read8(0x8073D9D0 + slot);
+    const uint32_t variant = Memory::Read8(0x8073D5A5 + slot);
+    const int detail = int8_t(Memory::Read8(0x8073DA42 + slot));
+    const uint32_t patch = Memory::Read8(0x8073DA4C + slot);
 
-    // Preserve the game's float computation and truncation to GXColor alpha.
-    const float opacity = float(Memory::Read8(0x8066BDBE + slot)) / Memory::ReadFloat32(0x8079803C);
-    const uint8_t alpha = uint32_t(Memory::ReadFloat32(0x80798038) * opacity) & 255;
+    // Preserve the game's float computation and truncation to GXColor alpha (0..100 -> 0..255).
+    const float opacity = float(Memory::Read8(0x8073D9DE + slot)) / 100.0f;
+    const uint8_t alpha = uint32_t(255.0f * opacity) & 255;
 
     for (uint32_t output = 0; output < 2; ++output) {
         aurora::MaterialComposition material;
-        const uint32_t texture = 0x8066B990 + (base + output * 4) * 32;
+        const uint32_t texture = 0x8073D5B0 + (base + output * 4) * 32;
         material.sources[0] = Snapshot(texture);
         material.sources[1] = Snapshot(texture + 32);
         material.opacity = float(alpha) / 255.f;
         material.optionalOverlay = output == 1 && detail > 0;
 
         if (material.optionalOverlay)
-            material.sources[2] = Snapshot(0x8066BA90 + (uint32_t(detail) + variant * 12) * 32);
+            material.sources[2] = Snapshot(0x8073D6B0 + (uint32_t(detail) + variant * 12) * 32);
 
         material.atlas = output == 1;
 
         if (material.atlas) {
-            material.sources[3] = Snapshot(0x8066BA90);
+            material.sources[3] = Snapshot(0x8073D6B0);
             material.atlasX = (patch & 3) * 32;
             material.atlasY = (patch >> 2) * 16 + variant * 64;
 
@@ -103,7 +103,7 @@ void PrepareSlot(uint32_t slot) {
                 MH3_THROW(std::runtime_error("Character material atlas region exceeds source"));
         }
 
-        const uint32_t destination = Memory::Read32((output ? 0x8066BDF0 : 0x8066BDC8) + 4 * slot);
+        const uint32_t destination = Memory::Read32((output ? 0x8073DA10 : 0x8073D9E8) + 4 * slot);
         const void* data = Memory::GetPointer(destination, 128 * 128 * 4);
         SubmitHostGraphicsTask([owner = slot * 2 + output, data, material = std::move(material)]() mutable { aurora::publish_generated_material(owner, data, std::move(material)); });
     }
@@ -117,16 +117,16 @@ extern "C" void MH3_CharacterMaterials(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x60);
     GuestCall game{ctx};
 
-    if (Memory::Read8(0x8066B968) == 1) {
+    if (Memory::Read8(0x8073D588) == 1) {
         for (uint32_t slot = 0; slot < 10; ++slot) {
-            if (!Memory::Read8(0x8066B97B + slot) || !Memory::Read8(0x8066BE18 + slot))
+            if (!Memory::Read8(0x8073D59B + slot) || !Memory::Read8(0x8073DA38 + slot))
                 continue;
             // Keep the original non-composition state setup: it disables fog,
             // alpha testing and alpha writes before the later screen clear.
-            game(0x8005AF80); // dbg_drawgraph_init
+            MH3_DebugDrawSetup(ctx); // dbg_drawgraph_init
             if (NativeGraphicsFrameShouldRender()) {
                 PrepareSlot(slot);
-                Memory::Write8(0x8066BE18 + slot, 0);
+                Memory::Write8(0x8073DA38 + slot, 0);
             }
         }
 
@@ -134,17 +134,16 @@ extern "C" void MH3_CharacterMaterials(CpuContext* ctx) {
         // texture-cache invalidation. Skipped frames retain their dirty slots.
     }
 
-    // Original final untextured screen quad and inherited state.
-    for (uint32_t i = 0; i < 3; ++i)
-        Memory::Write32(frame[0x10 + i * 4], Memory::Read32(0x80798030));
-
-    Memory::Write32(frame[0x20], Memory::Read32(0x8079804C));
-    Memory::Write32(frame[0x24], Memory::Read32(0x80798050));
-    Memory::Write32(frame[0x28], Memory::Read32(0x8065B21C));
-    game(0x80041470, {frame[0x10], frame[0x20], frame[0x28]}); // disp_beta
-    game(0x800885F4, {0x7ff});
+    // On Wii GX, 0x801e3714..0x801e3768 drew a full-screen untextured quad (disp_beta)
+    // to clear the offscreen scratch surface used during material composition.
+    // On Vita, composition targets are published directly to GPU memory via aurora,
+    // so invoking disp_beta here directly overwrites the main framebuffer, obliterating
+    // the newly-drawn character model. Skip disp_beta on Vita, but preserve GX state invalidation.
+    // Memory::Write32(frame[0x8], Memory::Read32(0x80769264));
+    // game(0x802C9268, {frame[0x18], frame[0x10], frame[0x8]}); // disp_beta(pos, size, color)
+    game(0x8052C0C0, {0x7ff});
     auto material = GetNativeMaterialState();
     material.indirect_count = 0;
     SetNativeMaterial(material);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80047DD0, MH3_CharacterMaterials, "CharacterMaterial::prepare");
+REGISTER_NATIVE_FUNCTION(0x801E2F04, MH3_CharacterMaterials);

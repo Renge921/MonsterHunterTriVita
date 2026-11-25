@@ -74,7 +74,7 @@ float SinFIdx(float fidx) {
 
     const uint32_t whole = a >= 65535.0f ? 65535u : uint32_t(a);
     const float fraction = a - float(whole);
-    const uint32_t entry = 0x805744A0 + 16 * (whole & 0xFF);
+    const uint32_t entry = 0x8065AC80 + 16 * (whole & 0xFF);
     const float slope = fraction * FlatReadFloat32(entry + 8);
     const float value = FlatReadFloat32(entry) + slope;
     return fidx < 0.0f ? -value : value;
@@ -141,9 +141,11 @@ uint32_t PrevAlive(uint32_t manager, uint32_t particle) {
 
 FirstFunction NativeFirst(uint32_t guest) {
     switch (guest) {
+    case 0x8050BFC8:
     case 0x800C8AE4:
     case 0x800B9624:
         return FirstAlive;
+    case 0x8050BF98:
     case 0x800C8C00:
     case 0x800B5AC8:
         return LastAlive;
@@ -154,9 +156,11 @@ FirstFunction NativeFirst(uint32_t guest) {
 
 NextFunction NativeNext(uint32_t guest) {
     switch (guest) {
+    case 0x8050C040:
     case 0x800C8D1C:
     case 0x800B8DAC:
         return NextAlive;
+    case 0x8050C010:
     case 0x800C8E48:
     case 0x800B5B30:
         return PrevAlive;
@@ -236,13 +240,13 @@ uint32_t AlphaFlicker(uint32_t particle) {
         value = phase * 2 > period ? int16_t(128 - amplitude) : int16_t(amplitude + 128);
         break;
     case 5: {
-        // MathSinRad (0x800AB6BC): SinFIdx(256 / 2 pi * x), x the phase's
+        // MathSinRad: SinFIdx(256 / 2 pi * x), x the phase's
         // share of 2 pi, in single precision; the result truncated (fctiwz).
-        const float turn = FlatReadFloat32(0x80798560) * float(phase);
+        const float turn = 6.2831854820251465f * float(phase);
         const float x = turn / float(period);
-        const float scaled = FlatReadFloat32(0x80798564) * x;
+        const float scaled = 40.7436637878418f * x;
         const float product = float(amplitude) * SinFIdx(scaled);
-        const float sum5 = FlatReadFloat32(0x80798538) + product;
+        const float sum5 = 128.0f + product;
         value = int16_t(int32_t(sum5));
         break;
     }
@@ -270,30 +274,25 @@ void ModulateColors(uint32_t manager, uint32_t particle, uint8_t primary[4], uin
             color[k] = uint8_t((color[k] * FlatRead8(manager + 0x6D + k) + 128) >> 8);
     };
 
-    if (mode == 2 && !(FlatReadFloat32(manager + 0x78) < FlatReadFloat32(0x807985A0))) {
+    if (mode == 2 && !(FlatReadFloat32(manager + 0x78) < 1.1920928955078125e-07f)) {
         // Fade by the distance of the particle (in the manager's draw frame,
-        // the matrix 0x800AE68C left at 0x806969E8) from the centre +0x7C:
+        // the matrix at 0x80865DD8 in RMHJ08) from the centre +0x7C:
         // from the colour +0x71 at the centre to +0x6D at the range +0x78.
-        // Through the guest's vector helpers; the caller's registers all
-        // stay as they were (the registered port is a precise native).
-        CpuContext* cpu = TryGetCpuContext();
-        const CpuContext saved = *cpu;
-        float distance;
-        {
-            GuestFrame frame(cpu, 0x20);
-            GuestCall game{cpu};
-            const uint32_t moved = frame[8];
-            game.Call<0x80051560>({moved, 0x806969E8, particle + 0xAC});
-            game.Call<0x80050D58>({moved, moved, manager + 0x7C});
-            game.Call<0x80050F88>({moved});
-            distance = float(cpu->fpr[1].d);
-        }
-
-        *cpu = saved;
+        constexpr uint32_t kDrawMatrixAddr = 0x80865DD8;
+        const float px = FlatReadFloat32(particle + 0xAC);
+        const float py = FlatReadFloat32(particle + 0xB0);
+        const float pz = FlatReadFloat32(particle + 0xB4);
+        const float mx = FlatReadFloat32(kDrawMatrixAddr + 0x00) * px + FlatReadFloat32(kDrawMatrixAddr + 0x04) * py + FlatReadFloat32(kDrawMatrixAddr + 0x08) * pz + FlatReadFloat32(kDrawMatrixAddr + 0x0C);
+        const float my = FlatReadFloat32(kDrawMatrixAddr + 0x10) * px + FlatReadFloat32(kDrawMatrixAddr + 0x14) * py + FlatReadFloat32(kDrawMatrixAddr + 0x18) * pz + FlatReadFloat32(kDrawMatrixAddr + 0x1C);
+        const float mz = FlatReadFloat32(kDrawMatrixAddr + 0x20) * px + FlatReadFloat32(kDrawMatrixAddr + 0x24) * py + FlatReadFloat32(kDrawMatrixAddr + 0x28) * pz + FlatReadFloat32(kDrawMatrixAddr + 0x2C);
+        const float dx = mx - FlatReadFloat32(manager + 0x7C);
+        const float dy = my - FlatReadFloat32(manager + 0x80);
+        const float dz = mz - FlatReadFloat32(manager + 0x84);
+        const float distance = std::sqrt(dx * dx + dy * dy + dz * dz);
         const float range = FlatReadFloat32(manager + 0x78);
 
         if (!(distance > range)) {
-            const float product = FlatReadFloat32(0x807985A4) * distance;
+            const float product = 256.0f * distance;
             const int32_t t = int32_t(product / range);
             uint32_t weight[4];
 
@@ -314,7 +313,7 @@ void ModulateColors(uint32_t manager, uint32_t particle, uint8_t primary[4], uin
 }
 
 void Rotation(uint32_t particle, float out[3]) {
-    const float step = FlatReadFloat32(0x807985F4);
+    constexpr float step = 0.02454369328916073f;
 
     for (uint32_t k = 0; k < 3; ++k) {
         out[k] = FlatReadFloat32(particle + 0x40 + 4 * k);
@@ -626,64 +625,64 @@ bool EffectParticle::PortCheckedSlow() {
 extern "C" void MH3_ParticleListLast(CpuContext* ctx) {
     ctx->gpr[3] = ListLastChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B5BA4, MH3_ParticleListLast, "ParticleListLast");
+REGISTER_NATIVE_FUNCTION_AS(0x8050F80C, MH3_ParticleListLast, "ParticleListLast");
 extern "C" void MH3_ParticleListPrev(CpuContext* ctx) {
     ctx->gpr[3] = ListPrevChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B5B98, MH3_ParticleListPrev, "ParticleListPrev");
+REGISTER_NATIVE_FUNCTION_AS(0x8050F814, MH3_ParticleListPrev, "ParticleListPrev");
 extern "C" void MH3_ParticleListLastAlive(CpuContext* ctx) {
     ctx->gpr[3] = ListLastAliveChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B5AC8, MH3_ParticleListLastAlive, "ParticleListLastAlive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B5AC8, MH3_ParticleListLastAlive, "ParticleListLastAlive");
 extern "C" void MH3_ParticleListPrevAlive(CpuContext* ctx) {
     ctx->gpr[3] = ListPrevAliveChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B5B30, MH3_ParticleListPrevAlive, "ParticleListPrevAlive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B5B30, MH3_ParticleListPrevAlive, "ParticleListPrevAlive");
 extern "C" void MH3_ParticleListFirstAlive(CpuContext* ctx) {
     ctx->gpr[3] = ListFirstAliveChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B9624, MH3_ParticleListFirstAlive, "ParticleListFirstAlive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B9624, MH3_ParticleListFirstAlive, "ParticleListFirstAlive");
 extern "C" void MH3_ParticleListNextAlive(CpuContext* ctx) {
     ctx->gpr[3] = ListNextAliveChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B8DAC, MH3_ParticleListNextAlive, "ParticleListNextAlive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B8DAC, MH3_ParticleListNextAlive, "ParticleListNextAlive");
 extern "C" void MH3_DrawStrategyFirstAlive(CpuContext* ctx) {
     ctx->gpr[3] = StrategyFirstChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C8AE4, MH3_DrawStrategyFirstAlive, "DrawStrategyFirstAlive");
+REGISTER_NATIVE_FUNCTION_AS(0x8050BFC8, MH3_DrawStrategyFirstAlive, "DrawStrategyFirstAlive");
 extern "C" void MH3_DrawStrategyLastAlive(CpuContext* ctx) {
     ctx->gpr[3] = StrategyLastChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C8C00, MH3_DrawStrategyLastAlive, "DrawStrategyLastAlive");
+REGISTER_NATIVE_FUNCTION_AS(0x8050BF98, MH3_DrawStrategyLastAlive, "DrawStrategyLastAlive");
 extern "C" void MH3_DrawStrategyNextAlive(CpuContext* ctx) {
     ctx->gpr[3] = StrategyNextChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C8D1C, MH3_DrawStrategyNextAlive, "DrawStrategyNextAlive");
+REGISTER_NATIVE_FUNCTION_AS(0x8050C040, MH3_DrawStrategyNextAlive, "DrawStrategyNextAlive");
 extern "C" void MH3_DrawStrategyPrevAlive(CpuContext* ctx) {
     ctx->gpr[3] = StrategyPrevChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800C8E48, MH3_DrawStrategyPrevAlive, "DrawStrategyPrevAlive");
+REGISTER_NATIVE_FUNCTION_AS(0x8050C010, MH3_DrawStrategyPrevAlive, "DrawStrategyPrevAlive");
 extern "C" void MH3_ParticleColorRgb(CpuContext* ctx) {
     ColorRgbChecked(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AB0BC, MH3_ParticleColorRgb, "ParticleColorRgb");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AB0BC, MH3_ParticleColorRgb, "ParticleColorRgb");
 extern "C" void MH3_ParticleColorAlpha(CpuContext* ctx) {
     ctx->gpr[3] = ColorAlphaChecked(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AB284, MH3_ParticleColorAlpha, "ParticleColorAlpha");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AB284, MH3_ParticleColorAlpha, "ParticleColorAlpha");
 extern "C" void MH3_ParticleAlphaFlicker(CpuContext* ctx) {
     ctx->gpr[3] = AlphaFlickerChecked(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AB460, MH3_ParticleAlphaFlicker, "ParticleAlphaFlicker");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AB460, MH3_ParticleAlphaFlicker, "ParticleAlphaFlicker");
 extern "C" void MH3_ParticleManagerModulateColor(CpuContext* ctx) {
     ModulateColorsChecked(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AE70C, MH3_ParticleManagerModulateColor, "ParticleManagerModulateColor");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800AE70C, MH3_ParticleManagerModulateColor, "ParticleManagerModulateColor");
 extern "C" void MH3_ParticleRotation(CpuContext* ctx) {
     RotationChecked(ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B5518, MH3_ParticleRotation, "ParticleRotation");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B5518, MH3_ParticleRotation, "ParticleRotation");
 extern "C" void MH3_ParticleManagerRotationOffset(CpuContext* ctx) {
     RotationOffsetChecked(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800B56FC, MH3_ParticleManagerRotationOffset, "ParticleManagerRotationOffset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800B56FC, MH3_ParticleManagerRotationOffset, "ParticleManagerRotationOffset");

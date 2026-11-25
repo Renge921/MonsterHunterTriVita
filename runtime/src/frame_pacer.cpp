@@ -50,17 +50,17 @@ namespace {
 enum : int32_t {
     kBlackPending = -0x8000,      // u8: clear VI black on the next flip
     kWidemodeParam = -0x7FFF,     // u8 set_widemode_param: 4:3/16:9 mode to apply (0xFF = none)
-    kWidemodeFlag = -0x4690,      // u8 set_widemode_flag: a widescreen switch is pending
-    kFrameCount = -0x45B8,        // u32: frames paced so far
-    kRetracesThisFrame = -0x4680, // s32: retraces since the last flip (reset only)
-    kRetracesPerFrame = -0x4684,  // s32: frame budget in retraces
-    kViFlag = -0x467C,            // u8: value passed to SetViFlag
-    kViFlagCurrent = -0x4C81,     // u8: SetViFlag's stored value (VI library)
-    kViChanged = -0x3790,         // u32: VI registers to rewrite at the next retrace
-    kFrameBuffers = -0x46B0,      // u32[2]: the two XFBs
-    kBackBufferIndex = -0x46A4,   // u32: 0/1
-    kNextFrameBuffer = -0x46A8,   // u32: XFB to show at the next flip
-    kDriveStatus = -0x4688,       // s32: DVDGetDriveStatus at the last retrace
+    kWidemodeFlag = -0x4714,      // u8 set_widemode_flag: a widescreen switch is pending
+    kFrameCount = -0x4408,        // u32: frames paced so far
+    kRetracesThisFrame = -0x4704, // s32: retraces since the last flip (reset only)
+    kRetracesPerFrame = -0x4708,  // s32: frame budget in retraces
+    kViFlag = -0x4700,            // u8: value passed to SetViFlag
+    kViFlagCurrent = -0x5B39,     // u8: SetViFlag's stored value (VI library)
+    kViChanged = -0x3E68,         // u32: VI registers to rewrite at the next retrace
+    kFrameBuffers = -0x4730,      // u32[2]: the two XFBs
+    kBackBufferIndex = -0x4724,   // u32: 0/1
+    kNextFrameBuffer = -0x4728,   // u32: XFB to show at the next flip
+    kDriveStatus = -0x470C,       // s32: DVDGetDriveStatus at the last retrace
 };
 
 using Clock = std::chrono::steady_clock;
@@ -82,13 +82,13 @@ constexpr auto kMaxDebt = std::chrono::milliseconds(100);
 constexpr auto kDonation = std::chrono::milliseconds(2);
 
 enum : uint32_t {
-    ApplyWidemode = 0x8003FA48, // reconfigures VI/copy for 4:3 or 16:9
-    OSSleepTicks = 0x804D5320,
-    VIFlush = 0x804E9010,
-    VISetNextFrameBuffer = 0x804E9130,
-    VISetBlack = 0x804E91A0,
-    SystemCall = 0x804777D0, // `sc; blr` (a no-op in this runtime)
-    DVDGetDriveStatus = 0x804AAD90,
+    ApplyWidemode = 0x800323E4, // reconfigures VI/copy for 4:3 or 16:9
+    OSSleepTicks = 0x8042BEBC,
+    VIFlush = 0x8043B624,
+    VISetNextFrameBuffer = 0x8043B738,
+    VISetBlack = 0x8043B7A4,
+    SystemCall = 0x804209F0, // `sc; blr` (a no-op in this runtime)
+    DVDGetDriveStatus = 0x804353E4,
 };
 
 // 0x804EB2F0, a VI library leaf the translator inlines: stores a VI setting and
@@ -212,7 +212,8 @@ extern "C" void MH3_FramePacer(CpuContext* ctx) {
 #endif
 
         // The next step is assumed to take as long as this one.
-        GameStep::Begin(std::max(stepTicks, 1e-3) / 2);
+        const double speedMultiplier = FastForwardEnabled() ? 2.0 : 1.0;
+        GameStep::Begin((std::max(stepTicks, 1e-3) / 2) * speedMultiplier);
 
         // No wait: only deliver the device work due (audio, alarms, IOS, VI),
         // and let the other guest threads that can run have a moment, as the
@@ -289,18 +290,18 @@ extern "C" void MH3_FramePacer(CpuContext* ctx) {
     static const TraceFlag traceInput("input");
 
     if (traceInput) {
-        constexpr uint32_t kPad = 0x8065B7D0;    // Psw, channel 0 (0x350 bytes a channel)
-        constexpr uint32_t kCamera = 0x806BDC60; // field camera work
+        constexpr uint32_t kPad = 0x80754428;    // Psw, channel 0 (0x350 bytes a channel)
+        constexpr uint32_t kCamera = 0x80780008; // field camera work
         static int64_t lastTick = -1;
         static uint32_t steps = 0, padRepeats = 0, keyRepeats = 0;
         ++steps;
-        padRepeats += Memory::Read16(kPad + 0xF8) != 0;  // Classic repeat buttons (0x8065B8C8)
-        keyRepeats += Memory::Read16(kPad + 0x2D4) != 0; // game key repeat (0x8065BAA4)
+        padRepeats += Memory::Read16(kPad + 0xF8) != 0;  // Classic repeat buttons
+        keyRepeats += Memory::Read16(kPad + 0x2D4) != 0; // game key repeat
         const int64_t tick = int64_t(GameStep::Elapsed());
 
         if (tick != lastTick) {
             lastTick = tick;
-            const uint32_t table = Memory::Read32(0x8065AB04);
+            const uint32_t table = Memory::Read32(0x80768B4C);
             const uint32_t plw = table ? Memory::Read32(table + 16 + 2 * 4) : 0;
             const bool player = plw && Memory::Read8(plw);
             const uint32_t chr = player ? Memory::Read32(plw + 0x13C) : 0; // MHchar: motion number +0x54, frame +0x78
@@ -338,7 +339,8 @@ extern "C" void MH3_FramePacer(CpuContext* ctx) {
 
     *ctx = saved;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800401A8, MH3_FramePacer, "FramePacer");
+// Active for JPN: 0x80032F84 is the real RMHJ08 FramePacer (0x800401A8 in PAL).
+REGISTER_NATIVE_FUNCTION(0x80032F84, MH3_FramePacer);
 
 // The two sources of `retracesThisFrame`, installed by 0x8003F5F0: a VI
 // post-retrace callback (0x8003F5C8), or an OSSetPeriodicAlarm handler
@@ -359,5 +361,8 @@ extern "C" void MH3_CountRetrace(CpuContext* ctx) {
     Memory::Write32(at(kDriveStatus), ctx->gpr[3]);
     *ctx = saved;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8003F590, MH3_CountRetrace, "CountRetraceAlarm");
-REGISTER_NATIVE_FUNCTION_AS(0x8003F5C8, MH3_CountRetrace, "CountRetraceCallback");
+// Active for JPN: 0x80031F78 is the RMHJ08 retrace counter (PAL 0x8003F5B8).
+REGISTER_NATIVE_FUNCTION(0x80031F78, MH3_CountRetrace);
+// Disabled for JPN: overlaps unrelated RMHJ08 code
+// // Disabled for JPN: overlaps unrelated RMHJ08 code
+REGISTER_NATIVE_FUNCTION(0x80031F88, MH3_CountRetrace);

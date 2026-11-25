@@ -273,4 +273,4 @@ extern "C" void MH3_EnemyReactionStart(CpuContext* ctx) {
         c->gpr[3] = started;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80123150, MH3_EnemyReactionStart, "EnemyReactionStart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80123150, MH3_EnemyReactionStart, "EnemyReactionStart");

@@ -15,13 +15,13 @@
 #include <algorithm>
 
 namespace {
-constexpr uint32_t kPhase = 0x80797038; // u8: r13-17064
-constexpr uint32_t kValue = 0x8079703C; // f32
+constexpr uint32_t kPhase = 0x808A0250; // u8: r13-0x4630
+constexpr uint32_t kValue = 0x808A0254; // f32
 constexpr uint32_t kPeriod = 40;
-constexpr uint32_t SinRad = 0x800AB6BC; // nw4r::math::SinRad (f1 radians) -> f1
+constexpr uint32_t SinFIdx = 0x8053D3D8; // nw4r::math::SinFIdx (f1 fidx) -> f1
 
-// sda2 constants (r2-12840..-12828).
-constexpr uint32_t kHalf = 0x8079CD38, kOne = 0x8079CD3C, kRadPerStep = 0x8079CD40, kZero = 0x8079CD44;
+// sda2 constants (RMHJ08 r2-0x34c8..-0x34b8).
+constexpr uint32_t kRadPerStep = 0x808A5EF8, kFIdxScale = 0x808A5EFC, kHalf = 0x808A5F00, kOne = 0x808A5F04, kZero = 0x808A5F08;
 } // namespace
 
 static void PulseUpdatePort(CpuContext* ctx) {
@@ -32,15 +32,15 @@ static void PulseUpdatePort(CpuContext* ctx) {
     const uint32_t phase = (Memory::Read8(kPhase) + GameStep::Ticks()) % kPeriod;
     Memory::Write8(kPhase, uint8_t(phase));
     const float at = float(double(phase) + GameStep::Fraction());
-    game.Call<SinRad>({}, {Memory::ReadFloat32(kRadPerStep) * at});
+    game.Call<SinFIdx>({}, {Memory::ReadFloat32(kFIdxScale) * (Memory::ReadFloat32(kRadPerStep) * at)});
     float value = Memory::ReadFloat32(kHalf) * (Memory::ReadFloat32(kOne) + game.F1());
     value = std::min(std::max(value, Memory::ReadFloat32(kZero)), Memory::ReadFloat32(kOne));
     Memory::WriteFloat32(kValue, value);
     *ctx = saved;
 }
 
-extern "C" void func_802D9F18(CpuContext* ctx);
+extern "C" void func_80186BE4(CpuContext* ctx);
 extern "C" void MH3_PulseUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PulseUpdate", func_802D9F18, PulseUpdatePort);
+    PortCheck::Call(ctx, "PulseUpdate", func_80186BE4, PulseUpdatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802D9F18, MH3_PulseUpdate, "PulseUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x80186BE4, MH3_PulseUpdate, "PulseUpdate");

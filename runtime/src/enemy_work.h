@@ -27,19 +27,34 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    SetUp = 0x801304DC,        // (work, kind)
-    SetMotion = 0x8012F61C,    // (work, motion, flags, blend)
-    FrameCheck = 0x8012F980,   // em_frame_check (work, mode; f1 frame, f2 end) -> 1
-    MotionDone = 0x8012F9A0,   // (work) -> 1 when the motion has ended (0x800E21FC)
-    DemoSteps = 0x80146048,    // () -> s16, the event demo clock (EventDemoGetSteps)
-    DemoReached = 0x8014606C,  // (n) -> 1 from demo step n on
-    SetPosition = 0x801460BC,  // (work; f1-f3): the position and the previous position
-    SetAngles = 0x80146170,    // (work; f1-f3 degrees)
-    DemoPose = 0x8014620C,     // (work, steps, position keys, angle keys): demo_pose.cpp
-    DemoPoseAxes = 0x80146308, // (work, steps, position keys, angle keys, axes, axes)
-    Spawn = 0x8030456C,        // (work, kind, joint, VEC3* offset or 0; f1 scale): an enemy effect
-    Vec3Set = 0x8005000C,      // setVector3 (VEC3*; f1-f3)
+    SetUp = 0x8016A708,        // (work, kind)
+    SetMotion = 0x80168FD4,    // (work, motion, flags, blend)
+    FrameCheck = 0x80169ABC,   // em_frame_check (work, mode; f1 frame, f2 end) -> 1
+    MotionDone = 0x80169AD4,   // (work) -> 1 when the motion has ended (0x802A4878)
+    DemoSteps = 0x801846C0,    // () -> s16, the event demo clock (EventDemoGetSteps)
+    DemoReached = 0x801846E4,  // (n) -> 1 from demo step n on
+    SetPosition = 0x80184730,  // (work; f1-f3): the position and the previous position
+    SetAngles = 0x80146170,    // PAL address (inlined in RMHJ08; prefer SetAnglesHost)
+    DemoPose = 0x80184974,     // (work, steps, position keys, angle keys): demo_pose.cpp
+    DemoPoseAxes = 0x80184BA0, // (work, steps, position keys, angle keys, axes, axes)
+    Spawn = 0x800673A0,        // (work, kind, joint, VEC3* offset or 0; f1 scale): an enemy effect
+    Vec3Set = 0x8028A7F4,      // setVector3 (VEC3*; f1-f3)
 };
+
+// PAL 0x801460F8 / 0x80146170 are inlined into JPN callers (e.g. DemoPose 0x80184974).
+inline uint32_t DegToS16(float deg) {
+    if (deg < 0.0f) {
+        const float mag = (-deg * 65536.0f) / 360.0f + 0.5f;
+        return uint32_t(-int32_t(uint16_t(int32_t(mag))));
+    }
+    return uint32_t(uint16_t(int32_t((deg * 65536.0f) / 360.0f + 0.5f)));
+}
+
+inline void SetAnglesHost(uint32_t work, float x, float y, float z) {
+    Memory::Write32(work + 0x1BC, DegToS16(x));
+    Memory::Write32(work + 0x1C0, DegToS16(y));
+    Memory::Write32(work + 0x1C4, DegToS16(z));
+}
 
 // x mod n in [0, n), as the originals' `& (n - 1)` reads a negative count.
 inline int32_t Mod(int32_t x, int32_t n) {
@@ -82,9 +97,9 @@ struct Enemy {
 };
 
 // 0x80056AB8 (work, kind, length), which the translator inlines: the
-// rumble request of a monster (0x8066D178).
+// rumble request of a monster (0x80753E18).
 inline void Rumble(uint32_t work, uint32_t kind, uint32_t length) {
-    constexpr uint32_t kRequest = 0x8066D178;
+    constexpr uint32_t kRequest = 0x80753E18;
     Memory::Write8(kRequest + 0x5C, 1);
     Memory::Write8(kRequest + 0x5D, 0);
     Memory::Write32(kRequest + 0x58, work);

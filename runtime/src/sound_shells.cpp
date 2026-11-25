@@ -29,7 +29,7 @@ void Copy12(uint32_t dst, uint32_t src) {
 }
 
 constexpr uint32_t kManager = 0x80796E38u;   // r13 - 17576
-constexpr uint32_t kOnlineMode = 0x8065AA84u; // u8, GetOnlineMode (0x800CF26C)
+constexpr uint32_t kOnlineMode = 0x80768ACCu; // u8, GetOnlineMode (0x802BC6BC in RMHJ08)
 constexpr uint32_t kMyPlayer = 0x8065AA87u;   // u8, MyPlayerIndex (0x800CF3E8)
 
 // The sources' position hooks' memo (GuestCall::CallAt).
@@ -153,4 +153,4 @@ extern "C" void func_800D811C(CpuContext* ctx);
 extern "C" void MH3_SoundSourcesUpdate(CpuContext* ctx) {
     PortCheck::Call(ctx, "SoundSourcesUpdate", func_800D811C, Update);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D811C, MH3_SoundSourcesUpdate, "SoundSourcesUpdate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800D811C, MH3_SoundSourcesUpdate, "SoundSourcesUpdate");

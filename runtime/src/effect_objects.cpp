@@ -105,16 +105,16 @@ using MemoryInline::FlatWrite32;
 using MemoryInline::FlatWrite8;
 using MemoryInline::FlatWriteFloat32;
 
-constexpr uint32_t kEffectSystem = 0x806A4574;    // nw4r::ef::EffectSystem*
-constexpr uint32_t kLiveEffectObjects = 0x806A4584; // s32
-constexpr uint32_t kMapNo = 0x806BB805, kAreaNo = 0x806BB806; // u8: get_now_mapno, get_now_areano
-constexpr uint32_t kVillageDeparture = 0x806ACF40;            // VillageDepartureSetting
-constexpr uint32_t kRoot = 0x80796E34;                        // nw4r::g3d::ScnRoot* pRoot
-constexpr uint32_t kQuestFlags = 0x80796D40;                  // the save's quest flags
+constexpr uint32_t kEffectSystem = 0x80732C84;    // nw4r::ef::EffectSystem*
+constexpr uint32_t kLiveEffectObjects = 0x80732C94; // s32
+constexpr uint32_t kMapNo = 0x80782E25, kAreaNo = 0x80782E26; // u8: get_now_mapno, get_now_areano
+constexpr uint32_t kVillageDeparture = 0x80750098;            // VillageDepartureSetting
+constexpr uint32_t kRoot = 0x808A04CC;                        // nw4r::g3d::ScnRoot* pRoot
+constexpr uint32_t kQuestFlags = 0x808A04F0;                  // the save's quest flags
 
 // The vtables of the classes whose virtual functions the ports call natively.
-constexpr uint32_t kEffectVtable = 0x80592D48, kEmitterVtable = 0x80593368, kManagerVtable = 0x80593CA0,
-                   kParticleVtable = 0x805935F0, kMemoryManagerVtable = 0x80595B50;
+constexpr uint32_t kEffectVtable = 0x80719368, kEmitterVtable = 0x807193D0, kManagerVtable = 0x80719658,
+                   kParticleVtable = 0x807195F8, kMemoryManagerVtable = 0x806C2C38;
 
 void SendClosing(GuestCall& game, uint32_t object);
 void DestroyFunc(GuestCall& game, uint32_t object);
@@ -224,9 +224,6 @@ void ActivityListToClosing(uint32_t activity) {
 
 // ActivityList::ToWait (0x800A4640): from the active list to the closing one.
 void ActivityListClose(GuestCall& game, uint32_t activity, uint32_t object) {
-    if (Routed<0x800A4640>())
-        return void(game.Call<0x800A4640>({activity, object}));
-
     if (FlatRead16(activity + 8) < FlatRead16(activity + 0x18))
         Panic("activitylist.h", 0x86, "mActiveList.GetSize() >= mNumActive");
 
@@ -238,9 +235,6 @@ void ActivityListClose(GuestCall& game, uint32_t activity, uint32_t object) {
 // vtable at +0x1C), status 2 (waiting), and with no references its
 // SendClosing (+8).
 void ReferencedObjectDestroy(GuestCall& game, uint32_t object) {
-    if (Routed<0x800A4A1C>())
-        return void(game.Call<0x800A4A1C>({object}));
-
     DestroyFunc(game, object);
     FlatWrite32(object + 0xC, 2);
 
@@ -251,9 +245,6 @@ void ReferencedObjectDestroy(GuestCall& game, uint32_t object) {
 // ReferencedObject::UnRef (0x800A3864): one reference fewer; a waiting
 // object's last one sends it closing. The references left.
 uint32_t UnRef(GuestCall& game, uint32_t object) {
-    if (Routed<0x800A3864>())
-        return game.Call<0x800A3864>({object});
-
     const uint32_t references = FlatRead32(object + 0x10);
 
     if (!references)
@@ -280,8 +271,8 @@ bool RetireChild(GuestCall& game, uint32_t activity, uint32_t object) {
 
 // ParticleManager::RetireParticle (0x800AB8E4).
 bool ParticleManagerRetireParticle(GuestCall& game, uint32_t manager, uint32_t particle) {
-    if (Routed<0x800AB8E4>())
-        return game.Call<0x800AB8E4>({manager, particle}) != 0;
+    if (Routed<0x80501380>())
+        return game.Call<0x80501380>({manager, particle}) != 0;
 
     CheckPointer(particle, "ef_particlemanager.cpp", 0x48);
 
@@ -293,8 +284,8 @@ bool ParticleManagerRetireParticle(GuestCall& game, uint32_t manager, uint32_t p
 
 // ParticleManager::RetireParticleAll (0x800ABA58): its active particles.
 uint32_t ParticleManagerRetireParticleAll(GuestCall& game, uint32_t manager) {
-    if (Routed<0x800ABA58>())
-        return game.Call<0x800ABA58>({manager});
+    if (Routed<0x80501408>())
+        return game.Call<0x80501408>({manager});
 
     uint32_t retired = 0;
 
@@ -310,8 +301,8 @@ uint32_t ParticleManagerRetireParticleAll(GuestCall& game, uint32_t manager) {
 
 // Emitter::RetireParticleManager (0x800A684C).
 bool EmitterRetireParticleManager(GuestCall& game, uint32_t emitter, uint32_t manager) {
-    if (Routed<0x800A684C>())
-        return game.Call<0x800A684C>({emitter, manager}) != 0;
+    if (Routed<0x804F5DD8>())
+        return game.Call<0x804F5DD8>({emitter, manager}) != 0;
 
     CheckPointer(manager, "ef_emitter.cpp", 0x82);
     return RetireChild(game, emitter + 0xC0, manager);
@@ -319,8 +310,8 @@ bool EmitterRetireParticleManager(GuestCall& game, uint32_t emitter, uint32_t ma
 
 // Effect::RetireEmitter (0x800A48D0).
 bool EffectRetireEmitter(GuestCall& game, uint32_t effect, uint32_t emitter) {
-    if (Routed<0x800A48D0>())
-        return game.Call<0x800A48D0>({effect, emitter}) != 0;
+    if (Routed<0x804F4A28>())
+        return game.Call<0x804F4A28>({effect, emitter}) != 0;
 
     CheckPointer(emitter, "ef_effect.cpp", 0x90);
     return RetireChild(game, effect + 0x24, emitter);
@@ -329,10 +320,11 @@ bool EffectRetireEmitter(GuestCall& game, uint32_t effect, uint32_t emitter) {
 // EffectSystem::Closing (0x800A59AC): the effect onto its group's closing
 // list, status 3.
 void EffectSystemClosing(GuestCall& game, uint32_t system, uint32_t effect) {
-    if (Routed<0x800A59AC>())
-        return void(game.Call<0x800A59AC>({system, effect}));
+    if (Routed<0x804F5534>())
+        return void(game.Call<0x804F5534>({system, effect}));
 
     CheckPointer(effect, "ef_effectsystem.cpp", 0x67);
+    EffectStep::CancelDeferred(effect);
     ActivityListClose(game, FlatRead32(system + 0xC018) + FlatRead32(effect + 0x40) * 0x1C, effect);
     FlatWrite32(effect + 0xC, 3);
 }
@@ -341,8 +333,8 @@ void EffectSystemClosing(GuestCall& game, uint32_t system, uint32_t effect) {
 // (+0xF4), its link (+0xF8) and its effect dropped, onto the effect's closing
 // list, status 3.
 void EffectClosing(GuestCall& game, uint32_t effect, uint32_t emitter) {
-    if (Routed<0x800A44D8>())
-        return void(game.Call<0x800A44D8>({effect, emitter}));
+    if (Routed<0x804F4830>())
+        return void(game.Call<0x804F4830>({effect, emitter}));
 
     CheckPointer(emitter, "ef_effect.cpp", 0x5D);
 
@@ -362,9 +354,6 @@ void EffectClosing(GuestCall& game, uint32_t effect, uint32_t emitter) {
 // Effect::RemoveDrawOrder (0x800A6710): the draw order's (+0xA0) virtual
 // Remove (+0xC, vtable at +0).
 void EffectRemoveDrawOrder(GuestCall& game, uint32_t effect, uint32_t manager) {
-    if (Routed<0x800A6710>())
-        return void(game.Call<0x800A6710>({effect, manager}));
-
     CheckPointer(manager, "effect.h", 0xF4);
     const uint32_t order = FlatRead32(effect + 0xA0);
     game(FlatRead32(FlatRead32(order) + 0xC), {order, effect, manager});
@@ -372,8 +361,8 @@ void EffectRemoveDrawOrder(GuestCall& game, uint32_t effect, uint32_t manager) {
 
 // Emitter::Closing (0x800A65B8).
 void EmitterClosing(GuestCall& game, uint32_t emitter, uint32_t manager) {
-    if (Routed<0x800A65B8>())
-        return void(game.Call<0x800A65B8>({emitter, manager}));
+    if (Routed<0x804F5D30>())
+        return void(game.Call<0x804F5D30>({emitter, manager}));
 
     CheckPointer(manager, "ef_emitter.cpp", 0x76);
     EffectRemoveDrawOrder(game, FlatRead32(emitter + 0xBC), manager);
@@ -384,8 +373,8 @@ void EmitterClosing(GuestCall& game, uint32_t emitter, uint32_t manager) {
 
 // ParticleManager::Closing (0x800AB7A4).
 void ParticleManagerClosing(GuestCall& game, uint32_t manager, uint32_t particle) {
-    if (Routed<0x800AB7A4>())
-        return void(game.Call<0x800AB7A4>({manager, particle}));
+    if (Routed<0x805012F4>())
+        return void(game.Call<0x805012F4>({manager, particle}));
 
     CheckPointer(particle, "ef_particlemanager.cpp", 0x3D);
     UnRef(game, FlatRead32(particle + 0xC8));
@@ -422,7 +411,7 @@ void SendClosing(GuestCall& game, uint32_t object) {
 
 void ParticleManagerSetMtxDirty(CpuContext* cpu, uint32_t manager) {
     FlatWrite8(manager + 0x8A, 1);
-    const uint32_t cached = cpu->gpr[13] - 0x4500;
+    const uint32_t cached = cpu->gpr[13] - 0x3798;
 
     if (FlatRead32(cached) == (FlatRead32(manager + 8) & 0xFFFF))
         FlatWrite32(cached, ~0u);
@@ -434,8 +423,8 @@ void EmitterManagersDirty(CpuContext* cpu, uint32_t emitter) {
 }
 
 void EmitterSetMtxDirty(CpuContext* cpu, uint32_t emitter) {
-    if (Routed<0x800A963C>())
-        return void(GuestCall{cpu}.Call<0x800A963C>({emitter}));
+    if (Routed<0x804F7B98>())
+        return void(GuestCall{cpu}.Call<0x804F7B98>({emitter}));
 
     FlatWrite8(emitter + 0x120, 1);
     EmitterManagersDirty(cpu, emitter);
@@ -473,8 +462,8 @@ void EffectSetRootMtx(CpuContext* cpu, uint32_t effect, uint32_t matrix) {
 
 // SetRootMtxTrans (0x800F9744): the root matrix with a new translation.
 void EffectSetRootTrans(CpuContext* cpu, uint32_t effect, uint32_t trans) {
-    if (Routed<0x800F9744>())
-        return void(GuestCall{cpu}.Call<0x800F9744>({effect, trans}));
+    if (Routed<0x80037ECC>())
+        return void(GuestCall{cpu}.Call<0x80037ECC>({effect, trans}));
 
     if (!effect)
         return;
@@ -487,9 +476,6 @@ void EffectSetRootTrans(CpuContext* cpu, uint32_t effect, uint32_t trans) {
 
 // 0x800F9BCC: the emitter's scale (+0x9C), its matrices dirty.
 void EmitterSetScale(CpuContext* cpu, uint32_t emitter, uint32_t scale) {
-    if (Routed<0x800F9BCC>())
-        return void(GuestCall{cpu}.Call<0x800F9BCC>({emitter, scale}));
-
     for (uint32_t k = 0; k < 3; ++k)
         FlatWrite32(emitter + 0x9C + 4 * k, FlatRead32(scale + 4 * k));
 
@@ -497,8 +483,8 @@ void EmitterSetScale(CpuContext* cpu, uint32_t emitter, uint32_t scale) {
 }
 
 uint32_t EmitterRetireParticleAll(GuestCall& game, uint32_t emitter) {
-    if (Routed<0x800A63B4>())
-        return game.Call<0x800A63B4>({emitter});
+    if (Routed<0x804F5BB8>())
+        return game.Call<0x804F5BB8>({emitter});
 
     std::array<uint32_t, 0x400> managers;
     const uint32_t n = ListArray(emitter + 0xC0, managers, "ef_emitter.cpp", 0x35);
@@ -511,8 +497,8 @@ uint32_t EmitterRetireParticleAll(GuestCall& game, uint32_t emitter) {
 }
 
 uint32_t EmitterRetireParticleManagerAll(GuestCall& game, uint32_t emitter) {
-    if (Routed<0x800A699C>())
-        return game.Call<0x800A699C>({emitter});
+    if (Routed<0x804F5E60>())
+        return game.Call<0x804F5E60>({emitter});
 
     std::array<uint32_t, 0x400> managers;
     const uint32_t n = ListArray(emitter + 0xC0, managers, "ef_emitter.cpp", 0x93);
@@ -526,8 +512,8 @@ uint32_t EmitterRetireParticleManagerAll(GuestCall& game, uint32_t emitter) {
 }
 
 uint32_t EffectRetireEmitterAll(GuestCall& game, uint32_t effect) {
-    if (Routed<0x800A4A90>())
-        return game.Call<0x800A4A90>({effect});
+    if (Routed<0x804F4AB0>())
+        return game.Call<0x804F4AB0>({effect});
 
     std::array<uint32_t, 0x200> emitters;
     const uint32_t n = ListArray(effect + 0x24, emitters, "ef_effect.cpp", 0xA0);
@@ -542,8 +528,8 @@ uint32_t EffectRetireEmitterAll(GuestCall& game, uint32_t effect) {
 
 // Effect::RetireParticleAll (0x800A4B5C): each emitter's.
 uint32_t EffectRetireParticleAll(GuestCall& game, uint32_t effect) {
-    if (Routed<0x800A4B5C>())
-        return game.Call<0x800A4B5C>({effect});
+    if (Routed<0x804F4B88>())
+        return game.Call<0x804F4B88>({effect});
 
     std::array<uint32_t, 0x200> emitters;
     const uint32_t n = ListArray(effect + 0x24, emitters, "ef_effect.cpp", 0xB4);
@@ -556,8 +542,8 @@ uint32_t EffectRetireParticleAll(GuestCall& game, uint32_t effect) {
 }
 
 void EmitterDestroyFunc(GuestCall& game, uint32_t emitter) {
-    if (Routed<0x800A6484>())
-        return void(game.Call<0x800A6484>({emitter}));
+    if (Routed<0x804F5C48>())
+        return void(game.Call<0x804F5C48>({emitter}));
 
     if (FlatRead32(emitter + 0xF0))
         FlatWrite32(emitter + 0xF0, 0);
@@ -708,8 +694,8 @@ uint32_t ReadColor(uint32_t color) {
 
 // Effect::GetEmitter (0x800A523C): ut::List_GetNth (0x8050231C).
 uint32_t EffectGetEmitter(GuestCall& game, uint32_t effect, uint32_t index) {
-    if (Routed<0x800A523C>())
-        return game.Call<0x800A523C>({effect, index});
+    if (Routed<0x804F507C>())
+        return game.Call<0x804F507C>({effect, index});
 
     if (index >= FlatRead16(effect + 0x24 + 8))
         Panic("ef_effect.cpp", 0x1A7, "idx < GetNumEmitter()");
@@ -725,12 +711,12 @@ uint32_t EffectGetEmitter(GuestCall& game, uint32_t effect, uint32_t index) {
 // change_paramscale_eff (0x800F9B24): the first emitter's scale, from
 // 0.00001 (0x80798A9C) up.
 void EffectChangeScale(CpuContext* cpu, uint32_t effect, double scale) {
-    if (Routed<0x800F9B24>())
-        return void(GuestCall{cpu}.Call<0x800F9B24>({effect}, {scale}));
+    if (Routed<0x8003828C>())
+        return void(GuestCall{cpu}.Call<0x8003828C>({effect}, {scale}));
 
     GuestCall game{cpu};
 
-    if (!(double(FlatReadFloat32(0x80798A9C)) <= scale) || !FlatRead16(effect + 0x24 + 8))
+    if (!(double(FlatReadFloat32(0x808A146C)) <= scale) || !FlatRead16(effect + 0x24 + 8))
         return;
 
     if (const uint32_t emitter = EffectGetEmitter(game, effect, 0)) {
@@ -744,12 +730,12 @@ void EffectChangeScale(CpuContext* cpu, uint32_t effect, double scale) {
 // 0x800F9C04: EffectChangeScale with a vector: the first emitter's scale,
 // unless the vector's squared length (PSVECSquareMag) is under 0.00001.
 void EffectChangeScaleVec(CpuContext* cpu, uint32_t effect, uint32_t scale) {
-    if (Routed<0x800F9C04>())
-        return void(GuestCall{cpu}.Call<0x800F9C04>({effect, scale}));
+    if (Routed<0x8003832C>())
+        return void(GuestCall{cpu}.Call<0x8003832C>({effect, scale}));
 
     const float x = FlatReadFloat32(scale), y = FlatReadFloat32(scale + 4), z = FlatReadFloat32(scale + 8);
 
-    if (z * z + x * x + y * y < FlatReadFloat32(0x80798A9C) || !FlatRead16(effect + 0x24 + 8))
+    if (z * z + x * x + y * y < FlatReadFloat32(0x808A146C) || !FlatRead16(effect + 0x24 + 8))
         return;
 
     GuestCall game{cpu};
@@ -760,8 +746,8 @@ void EffectChangeScaleVec(CpuContext* cpu, uint32_t effect, uint32_t scale) {
 
 // 0x800F98E8: whether any of the effect's emitters has managers.
 bool EffectHasManagers(GuestCall& game, uint32_t effect) {
-    if (Routed<0x800F98E8>())
-        return game.Call<0x800F98E8>({effect}) != 0;
+    if (Routed<0x800380BC>())
+        return game.Call<0x800380BC>({effect}) != 0;
 
     const uint32_t count = FlatRead16(effect + 0x24 + 8);
     uint32_t managers = 0, emitter = 0;
@@ -780,16 +766,13 @@ bool EffectHasManagers(GuestCall& game, uint32_t effect) {
 
 // 0x800F99D0: the effect's virtual Calc (+0x18).
 void EffectCalcVirtual(GuestCall& game, uint32_t effect, uint32_t onlyBillboard) {
-    if (Routed<0x800F99D0>())
-        return void(game.Call<0x800F99D0>({effect, onlyBillboard}));
-
     game(FlatRead32(FlatRead32(effect + 0x1C) + 0x18), {effect, onlyBillboard != 0});
 }
 
 // effect_move (0x800F9984): Calc while it has managers.
 bool EffectMove(GuestCall& game, uint32_t effect) {
-    if (Routed<0x800F9984>())
-        return game.Call<0x800F9984>({effect}) != 0;
+    if (Routed<0x8003814C>())
+        return game.Call<0x8003814C>({effect}) != 0;
 
     const bool live = EffectHasManagers(game, effect);
 
@@ -802,8 +785,8 @@ bool EffectMove(GuestCall& game, uint32_t effect) {
 // 0x800FFFFC: the first emitter's translation (+0x90, emitter.h's
 // GetTranslate, 0x80100088) plus the root matrix's; whether there is one.
 bool EffectGetPosition(GuestCall& game, uint32_t effect, uint32_t out) {
-    if (Routed<0x800FFFFC>())
-        return game.Call<0x800FFFFC>({effect, out}) != 0;
+    if (Routed<0x8003E820>())
+        return game.Call<0x8003E820>({effect, out}) != 0;
 
     const uint32_t first = FlatRead32(effect + 0x24);
 
@@ -825,8 +808,8 @@ bool EffectGetPosition(GuestCall& game, uint32_t effect, uint32_t out) {
 // push_eft_effect_heap_num (0x800F8B1C): each effect of the array retired
 // with its particles and emitters, its slot cleared.
 void RetireEffects(GuestCall& game, uint32_t effects, int32_t count) {
-    if (Routed<0x800F8B1C>())
-        return void(game.Call<0x800F8B1C>({effects, uint32_t(count)}));
+    if (Routed<0x80037170>())
+        return void(game.Call<0x80037170>({effects, uint32_t(count)}));
 
     const uint32_t system = FlatRead32(kEffectSystem);
 
@@ -836,7 +819,7 @@ void RetireEffects(GuestCall& game, uint32_t effects, int32_t count) {
             EffectRetireEmitterAll(game, effect);
 
             if (system)
-                game.Call<0x800A5C6C>({system, effect}); // EffectSystem::RetireEffect
+                game.Call<0x804F56BC>({system, effect}); // EffectSystem::RetireEffect
         }
 
         FlatWrite32(effects, 0);
@@ -846,8 +829,8 @@ void RetireEffects(GuestCall& game, uint32_t effects, int32_t count) {
 // EffectSystem::RetireEffectAll (0x800A5DF0): the group's active effects
 // retired; how many were.
 uint32_t EffectSystemRetireEffectAll(GuestCall& game, uint32_t system, uint32_t group) {
-    if (Routed<0x800A5DF0>())
-        return game.Call<0x800A5DF0>({system, group});
+    if (Routed<0x804F5758>())
+        return game.Call<0x804F5758>({system, group});
 
     std::array<uint32_t, 0x200> effects;
     const uint32_t n = ListArray(FlatRead32(system + 0xC018) + group * 28, effects, "ef_effectsystem.cpp", 0xB2);
@@ -855,7 +838,7 @@ uint32_t EffectSystemRetireEffectAll(GuestCall& game, uint32_t system, uint32_t 
 
     for (uint32_t i = 0; i < n; ++i)
         if (FlatRead32(effects[i] + 0xC) == 1)
-            retired += game.Call<0x800A5C6C>({system, effects[i]}); // EffectSystem::RetireEffect
+            retired += game.Call<0x804F56BC>({system, effects[i]}); // EffectSystem::RetireEffect
 
     return retired;
 }
@@ -863,28 +846,28 @@ uint32_t EffectSystemRetireEffectAll(GuestCall& game, uint32_t system, uint32_t 
 // 0x800F8CDC: `count` 0x40-byte effect slots from `first` back to the free
 // pool (0x806A4598), their in-use bytes (0x806A459C) cleared.
 void EffectSlotsFree(GuestCall& game, uint32_t first, int32_t count) {
-    if (Routed<0x800F8CDC>())
-        return void(game.Call<0x800F8CDC>({first, uint32_t(count)}));
+    if (Routed<0x80037328>())
+        return void(game.Call<0x80037328>({first, uint32_t(count)}));
 
     if (count <= 0)
         return;
 
-    const uint32_t slots = FlatRead32(0x806A4598), index = (first - slots) >> 6;
+    const uint32_t slots = FlatRead32(0x80732CA8), index = (first - slots) >> 6;
 
     for (uint32_t k = 0; k < uint32_t(count) << 6; k += 4)
         FlatWrite32(slots + (index << 6) + k, 0);
 
     for (int32_t i = 0; i < count; ++i)
-        FlatWrite8(FlatRead32(0x806A459C) + index + i, 0);
+        FlatWrite8(FlatRead32(0x80732CAC) + index + i, 0);
 }
 
-void EffectObjectRelease(GuestCall& game, uint32_t object) {
-    if (Routed<0x800F88D0>())
-        return void(game.Call<0x800F88D0>({object}));
+void EffectObjectRelease(CpuContext* cpu, GuestCall& game, uint32_t object) {
+    if (Routed<0x80036F20>())
+        return void(game.Call<0x80036F20>({object}));
 
     if (FlatRead32(object + 0x38)) {
         if (const uint32_t callback = FlatRead32(object + 0x40))
-            game(callback, {object, 0x806A0000u});
+            game(callback, {object, cpu->gpr[4]});
 
         EffectSlotsFree(game, FlatRead32(object + 0x38), int32_t(FlatRead32(object + 0x3C)));
     }
@@ -902,15 +885,15 @@ void EffectObjectRelease(GuestCall& game, uint32_t object) {
 // 0x800FFF6C: the spawner's effect `index` retired with its particles and
 // emitters, the memory collected.
 void EffectSpawnerRetireEffect(GuestCall& game, uint32_t spawner, uint32_t index) {
-    if (Routed<0x800FFF6C>())
-        return void(game.Call<0x800FFF6C>({spawner, index}));
+    if (Routed<0x8003E79C>())
+        return void(game.Call<0x8003E79C>({spawner, index}));
 
     const uint32_t system = FlatRead32(kEffectSystem), slot = FlatRead32(spawner + 0x38) + index * 4 + 4;
 
     if (const uint32_t effect = FlatRead32(slot)) {
         EffectRetireParticleAll(game, effect);
         EffectRetireEmitterAll(game, effect);
-        game.Call<0x800A5C6C>({system, effect}); // EffectSystem::RetireEffect
+        game.Call<0x804F56BC>({system, effect}); // EffectSystem::RetireEffect
         SystemGarbageCollection(game, system);
         FlatWrite32(slot, 0);
     }
@@ -919,8 +902,8 @@ void EffectSpawnerRetireEffect(GuestCall& game, uint32_t spawner, uint32_t index
 // 0x800F9358: whether the object's owner (+0x30) is still there (its first
 // byte set) for owner kinds 0-3.
 bool EffectObjectAlive(GuestCall& game, uint32_t object, uint32_t kind) {
-    if (Routed<0x800F9358>())
-        return game.Call<0x800F9358>({object, kind}) != 0;
+    if (Routed<0x80037A84>())
+        return game.Call<0x80037A84>({object, kind}) != 0;
 
     return kind > 3 || FlatRead8(FlatRead32(object + 0x30)) != 0;
 }
@@ -928,10 +911,10 @@ bool EffectObjectAlive(GuestCall& game, uint32_t object, uint32_t kind) {
 // 0x800E3BA0: the character's draw pass, 8 without split screen
 // (0x8065B4D6), else 0x400 for the first player (+8 0), 0x800 for the other.
 uint32_t MHcharDrawPass(GuestCall& game, uint32_t chara) {
-    if (Routed<0x800E3BA0>())
-        return game.Call<0x800E3BA0>({chara});
+    if (Routed<0x802A18CC>())
+        return game.Call<0x802A18CC>({chara});
 
-    if (!FlatRead8(0x8065B4D6))
+    if (!FlatRead8(0x80769412))
         return 8;
 
     return FlatRead8(chara + 8) ? 0x800 : 0x400;
@@ -939,8 +922,8 @@ uint32_t MHcharDrawPass(GuestCall& game, uint32_t chara) {
 
 // 0x800F93E4: the effect draw flag of the character's pass.
 uint32_t EffectDrawFlags(GuestCall& game, uint32_t chara) {
-    if (Routed<0x800F93E4>())
-        return game.Call<0x800F93E4>({chara});
+    if (Routed<0x80037B14>())
+        return game.Call<0x80037B14>({chara});
 
     switch (MHcharDrawPass(game, chara)) {
     case 0x400:
@@ -958,15 +941,15 @@ uint32_t EffectDrawFlags(GuestCall& game, uint32_t chara) {
 // mode 2 (0x8065AA85), online mode 3 (0x8065AA84), or its index (+8) is
 // MyPlayerIndex (0x8065AA87, signed).
 bool PlMaster(uint32_t player) {
-    if (FlatRead8(0x8065AA85) == 2 || FlatRead8(0x8065AA84) == 3)
+    if (FlatRead8(0x80768ACD) == 2 || FlatRead8(0x80768ACC) == 3)
         return true;
 
-    return int32_t(int8_t(FlatRead8(0x8065AA87))) == int32_t(FlatRead8(player + 8));
+    return int32_t(int8_t(FlatRead8(0x80768ACF))) == int32_t(FlatRead8(player + 8));
 }
 
 bool PlMasterCheck(GuestCall& game, uint32_t player) {
-    if (Routed<0x8026FE38>())
-        return game.Call<0x8026FE38>({player}) != 0;
+    if (Routed<0x8033DBA4>())
+        return game.Call<0x8033DBA4>({player}) != 0;
 
     return PlMaster(player);
 }
@@ -999,8 +982,8 @@ void EftKeyRGB(uint32_t keys, int32_t t, uint8_t rgb[3]) {
 
 // eftGetKeyAlpha (0x800FA95C): the same for keys {t, alpha}.
 uint32_t EftKeyAlpha(GuestCall& game, uint32_t keys, int32_t t) {
-    if (Routed<0x800FA95C>())
-        return game.Call<0x800FA95C>({keys, uint32_t(t)});
+    if (Routed<0x80038F30>())
+        return game.Call<0x80038F30>({keys, uint32_t(t)});
 
     for (;; keys += 2) {
         const int32_t t0 = FlatRead8(keys);
@@ -1035,10 +1018,10 @@ SimpleLight ReadSimpleLight(uint32_t type, uint32_t ambient, uint32_t diffuse, f
 // change_color_eff (0x800F99EC): light type 1, ambient `color`, black
 // diffuse, radius 5000 (0x80798A98) at `position`, on every manager.
 void EffectChangeColor(GuestCall& game, uint32_t effect, uint32_t position, uint32_t color) {
-    if (Routed<0x800F99EC>())
-        return void(game.Call<0x800F99EC>({effect, position, color}));
+    if (Routed<0x800381FC>())
+        return void(game.Call<0x800381FC>({effect, position, color}));
 
-    SimpleLight light{1, ReadColor(color), 0x000000FF, FlatReadFloat32(0x80798A98), {}};
+    SimpleLight light{1, ReadColor(color), 0x000000FF, FlatReadFloat32(0x808A1468), {}};
 
     for (uint32_t k = 0; k < 3; ++k)
         light.position[k] = FlatRead32(position + 4 * k);
@@ -1068,31 +1051,22 @@ void CollectPool(uint32_t pool, Owner owner) {
 }
 
 void CollectManagers(GuestCall& game, uint32_t pool) {
-    if (Routed<0x800D6308>())
-        return void(game.Call<0x800D6308>({pool}));
-
     CollectPool(pool, [](uint32_t manager) { return FlatRead32(manager + 0x20) + 0xC0; });
 }
 
 void CollectEmitters(GuestCall& game, uint32_t pool) {
-    if (Routed<0x800D6244>())
-        return void(game.Call<0x800D6244>({pool}));
-
     CollectPool(pool, [](uint32_t emitter) { return FlatRead32(emitter + 0xBC) + 0x24; });
 }
 
 // An effect's ActivityList is its group's (+0x40) in the effect system's
 // array (+0xC018, 0x1C each).
 void CollectEffects(GuestCall& game, uint32_t pool) {
-    if (Routed<0x800D6168>())
-        return void(game.Call<0x800D6168>({pool}));
-
     CollectPool(pool, [](uint32_t effect) { return FlatRead32(FlatRead32(effect + 0x20) + 0xC018) + FlatRead32(effect + 0x40) * 0x1C; });
 }
 
 void GarbageCollection(GuestCall& game, uint32_t memory) {
-    if (Routed<0x800D6000>())
-        return void(game.Call<0x800D6000>({memory}));
+    if (Routed<0x802AE7DC>())
+        return void(game.Call<0x802AE7DC>({memory}));
 
     const uint32_t particles = FlatRead32(memory + 0x20);
 
@@ -1132,7 +1106,7 @@ void GarbageCollection(GuestCall& game, uint32_t memory) {
 // ran_suu (0x800CEF20, inlined by the translator): random stream `i` (u16s
 // at 0x8065AA78), x * 176 mod 65363 with 0 taken as 1.
 uint32_t RanSuu(uint32_t i) {
-    const uint32_t seed = 0x8065AA78 + 2 * i;
+    const uint32_t seed = 0x80768AC0 + 2 * i;
     const uint32_t x = FlatRead16(seed) ? FlatRead16(seed) : 1;
     const uint32_t next = x * 176 % 65363;
     FlatWrite16(seed, uint16_t(next));
@@ -1146,7 +1120,7 @@ bool StarQuestListDone(GuestCall& game, uint32_t list) {
         return false;
 
     for (uint32_t quest; (quest = FlatRead16(list)) != 0xFFFF; list += 2)
-        if (!game.Call<0x8004D2E0>({quest}))
+        if (!game.Call<0x802C5900>({quest}))
             return false;
 
     return true;
@@ -1154,27 +1128,18 @@ bool StarQuestListDone(GuestCall& game, uint32_t list) {
 
 // 0x802FB414: a star quest group below 0x1C done (its list at 0x805D9360).
 bool StarQuestGroupDoneLow(GuestCall& game, uint32_t group) {
-    if (Routed<0x802FB414>())
-        return game.Call<0x802FB414>({group}) != 0;
-
     group &= 0xFFFF;
-    return group < 0x1C && StarQuestListDone(game, FlatRead32(0x805D9360 + 4 * group));
+    return group < 0x1C && StarQuestListDone(game, FlatRead32(0x806B8800 + 4 * group));
 }
 
 // 0x802FB498: a group from 0x1C on (lists at 0x805D93D0).
 bool StarQuestGroupDoneHigh(GuestCall& game, uint32_t group) {
-    if (Routed<0x802FB498>())
-        return game.Call<0x802FB498>({group}) != 0;
-
     group &= 0xFFFF;
-    return group >= 0x1C && StarQuestListDone(game, FlatRead32(0x805D93D0 + 4 * (group - 0x1C)));
+    return group >= 0x1C && StarQuestListDone(game, FlatRead32(0x806B8870 + 4 * (group - 0x1C)));
 }
 
 // 0x802FB520: whether the group is done; 0xFFFF never, group 0 always.
 bool StarQuestGroupDone(GuestCall& game, uint32_t group) {
-    if (Routed<0x802FB520>())
-        return game.Call<0x802FB520>({group}) != 0;
-
     group &= 0xFFFF;
 
     if (group == 0xFFFF)
@@ -1188,17 +1153,14 @@ bool StarQuestGroupDone(GuestCall& game, uint32_t group) {
 
 // 0x802FB558: the group is the current one: done, the next not.
 bool StarQuestGroupCurrent(GuestCall& game, uint32_t group) {
-    if (Routed<0x802FB558>())
-        return game.Call<0x802FB558>({group}) != 0;
-
     return StarQuestGroupDone(game, group) && !StarQuestGroupDone(game, group + 1);
 }
 
 // 0x802FB9E0: group 0 current, or group 0x14 with the quest flags' +0x3E01
 // at 4.
 bool StarQuestFirstStages(GuestCall& game) {
-    if (Routed<0x802FB9E0>())
-        return game.Call<0x802FB9E0>() != 0;
+    if (Routed<0x80218194>())
+        return game.Call<0x80218194>() != 0;
 
     if (StarQuestGroupCurrent(game, 0))
         return true;
@@ -1209,16 +1171,16 @@ bool StarQuestFirstStages(GuestCall& game) {
 // 0x80082C30: the ScnRoot's current camera (+0xF4) as a handle of its
 // CameraData (0x10C bytes each from +0xF8).
 uint32_t ScnRootCurrentCamera(GuestCall& game, uint32_t root) {
-    if (Routed<0x80082C30>())
-        return game.Call<0x80082C30>({root});
+    if (Routed<0x80535B2C>())
+        return game.Call<0x80535B2C>({root});
 
     return root + FlatRead8(root + 0xF4) * 0x10C + 0xF8;
 }
 
 // ScnRoot::GetCamera (0x80082BD4): camera `index`'s, 0 outside 0-31.
 uint32_t ScnRootGetCamera(GuestCall& game, uint32_t root, uint32_t index) {
-    if (Routed<0x80082BD4>())
-        return game.Call<0x80082BD4>({root, index});
+    if (Routed<0x80535AD0>())
+        return game.Call<0x80535AD0>({root, index});
 
     return int32_t(index) < 0 || int32_t(index) > 31 ? 0 : root + index * 0x10C + 0xF8;
 }
@@ -1227,23 +1189,23 @@ uint32_t ScnRootGetCamera(GuestCall& game, uint32_t root, uint32_t index) {
 // (0x8065B4D6) its player's (MyPlayerIndex 0x8065AA87, signed, into the
 // camera bytes at 0x8065B50C), else the root's current one.
 uint32_t ViewCamera(GuestCall& game) {
-    if (Routed<0x800473FC>())
-        return game.Call<0x800473FC>();
+    if (Routed<0x802AF770>())
+        return game.Call<0x802AF770>();
 
     const uint32_t root = FlatRead32(kRoot);
 
-    if (!FlatRead8(0x8065B4D6))
+    if (!FlatRead8(0x80769412))
         return ScnRootCurrentCamera(game, root);
 
-    const int32_t player = int8_t(FlatRead8(0x8065AA87));
-    return ScnRootGetCamera(game, root, FlatRead8(0x8065B50C + uint32_t(player)));
+    const int32_t player = int8_t(FlatRead8(0x80768ACF));
+    return ScnRootGetCamera(game, root, FlatRead8(0x80769448 + uint32_t(player)));
 }
 
 // Camera::GetPosition (0x80074A2C): the position (+0x74) of the CameraData
 // the handle at `camera` holds.
 void CameraGetPosition(GuestCall& game, uint32_t camera, uint32_t out) {
-    if (Routed<0x80074A2C>())
-        return void(game.Call<0x80074A2C>({camera, out}));
+    if (Routed<0x80532454>())
+        return void(game.Call<0x80532454>({camera, out}));
 
     const uint32_t data = FlatRead32(camera);
 
@@ -1258,8 +1220,8 @@ void CameraGetPosition(GuestCall& game, uint32_t camera, uint32_t out) {
 // get_camera_pos (0x802BDD44): the view camera's position; the handle in
 // the 4 guest bytes at `scratch`.
 void GetCameraPos(GuestCall& game, uint32_t out, uint32_t scratch) {
-    if (Routed<0x802BDD44>())
-        return void(game.Call<0x802BDD44>({out}));
+    if (Routed<0x80375E2C>())
+        return void(game.Call<0x80375E2C>({out}));
 
     FlatWrite32(scratch, ViewCamera(game));
     CameraGetPosition(game, scratch, out);
@@ -1273,7 +1235,7 @@ void JointWpos(uint32_t chara, uint32_t joint, uint32_t out) {
     const uint32_t model = FlatRead32(chara + 0x118);
 
     if (!model) {
-        const uint32_t word = FlatRead32(0x807988F8);
+        const uint32_t word = FlatRead32(0x808A6C10);
 
         for (uint32_t k = 0; k < 12; k += 4)
             FlatWrite32(out + k, word);
@@ -1293,16 +1255,16 @@ void JointWpos(uint32_t chara, uint32_t joint, uint32_t out) {
 }
 
 void GetJointWpos(GuestCall& game, uint32_t chara, uint32_t joint, uint32_t out) {
-    if (Routed<0x800E0AF8>())
-        return void(game.Call<0x800E0AF8>({chara, joint, out}));
+    if (Routed<0x802A28C4>())
+        return void(game.Call<0x802A28C4>({chara, joint, out}));
 
     JointWpos(chara, joint, out);
 }
 
 // 0x800A9778: the emitter's particle manager `index`.
 uint32_t EmitterGetManager(GuestCall& game, uint32_t emitter, uint32_t index) {
-    if (Routed<0x800A9778>())
-        return game.Call<0x800A9778>({emitter, index});
+    if (Routed<0x804F7CB0>())
+        return game.Call<0x804F7CB0>({emitter, index});
 
     index &= 0xFFFF;
 
@@ -1321,15 +1283,18 @@ uint32_t EmitterGetManager(GuestCall& game, uint32_t emitter, uint32_t index) {
 // in the map's StageData (0x802AE5C8; its areas at +4): +0x2C for `which`
 // 0, +0x30 for 1, else (and for area 0xFF or none) white.
 uint32_t StageEffectColor(GuestCall& game, uint32_t area, uint32_t which) {
-    if (Routed<0x802B035C>())
-        return game.Call<0x802B035C>({area, which});
+    if (Routed<0x8037DAE4>())
+        return game.Call<0x8037DAE4>({area, which});
 
     area &= 0xFF;
 
     if (area == 0xFF)
         return 0xFFFFFFFF;
 
-    const uint32_t stage = game.Call<0x802AE5C8>({FlatRead8(kMapNo)});
+    const uint32_t map = FlatRead8(kMapNo);
+    const uint32_t mapped = FlatRead8(0x806E4520 + map);
+    const uint32_t effMap = mapped == 0xFF ? map : mapped;
+    const uint32_t stage = FlatRead32(effMap == map ? 0x80785234 : 0x80785238);
     const uint32_t entry = FlatRead32(FlatRead32(stage + 4) + area * 4);
 
     if (!entry)
@@ -1393,10 +1358,10 @@ float SegmentPointDistanceSq(const float start[3], const float dir[3], const flo
         v[k] = point[k] - start[k];
 
     const float length2 = SquareMag3(dir);
-    t = FlatReadFloat32(0x8079C7D8);
+    t = FlatReadFloat32(0x808A6080);
 
-    if (length2 >= FlatReadFloat32(0x8079C7D4)) {
-        const float s = Dot3(v, dir) / length2, low = t, high = FlatReadFloat32(0x8079C7DC);
+    if (length2 >= FlatReadFloat32(0x808A607C)) {
+        const float s = Dot3(v, dir) / length2, low = t, high = FlatReadFloat32(0x808A6084);
         t = s < low ? low : s > high ? high : s;
 
         for (uint32_t k = 0; k < 3; ++k) {
@@ -1425,8 +1390,8 @@ bool CapsuleHit(uint32_t point, uint32_t capsule) {
 // radius +0x10; 2 a capsule from +0x14 to +0x20, radius +0x2C; 3 below the
 // height 0x80798AB4).
 bool ZoneContains(GuestCall& game, uint32_t point, uint32_t zone) {
-    if (Routed<0x800FA26C>())
-        return game.Call<0x800FA26C>({point, zone}) == 1;
+    if (Routed<0x800389B4>())
+        return game.Call<0x800389B4>({point, zone}) == 1;
 
     switch (int8_t(FlatRead8(zone))) {
     case 1:
@@ -1447,7 +1412,7 @@ bool ZoneContains(GuestCall& game, uint32_t point, uint32_t zone) {
         return distance2 < limit;
     }
     case 3:
-        return FlatReadFloat32(point + 4) < FlatReadFloat32(0x80798AB4);
+        return FlatReadFloat32(point + 4) < FlatReadFloat32(0x808A1484);
     default:
         return false;
     }
@@ -1527,8 +1492,8 @@ uint32_t TevKColorGet(uint32_t data, uint32_t id, uint32_t out) {
 // MHchar::setMatColor (0x800E2950): channel `chan`'s colour of the model's
 // (+0x118) material `mat`, its copy marked dirty with `dirty`.
 void SetMatColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t chan, uint32_t color, uint32_t dirty) {
-    if (Routed<0x800E2950>())
-        return void(game.Call<0x800E2950>({chara, mat, chan, color, dirty}));
+    if (Routed<0x802A4AB4>())
+        return void(game.Call<0x802A4AB4>({chara, mat, chan, color, dirty}));
 
     const uint32_t mdl = FlatRead32(chara + 0x118);
 
@@ -1539,8 +1504,8 @@ void SetMatColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t chan, u
 // MHchar::getMatColor (0x800E2B58): the channel's colour into `out`;
 // whether the model has the material.
 uint32_t GetMatColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t chan, uint32_t out) {
-    if (Routed<0x800E2B58>())
-        return game.Call<0x800E2B58>({chara, mat, chan, out});
+    if (Routed<0x802A4D18>())
+        return game.Call<0x802A4D18>({chara, mat, chan, out});
 
     const uint32_t mdl = FlatRead32(chara + 0x118);
 
@@ -1552,8 +1517,8 @@ uint32_t GetMatColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t cha
 
 // MHchar::getTevKColor (0x800E2D38).
 void GetTevKColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t id, uint32_t out) {
-    if (Routed<0x800E2D38>())
-        return void(game.Call<0x800E2D38>({chara, mat, id, out}));
+    if (Routed<0x802A4EE4>())
+        return void(game.Call<0x802A4EE4>({chara, mat, id, out}));
 
     const uint32_t mdl = FlatRead32(chara + 0x118);
 
@@ -1565,8 +1530,8 @@ void GetTevKColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t id, ui
 // on the copy, its handle in the 4 guest bytes at `scratch`. The cache
 // store of the copy after it (0x8006F140) has nothing to emulate.
 void SetTevKColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t id, uint32_t color, uint32_t scratch) {
-    if (Routed<0x800E2DC4>())
-        return void(game.Call<0x800E2DC4>({chara, mat, id, color}));
+    if (Routed<0x802A4F64>())
+        return void(game.Call<0x802A4F64>({chara, mat, id, color}));
 
     const uint32_t mdl = FlatRead32(chara + 0x118);
 
@@ -1574,7 +1539,7 @@ void SetTevKColor(GuestCall& game, uint32_t chara, uint32_t mat, uint32_t id, ui
         return;
 
     FlatWrite32(scratch, CopiedMatPart(mdl, mat, 0x100, false));
-    game.Call<0x80096548>({scratch, id, color});
+    game.Call<0x8051DFAC>({scratch, id, color});
 }
 
 // A zone colour channel: __cvt_fp2unsigned (0x80457360), at most 255.
@@ -1590,12 +1555,12 @@ uint8_t ZoneChannel(float value) {
 // +0x17 keep their alpha: TEV konst colour 3 with object flag 1 (+0x14),
 // else channel GX_COLOR0A0 with flag 2). `scratch`: 0x20 guest bytes.
 void ZoneApplyColor(GuestCall& game, uint32_t object, uint32_t target, uint32_t kind, uint32_t zone, uint32_t which, uint32_t scratch) {
-    if (Routed<0x800F9E68>())
-        return void(game.Call<0x800F9E68>({object, target, kind, zone, which}));
+    if (Routed<0x80038594>())
+        return void(game.Call<0x80038594>({object, target, kind, zone, which}));
 
     const uint32_t stage = StageEffectColor(game, FlatRead8(kAreaNo), which & 0xFF);
     const uint32_t color = scratch, read = scratch + 4, position = scratch + 8, copy = scratch + 0x14;
-    const float k = FlatReadFloat32(0x80798AB8);
+    const float k = FlatReadFloat32(0x808A1488);
 
     // The products in the original's order.
     if ((kind & 0xFF) == 1) {
@@ -1642,7 +1607,7 @@ void ZoneApplyColor(GuestCall& game, uint32_t object, uint32_t target, uint32_t 
 // The zones (0x806BDB00, four of 0x34 bytes) holding `point` colour the
 // target.
 void ApplyZones(GuestCall& game, uint32_t object, uint32_t target, uint32_t kind, uint32_t which, uint32_t point, uint32_t scratch) {
-    for (uint32_t zone = 0x806BDB00; zone < 0x806BDB00 + 4 * 0x34; zone += 0x34)
+    for (uint32_t zone = 0x80785120; zone < 0x80785120 + 4 * 0x34; zone += 0x34)
         if (ZoneContains(game, point, zone))
             ZoneApplyColor(game, object, target, kind, zone, which, scratch);
 }
@@ -1653,8 +1618,8 @@ void ApplyZones(GuestCall& game, uint32_t object, uint32_t target, uint32_t kind
 // zones holding the effect's root position colour it. `scratch`: 0x30 guest
 // bytes.
 void EffectZoneColor(GuestCall& game, uint32_t effect, uint32_t scratch) {
-    if (Routed<0x800FA4B4>())
-        return void(game.Call<0x800FA4B4>({effect}));
+    if (Routed<0x80038AD8>())
+        return void(game.Call<0x80038AD8>({effect}));
 
     const uint32_t count = FlatRead16(effect + 0x24 + 8);
     uint32_t emitter = 0;
@@ -1684,10 +1649,10 @@ void EffectZoneColor(GuestCall& game, uint32_t effect, uint32_t scratch) {
 // channels): the zones holding its joint 0 colour it, flag 0x80 picking
 // the stage colour set 1. `scratch`: 0x30 guest bytes.
 void ModelZoneColor(GuestCall& game, uint32_t object, uint32_t chara, uint32_t scratch) {
-    if (Routed<0x800FA638>())
-        return void(game.Call<0x800FA638>({object, chara}));
+    if (Routed<0x80038C98>())
+        return void(game.Call<0x80038C98>({object, chara}));
 
-    const int32_t count = int32_t(game.Call<0x800988CC>({chara + 0x114})); // MdlMaterialCount
+    const int32_t count = int32_t(game.Call<0x802A4AAC>({chara})); // MHchar::getMatNum
     const uint32_t flags = FlatRead8(object + 0x14), mdl = FlatRead32(chara + 0x118);
 
     if (!(flags & 3))
@@ -1705,10 +1670,10 @@ void ModelZoneColor(GuestCall& game, uint32_t object, uint32_t chara, uint32_t s
 // (+0x1D), object (+0x18), type (+0x1C), pass flags (+0x1E, bit 0 with a
 // position at +0xC), +0x20 `extra`. The entry, 0 with the group full.
 uint32_t PrimRequest(GuestCall& game, uint32_t group, uint32_t kind, uint32_t object, uint32_t type, uint32_t pass, uint32_t position, uint32_t extra) {
-    if (Routed<0x800E3BF0>())
-        return game.Call<0x800E3BF0>({group, kind, object, type, pass, position, extra});
+    if (Routed<0x802A191C>())
+        return game.Call<0x802A191C>({group, kind, object, type, pass, position, extra});
 
-    const uint32_t entry = game.Call<0x800E3C80>({group & 0xFF});
+    const uint32_t entry = game.Call<0x802A19AC>({group & 0xFF});
 
     if (!entry)
         return 0;
@@ -1732,9 +1697,6 @@ uint32_t PrimRequest(GuestCall& game, uint32_t group, uint32_t kind, uint32_t ob
 // 0x8007F130 (ScnGroup::PushBack): the root's virtual Insert (+0x34) at its
 // size (+0xE4).
 uint32_t ScnRootPushBack(GuestCall& game, uint32_t root, uint32_t object) {
-    if (Routed<0x8007F130>())
-        return game.Call<0x8007F130>({root, object});
-
     return game(FlatRead32(FlatRead32(root) + 0x34), {root, FlatRead32(root + 0xE4), object});
 }
 
@@ -1746,8 +1708,8 @@ uint32_t ScnRootPushBack(GuestCall& game, uint32_t root, uint32_t object) {
 // PushBack. Flags 4, 8 and 0x10 pick the passes 8, 0x400 and 0x800. Out of
 // the area the models only join the scene.
 void EffectDrawRequest(GuestCall& game, uint32_t object, uint32_t list, uint32_t flags, int32_t count, uint32_t position) {
-    if (Routed<0x800F943C>())
-        return void(game.Call<0x800F943C>({object, list, flags, uint32_t(count), position}));
+    if (Routed<0x80037B74>())
+        return void(game.Call<0x80037B74>({object, list, flags, uint32_t(count), position}));
 
     const auto drawable = [](uint32_t model) { return model && FlatRead32(model + 0x118) == FlatRead32(FlatRead32(model + 0x10C) + 4); };
 
@@ -1771,7 +1733,7 @@ void EffectDrawRequest(GuestCall& game, uint32_t object, uint32_t list, uint32_t
     if (flags & 1) {
         for (int32_t i = 0; i < count; ++i) {
             if (const uint32_t effect = FlatRead32(list + 4 * i)) {
-                game.Call<0x800FA4B4>({effect});
+                game.Call<0x80038AD8>({effect});
                 PrimRequest(game, 1, 1, FlatRead32(list + 4 * i), 2, pass, position, 0);
             }
         }
@@ -1780,7 +1742,7 @@ void EffectDrawRequest(GuestCall& game, uint32_t object, uint32_t list, uint32_t
     if (flags & 2) {
         for (int32_t i = 0; i < count; ++i) {
             if (const uint32_t model = FlatRead32(list + 4 * i); drawable(model)) {
-                game.Call<0x800FA638>({object, model});
+                game.Call<0x80038C98>({object, model});
                 const uint32_t current = FlatRead32(list + 4 * i);
                 PrimRequest(game, 1, FlatRead8(current + 0x35), FlatRead32(current + 0x118), 0, pass, position, 0);
                 ScnRootPushBack(game, FlatRead32(kRoot), FlatRead32(FlatRead32(list + 4 * i) + 0x118));
@@ -1792,17 +1754,17 @@ void EffectDrawRequest(GuestCall& game, uint32_t object, uint32_t list, uint32_t
 // The spawner's per-map tables of effect ids by area (0x800FFD10's switch).
 uint32_t SpawnTables(uint32_t map) {
     switch (map) {
-    case 0x01: return 0x8059C750;
-    case 0x02: return 0x8059C784;
-    case 0x04: return 0x8059C800;
-    case 0x06: return 0x8059C834;
-    case 0x08: return 0x8059C840;
-    case 0x09: return 0x8059C84C;
-    case 0x0C: return 0x8059C864;
-    case 0x0D: return 0x8059C898;
-    case 0x0F: return 0x8059C910;
-    case 0x11: return 0x8059C944;
-    case 0x13: return 0x8059C950;
+    case 0x01: return 0x8067BB70;
+    case 0x02: return 0x8067BBA4;
+    case 0x04: return 0x8067BC20;
+    case 0x06: return 0x8067BC54;
+    case 0x08: return 0x8067BC60;
+    case 0x09: return 0x8067BC6C;
+    case 0x0C: return 0x8067BC84;
+    case 0x0D: return 0x8067BCB8;
+    case 0x0F: return 0x8067BD30;
+    case 0x11: return 0x8067BD64;
+    case 0x13: return 0x8067BD70;
     default: return 0;
     }
 }
@@ -1813,14 +1775,14 @@ uint32_t SpawnTables(uint32_t map) {
 // (+0x8D5), else index + base (+0xD0). In area 12 of map 1 the stage flags
 // (0x806BD45C + 0xC) bit 5 hold back effects 0xD-0xF and bit 4 0x10-0x11.
 void EffectSpawnerSpawn(CpuContext* cpu, GuestCall& game, uint32_t spawner, uint32_t index) {
-    if (Routed<0x800FFD10>())
-        return void(game.Call<0x800FFD10>({spawner, index}));
+    if (Routed<0x8003E558>())
+        return void(game.Call<0x8003E558>({spawner, index}));
 
     const uint32_t data = FlatRead32(spawner + 0x38), map = FlatRead8(kMapNo), tables = SpawnTables(map);
     const uint32_t table = tables ? FlatRead32(tables + 4 * FlatRead8(spawner + 0x44)) : 0;
 
     if (map == 1 && FlatRead8(kAreaNo) == 0xC) {
-        const uint32_t stage = FlatRead8(0x806BD45C + 0xC);
+        const uint32_t stage = FlatRead8(0x80784A7C + 0xC);
 
         if ((index - 0xD <= 2 && (stage & 0x20)) || (index - 0x10 <= 1 && (stage & 0x10)))
             return;
@@ -1828,7 +1790,7 @@ void EffectSpawnerSpawn(CpuContext* cpu, GuestCall& game, uint32_t spawner, uint
 
     const uint32_t slot = data + 4 + 4 * index;
     const uint32_t id = table ? FlatRead16(table + 2 * FlatRead8(data + index + 0x8D5)) : (index + FlatRead32(data + 0xD0)) & 0xFFFF;
-    FlatWrite32(slot, game.Call<0x800F9218>({id, FlatRead32(data + 0xD4) & 0xFFFF, 1}));
+    FlatWrite32(slot, game.Call<0x800377CC>({id, FlatRead32(data + 0xD4) & 0xFFFF, 1}));
 
     if (const uint32_t effect = FlatRead32(slot))
         EffectSetRootMtx(cpu, effect, data + index * 0x30 + 0x330);
@@ -1918,7 +1880,7 @@ void EffectSpawnerUpdate(CpuContext* cpu, GuestCall& game, uint32_t spawner, con
     if (FlatRead8(data + 0x8D4) == 1) {
         GetCameraPos(game, frame[0x20], frame[0x2C]);
 
-        if (!(FlatReadFloat32(0x80798B68) <= FlatReadFloat32(frame[0x24])))
+        if (!(FlatReadFloat32(0x808A1538) <= FlatReadFloat32(frame[0x24])))
             return;
     }
 
@@ -1953,11 +1915,11 @@ float EffectObjectHeight(GuestCall& game, uint32_t object, uint32_t part, uint32
     // Single steps as the original's fadds, fmuls and fadds (no fused
     // multiply-add).
     const float sum = FlatReadFloat32(a + 4) + FlatReadFloat32(b + 4);
-    const float scaled = FlatReadFloat32(0x8079D6D4) * sum;
-    const float limit = FlatReadFloat32(0x8079D6D8) + scaled;
+    const float scaled = FlatReadFloat32(0x808A1E04) * sum;
+    const float limit = FlatReadFloat32(0x808A1E08) + scaled;
 
     if (FlatReadFloat32(position + 4) <= limit)
-        return FlatReadFloat32(object + 0x1C) - FlatReadFloat32(0x8079D6DC);
+        return FlatReadFloat32(object + 0x1C) - FlatReadFloat32(0x808A1E0C);
 
     GetJointWpos(game, part, foot, a);
     return FlatReadFloat32(a + 4) - drop;
@@ -1993,7 +1955,7 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         return;
     }
 
-    if (FlatRead8(0x8065AA84) == 2) // GetOnlineMode
+    if (FlatRead8(0x80768ACC) == 2) // GetOnlineMode
         return;
 
     uint32_t flags = 1;
@@ -2004,7 +1966,7 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         FlatWrite8(object + 1, FlatRead8(player + 1));
         FlatWrite8(object + 0x44, FlatRead8(player + 0x16));
 
-        if (FlatRead8(object + 8) == 0xFF || FlatRead8(object + 0x44) != FlatRead8(kAreaNo) || game.Call<0x803C4878>() == 1) // IsEventDemoState4
+        if (FlatRead8(object + 8) == 0xFF || FlatRead8(object + 0x44) != FlatRead8(kAreaNo) || game.Call<0x8038CD6C>() == 1) // IsEventDemoState4
             return;
 
         if (PlMasterCheck(game, player))
@@ -2015,7 +1977,7 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         CopyVec3(object + 0x18, position);
         GetJointWpos(game, part, 0xE, position);
         CopyVec3(low, position);
-        const float y = EffectObjectHeight(game, object, part, FlatRead8(player + 9), 0xE, 0x14, 0x11, position, a, b, FlatReadFloat32(0x8079D6D0));
+        const float y = EffectObjectHeight(game, object, part, FlatRead8(player + 9), 0xE, 0x14, 0x11, position, a, b, FlatReadFloat32(0x808A1E00));
         FlatWriteFloat32(position + 4, y);
         FlatWrite8(object + 6, uint8_t(EffectColorMode(FlatRead32(player + 0x3D8))));
 
@@ -2026,7 +1988,7 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         FlatWrite8(object + 1, FlatRead8(monster + 1));
         FlatWrite8(object + 0x44, FlatRead8(monster + 0x1A4));
 
-        if (FlatRead8(object + 8) == 0xFF || FlatRead8(object + 0x44) != FlatRead8(kAreaNo) || game.Call<0x803C4878>() == 1)
+        if (FlatRead8(object + 8) == 0xFF || FlatRead8(object + 0x44) != FlatRead8(kAreaNo) || game.Call<0x8038CD6C>() == 1)
             return;
 
         if (FlatRead8(monster + 0x171) == 1 && (FlatRead16(monster + 0x172) == 0x53 || FlatRead16(monster + 0x172) == 0x55))
@@ -2037,7 +1999,7 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         CopyVec3(object + 0x18, position);
         GetJointWpos(game, part, 3, position);
         CopyVec3(low, position);
-        const float y = EffectObjectHeight(game, object, part, FlatRead8(monster + 0x170), 3, 0x14, 0x12, position, a, b, FlatReadFloat32(0x8079D6E0));
+        const float y = EffectObjectHeight(game, object, part, FlatRead8(monster + 0x170), 3, 0x14, 0x12, position, a, b, FlatReadFloat32(0x808A1E10));
         FlatWriteFloat32(position + 4, y);
         FlatWrite8(object + 6, uint8_t(EffectColorMode(FlatRead32(monster + 0x20C))));
     }
@@ -2085,25 +2047,25 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         case 0:
             continue;
         case 1:
-            fixed(0x807951E8);
+            fixed(0x8089CDB8);
             break;
         case 2:
-            fixed(0x807951EC);
+            fixed(0x8089CDBC);
             break;
         case 3:
-            EftKeyRGB(0x805E0CD0, int32_t(FlatRead32(entry + 0x14)), rgb);
+            EftKeyRGB(0x80683B18, int32_t(FlatRead32(entry + 0x14)), rgb);
             break;
         case 0x10:
-            fixed(0x807951F0);
+            fixed(0x8089CDC0);
             break;
         case 0x11:
-            EftKeyRGB(0x805E0D00, int32_t(FlatRead32(entry + 0x14)), rgb);
+            EftKeyRGB(0x80683B48, int32_t(FlatRead32(entry + 0x14)), rgb);
             break;
         case 0x12:
-            EftKeyRGB(0x805E0D30, int32_t(FlatRead32(entry + 0x14)), rgb);
+            EftKeyRGB(0x80683B78, int32_t(FlatRead32(entry + 0x14)), rgb);
             break;
         default: // 0x13
-            EftKeyRGB(0x805E0D60, int32_t(FlatRead32(entry + 0x14)), rgb);
+            EftKeyRGB(0x80683BA8, int32_t(FlatRead32(entry + 0x14)), rgb);
             break;
         }
 
@@ -2119,19 +2081,19 @@ void EffectObjectUpdate(CpuContext* cpu, GuestCall& game, uint32_t object, const
         // The fading model: its alpha by key (0x805E0D98), setMatColor
         // (0x800E2950), its scale (y by the alpha time over 0x8079D6E0),
         // position and rotation, MHchar::move, drawn as a model from here on.
-        FlatWrite8(entry + 0x2B, uint8_t(EftKeyAlpha(game, 0x805E0D98, int32_t(FlatRead32(entry + 0x18)))));
+        FlatWrite8(entry + 0x2B, uint8_t(EftKeyAlpha(game, 0x80683BEC, int32_t(FlatRead32(entry + 0x18)))));
         FlatWrite32(alpha, FlatRead32(entry + 0x28));
         SetMatColor(game, FlatRead32(entry), 0, 4, alpha, 0);
         FlatWrite32(FlatRead32(entry) + 0x1C, FlatRead32(entry + 0x2C));
         const float scaled = FlatReadFloat32(entry + 0x2C) * float(int32_t(FlatRead32(entry + 0x18)));
-        FlatWriteFloat32(FlatRead32(entry) + 0x20, scaled / FlatReadFloat32(0x8079D6E0));
+        FlatWriteFloat32(FlatRead32(entry) + 0x20, scaled / FlatReadFloat32(0x808A1E10));
         const uint32_t model = FlatRead32(entry);
         FlatWrite32(model + 0x24, FlatRead32(entry + 0x2C));
         CopyVec3(model + 4, entry + 8);
         FlatWrite32(model + 0x28, FlatRead32(entry + 0x1C));
         FlatWrite32(model + 0x2C, FlatRead32(entry + 0x20));
         FlatWrite32(model + 0x30, 0);
-        game.Call<0x800E078C>({model, 0}); // MHchar::move
+        game.Call<0x802A24A8>({model, 0}); // MHchar::move
         flags = (flags & ~1u) | 2;
         EffectDrawRequest(game, object, entry, flags, 1, 0);
     }
@@ -2171,12 +2133,12 @@ uint32_t EffectFadeUpdate(GuestCall& game, uint32_t object, const GuestFrame& fr
     FlatWrite8(data + 0xF, uint8_t(std::max(alpha, 0)));
 
     const uint32_t model = FlatRead32(data + 4), color = frame[0x10];
-    game.Call<0x8013599C>({owner, FlatRead32(0x805DD2DC + 4 * kind), object + 0x18}); // get_joint_wpos_em
+    game.Call<0x801717A0>({owner, FlatRead32(0x80683934 + 4 * kind), object + 0x18}); // get_joint_wpos_em
     CopyVec3(model + 4, object + 0x18);
     CopyVec3(model + 0x28, owner + 0x1BC);
     FlatWrite32(color, FlatRead32(data + 0xC));
     SetMatColor(game, model, 0, 4, color, 0);
-    game.Call<0x800E078C>({model, 0}); // MHchar::move
+    game.Call<0x802A24A8>({model, 0}); // MHchar::move
     EffectDrawRequest(game, object, data + 4, 2, int32_t(FlatRead32(data)), 0);
     return game.cpu->gpr[3];
 }
@@ -2264,42 +2226,38 @@ void ObjectStep(CpuContext* cpu) {
 }
 
 static void EffectObjectStepPort(CpuContext* cpu) {
-    ObjectStep<0x80330480, MH3_EffectObjectUpdate>(cpu);
+    ObjectStep<0x8006DDB0, MH3_EffectObjectUpdate>(cpu);
 }
 
-extern "C" void func_80330444(CpuContext* ctx);
+extern "C" void func_8006DD70(CpuContext* ctx);
 extern "C" void MH3_EffectObjectStep(CpuContext* ctx) {
     EffectStep::Touch();
-    PortCheck::Call(ctx, "EffectObjectStep", func_80330444, EffectObjectStepPort);
+    PortCheck::Call(ctx, "EffectObjectStep", func_8006DD70, EffectObjectStepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80330444, MH3_EffectObjectStep, "EffectObjectStep");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8006DD70, MH3_EffectObjectStep, "EffectObjectStep");
 static void EffectSpawnerStepPort(CpuContext* cpu) {
-    ObjectStep<0x800FE9DC, MH3_EffectSpawnerUpdate>(cpu);
+    ObjectStep<0x8003D26C, MH3_EffectSpawnerUpdate>(cpu);
 }
 
-extern "C" void func_800FE9A0(CpuContext* ctx);
+extern "C" void func_8003D22C(CpuContext* ctx);
 extern "C" void MH3_EffectSpawnerStep(CpuContext* ctx) {
     EffectStep::Touch();
-    PortCheck::Call(ctx, "EffectSpawnerStep", func_800FE9A0, EffectSpawnerStepPort);
+    PortCheck::Call(ctx, "EffectSpawnerStep", func_8003D22C, EffectSpawnerStepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800FE9A0, MH3_EffectSpawnerStep, "EffectSpawnerStep");
-
-MH3_EFFECT_PORT(800F88D0, EffectObjectRelease, {
-    EffectObjectRelease(game, frame.Arg(3));
+REGISTER_NATIVE_FUNCTION_AS(0x8003D22C, MH3_EffectSpawnerStep, "EffectSpawnerStep");
+MH3_EFFECT_PORT(80036F20, EffectObjectRelease, {
+    EffectObjectRelease(cpu, game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F88D0, MH3_EffectObjectRelease, "EffectObjectRelease");
-
-MH3_EFFECT_PORT(800F8B1C, RetireEffects, {
+REGISTER_NATIVE_FUNCTION_AS(0x80036F20, MH3_EffectObjectRelease, "EffectObjectRelease");
+MH3_EFFECT_PORT(80037170, RetireEffects, {
     RetireEffects(game, frame.Arg(3), int32_t(frame.Arg(4)));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F8B1C, MH3_RetireEffects, "RetireEffects");
-
+REGISTER_NATIVE_FUNCTION_AS(0x80037170, MH3_RetireEffects, "RetireEffects");
 // 0x800FE94C: the spawner's two effect arrays (+0x38: count, effects at +4;
 // count +0x7C, effects at +0x80).
-MH3_EFFECT_PORT(800FE94C, EffectSpawnerRetireEffects, {
+MH3_EFFECT_PORT(8003D1D8, EffectSpawnerRetireEffects, {
     const uint32_t arrays = FlatRead32(frame.Arg(3) + 0x38);
     RetireEffects(game, arrays + 4, int32_t(FlatRead32(arrays)));
     FlatWrite32(arrays, 0);
@@ -2307,165 +2265,154 @@ MH3_EFFECT_PORT(800FE94C, EffectSpawnerRetireEffects, {
     FlatWrite32(arrays + 0x7C, 0);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FE94C, MH3_EffectSpawnerRetireEffects, "EffectSpawnerRetireEffects");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8003D1D8, MH3_EffectSpawnerRetireEffects, "EffectSpawnerRetireEffects");
 // r3 0: the emitter list's end.
-MH3_EFFECT_PORT(800A5420, EffectSetRootMtx, {
+MH3_EFFECT_PORT(804F51EC, EffectSetRootMtx, {
     EffectSetRootMtx(cpu, frame.Arg(3), frame.Arg(4));
     return 0;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A5420, MH3_EffectSetRootMtx, "EffectSetRootMtx");
-
-MH3_EFFECT_PORT(800A963C, EmitterSetMtxDirty, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F51EC, MH3_EffectSetRootMtx, "EffectSetRootMtx");
+MH3_EFFECT_PORT(804F7B98, EmitterSetMtxDirty, {
     EmitterSetMtxDirty(cpu, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A963C, MH3_EmitterSetMtxDirty, "EmitterSetMtxDirty");
-
-MH3_EFFECT_PORT(800A4A90, EffectRetireEmitterAll, { return EffectRetireEmitterAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A4A90, MH3_EffectRetireEmitterAll, "EffectRetireEmitterAll");
-
-MH3_EFFECT_PORT(800A6484, EmitterDestroyFunc, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F7B98, MH3_EmitterSetMtxDirty, "EmitterSetMtxDirty");
+MH3_EFFECT_PORT(804F4AB0, EffectRetireEmitterAll, { return EffectRetireEmitterAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F4AB0, MH3_EffectRetireEmitterAll, "EffectRetireEmitterAll");
+MH3_EFFECT_PORT(804F5C48, EmitterDestroyFunc, {
     EmitterDestroyFunc(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A6484, MH3_EmitterDestroyFunc, "EmitterDestroyFunc");
-
-MH3_EFFECT_PORT(800A63B4, EmitterRetireParticleAll, { return EmitterRetireParticleAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A63B4, MH3_EmitterRetireParticleAll, "EmitterRetireParticleAll");
-MH3_EFFECT_PORT(800A699C, EmitterRetireParticleManagerAll, { return EmitterRetireParticleManagerAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A699C, MH3_EmitterRetireParticleManagerAll, "EmitterRetireParticleManagerAll");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F5C48, MH3_EmitterDestroyFunc, "EmitterDestroyFunc");
+MH3_EFFECT_PORT(804F5BB8, EmitterRetireParticleAll, { return EmitterRetireParticleAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F5BB8, MH3_EmitterRetireParticleAll, "EmitterRetireParticleAll");MH3_EFFECT_PORT(804F5E60, EmitterRetireParticleManagerAll, { return EmitterRetireParticleManagerAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F5E60, MH3_EmitterRetireParticleManagerAll, "EmitterRetireParticleManagerAll");
 // Effect::SendClosing (0x800A44C8): its system's Closing.
-MH3_EFFECT_PORT(800A44C8, EffectSendClosing, {
+MH3_EFFECT_PORT(804F4820, EffectSendClosing, {
     EffectSystemClosing(game, FlatRead32(frame.Arg(3) + 0x20), frame.Arg(3));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A44C8, MH3_EffectSendClosing, "EffectSendClosing");
-
-MH3_EFFECT_PORT(800D6000, EffMemoryGarbageCollection, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F4820, MH3_EffectSendClosing, "EffectSendClosing");
+MH3_EFFECT_PORT(802AE7DC, EffMemoryGarbageCollection, {
     GarbageCollection(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800D6000, MH3_EffMemoryGarbageCollection, "EffMemoryGarbageCollection");
-
+REGISTER_NATIVE_FUNCTION_AS(0x802AE7DC, MH3_EffMemoryGarbageCollection, "EffMemoryGarbageCollection");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800D6308, EffMemoryCollectManagers, {
     CollectManagers(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800D6308, MH3_EffMemoryCollectManagers, "EffMemoryCollectManagers");
+#endif
 
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800D6244, EffMemoryCollectEmitters, {
     CollectEmitters(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800D6244, MH3_EffMemoryCollectEmitters, "EffMemoryCollectEmitters");
+#endif
 
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800D6168, EffMemoryCollectEffects, {
     CollectEffects(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800D6168, MH3_EffMemoryCollectEffects, "EffMemoryCollectEffects");
+#endif
 
-MH3_EFFECT_PORT(800F8CDC, EffectSlotsFree, {
+MH3_EFFECT_PORT(80037328, EffectSlotsFree, {
     EffectSlotsFree(game, frame.Arg(3), int32_t(frame.Arg(4)));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F8CDC, MH3_EffectSlotsFree, "EffectSlotsFree");
-
+REGISTER_NATIVE_FUNCTION_AS(0x80037328, MH3_EffectSlotsFree, "EffectSlotsFree");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800A4A1C, ReferencedObjectDestroy, {
     ReferencedObjectDestroy(game, frame.Arg(3));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A4A1C, MH3_ReferencedObjectDestroy, "ReferencedObjectDestroy");
+#endif
 
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800A4640, ActivityListClose, {
     ActivityListClose(game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A4640, MH3_ActivityListClose, "ActivityListClose");
+#endif
 
-MH3_EFFECT_PORT(800A4B5C, EffectRetireParticleAll, { return EffectRetireParticleAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A4B5C, MH3_EffectRetireParticleAll, "EffectRetireParticleAll");
-MH3_EFFECT_PORT(800ABA58, ParticleManagerRetireParticleAll, { return ParticleManagerRetireParticleAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800ABA58, MH3_ParticleManagerRetireParticleAll, "ParticleManagerRetireParticleAll");
-MH3_EFFECT_PORT(800AB8E4, ParticleManagerRetireParticle, { return ParticleManagerRetireParticle(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800AB8E4, MH3_ParticleManagerRetireParticle, "ParticleManagerRetireParticle");
-MH3_EFFECT_PORT(800A684C, EmitterRetireParticleManager, { return EmitterRetireParticleManager(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A684C, MH3_EmitterRetireParticleManager, "EmitterRetireParticleManager");
-MH3_EFFECT_PORT(800A48D0, EffectRetireEmitter, { return EffectRetireEmitter(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A48D0, MH3_EffectRetireEmitter, "EffectRetireEmitter");
-
-MH3_EFFECT_PORT(800A59AC, EffectSystemClosing, {
+MH3_EFFECT_PORT(804F4B88, EffectRetireParticleAll, { return EffectRetireParticleAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F4B88, MH3_EffectRetireParticleAll, "EffectRetireParticleAll");MH3_EFFECT_PORT(80501408, ParticleManagerRetireParticleAll, { return ParticleManagerRetireParticleAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80501408, MH3_ParticleManagerRetireParticleAll, "ParticleManagerRetireParticleAll");MH3_EFFECT_PORT(80501380, ParticleManagerRetireParticle, { return ParticleManagerRetireParticle(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80501380, MH3_ParticleManagerRetireParticle, "ParticleManagerRetireParticle");MH3_EFFECT_PORT(804F5DD8, EmitterRetireParticleManager, { return EmitterRetireParticleManager(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F5DD8, MH3_EmitterRetireParticleManager, "EmitterRetireParticleManager");MH3_EFFECT_PORT(804F4A28, EffectRetireEmitter, { return EffectRetireEmitter(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F4A28, MH3_EffectRetireEmitter, "EffectRetireEmitter");
+MH3_EFFECT_PORT(804F5534, EffectSystemClosing, {
     EffectSystemClosing(game, frame.Arg(3), frame.Arg(4));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A59AC, MH3_EffectSystemClosing, "EffectSystemClosing");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F5534, MH3_EffectSystemClosing, "EffectSystemClosing");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800A3864, ReferencedObjectUnRef, { return UnRef(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A3864, MH3_ReferencedObjectUnRef, "ReferencedObjectUnRef");
-MH3_EFFECT_PORT(800A44D4, EffectDestroyFunc, { return EffectRetireEmitterAll(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A44D4, MH3_EffectDestroyFunc, "EffectDestroyFunc");
-
-MH3_EFFECT_PORT(800A44D8, EffectClosing, {
+#endif
+MH3_EFFECT_PORT(804F482C, EffectDestroyFunc, { return EffectRetireEmitterAll(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F482C, MH3_EffectDestroyFunc, "EffectDestroyFunc");
+MH3_EFFECT_PORT(804F4830, EffectClosing, {
     EffectClosing(game, frame.Arg(3), frame.Arg(4));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A44D8, MH3_EffectClosing, "EffectClosing");
-
-MH3_EFFECT_PORT(800A6478, EmitterSendClosing, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F4830, MH3_EffectClosing, "EffectClosing");
+MH3_EFFECT_PORT(804F5C3C, EmitterSendClosing, {
     EffectClosing(game, FlatRead32(frame.Arg(3) + 0xBC), frame.Arg(3));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A6478, MH3_EmitterSendClosing, "EmitterSendClosing");
-
-MH3_EFFECT_PORT(800A65B8, EmitterClosing, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F5C3C, MH3_EmitterSendClosing, "EmitterSendClosing");
+MH3_EFFECT_PORT(804F5D30, EmitterClosing, {
     EmitterClosing(game, frame.Arg(3), frame.Arg(4));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A65B8, MH3_EmitterClosing, "EmitterClosing");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F5D30, MH3_EmitterClosing, "EmitterClosing");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800A6710, EffectRemoveDrawOrder, {
     EffectRemoveDrawOrder(game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A6710, MH3_EffectRemoveDrawOrder, "EffectRemoveDrawOrder");
+#endif
 
-MH3_EFFECT_PORT(800AB794, ParticleManagerSendClosing, {
+MH3_EFFECT_PORT(805012E4, ParticleManagerSendClosing, {
     EmitterClosing(game, FlatRead32(frame.Arg(3) + 0x20), frame.Arg(3));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800AB794, MH3_ParticleManagerSendClosing, "ParticleManagerSendClosing");
-
-MH3_EFFECT_PORT(800AB7A4, ParticleManagerClosing, {
+REGISTER_NATIVE_FUNCTION_AS(0x805012E4, MH3_ParticleManagerSendClosing, "ParticleManagerSendClosing");
+MH3_EFFECT_PORT(805012F4, ParticleManagerClosing, {
     ParticleManagerClosing(game, frame.Arg(3), frame.Arg(4));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800AB7A4, MH3_ParticleManagerClosing, "ParticleManagerClosing");
-
-MH3_EFFECT_PORT(800AA324, ParticleSendClosing, {
+REGISTER_NATIVE_FUNCTION_AS(0x805012F4, MH3_ParticleManagerClosing, "ParticleManagerClosing");
+MH3_EFFECT_PORT(8050049C, ParticleSendClosing, {
     ParticleManagerClosing(game, FlatRead32(frame.Arg(3) + 0xC8), frame.Arg(3));
     return 1;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800AA324, MH3_ParticleSendClosing, "ParticleSendClosing");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8050049C, MH3_ParticleSendClosing, "ParticleSendClosing");
 // The foreach ports call guest callbacks (r3 the manager or emitter, r4 the
 // argument).
-MH3_EFFECT_PORT(800A9938, EmitterForeachParticleManager, {
+MH3_EFFECT_PORT(804F7D00, EmitterForeachParticleManager, {
     const uint32_t fn = frame.Arg(4), arg = frame.Arg(5);
     return EmitterForEachManager(frame.Arg(3), frame.Arg(6) != 0, frame.Arg(7) != 0, [&](uint32_t manager) { game(fn, {manager, arg}); });
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A9938, MH3_EmitterForeachParticleManager, "EmitterForeachParticleManager");
-
-MH3_EFFECT_PORT(800A52BC, EffectForeachParticleManager, {
+REGISTER_NATIVE_FUNCTION_AS(0x804F7D00, MH3_EmitterForeachParticleManager, "EmitterForeachParticleManager");
+MH3_EFFECT_PORT(804F5084, EffectForeachParticleManager, {
     const uint32_t fn = frame.Arg(4), arg = frame.Arg(5);
     return EffectForEachManager(frame.Arg(3), frame.Arg(6) != 0, [&](uint32_t manager) { game(fn, {manager, arg}); });
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A52BC, MH3_EffectForeachParticleManager, "EffectForeachParticleManager");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F5084, MH3_EffectForeachParticleManager, "EffectForeachParticleManager");
 // Effect::ForeachEmitterFrom (0x800A5348): `fn` on each emitter (active
 // ones unless r6) descending from r7.
-MH3_EFFECT_PORT(800A5348, EffectForeachEmitterFrom, {
+MH3_EFFECT_PORT(804F5114, EffectForeachEmitterFrom, {
     const uint32_t list = frame.Arg(3) + 0x24, fn = frame.Arg(4), arg = frame.Arg(5), ancestor = frame.Arg(7);
     const bool anyStatus = frame.Arg(6) != 0;
     uint32_t n = 0;
@@ -2481,94 +2428,94 @@ MH3_EFFECT_PORT(800A5348, EffectForeachEmitterFrom, {
 
     return n;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A5348, MH3_EffectForeachEmitterFrom, "EffectForeachEmitterFrom");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F5114, MH3_EffectForeachEmitterFrom, "EffectForeachEmitterFrom");
 // 0x800A97E8: ForeachEmitterFrom on the emitter's effect from the emitter.
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800A97E8, EmitterForeachDescendant, { return game.Call<0x800A5348>({FlatRead32(frame.Arg(3) + 0xBC), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame.Arg(3)}); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A97E8, MH3_EmitterForeachDescendant, "EmitterForeachDescendant");
+#endif
 
 // 0x800A97F4: the descendant callback of ForeachParticleManager; r4 its
 // context {count, fn, arg, any status (u8)}.
-MH3_EFFECT_PORT(800A97F4, EmitterForeachDescendantManagers, {
+MH3_EFFECT_PORT(804F7CB8, EmitterForeachDescendantManagers, {
     const uint32_t emitter = frame.Arg(3), context = frame.Arg(4);
     CheckPointer(emitter, "ef_emitter.cpp", 0x519);
-    const uint32_t n = game.Call<0x800A9938>({emitter, FlatRead32(context + 4), FlatRead32(context + 8), FlatRead8(context + 0xC), 0});
+    const uint32_t n = game.Call<0x804F7D00>({emitter, FlatRead32(context + 4), FlatRead32(context + 8), FlatRead8(context + 0xC), 0});
     FlatWrite32(context, FlatRead32(context) + n);
     return n;
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800A97F4, MH3_EmitterForeachDescendantManagers, "EmitterForeachDescendantManagers");
-
+REGISTER_NATIVE_FUNCTION_AS(0x804F7CB8, MH3_EmitterForeachDescendantManagers, "EmitterForeachDescendantManagers");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800AC164, ParticleManagerSetSimpleLight, {
     ParticleManagerSetSimpleLight(frame.Arg(3), ReadSimpleLight(frame.Arg(4) & 0xFF, frame.Arg(5), frame.Arg(6), float(cpu->fpr[1].d), frame.Arg(7)));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800AC164, MH3_ParticleManagerSetSimpleLight, "ParticleManagerSetSimpleLight");
+#endif
 
-MH3_EFFECT_PORT(800A523C, EffectGetEmitter, { return EffectGetEmitter(game, frame.Arg(3), frame.Arg(4) & 0xFFFF); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A523C, MH3_EffectGetEmitter, "EffectGetEmitter");
-
+MH3_EFFECT_PORT(804F507C, EffectGetEmitter, { return EffectGetEmitter(game, frame.Arg(3), frame.Arg(4) & 0xFFFF); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F507C, MH3_EffectGetEmitter, "EffectGetEmitter");
 // 0x800F9AD4: SetSimpleLight from a context {type, ambient, diffuse, pad,
 // radius, position}.
-MH3_EFFECT_PORT(800F9AD4, EffectSimpleLightCallback, {
+MH3_EFFECT_PORT(8003929C, EffectSimpleLightCallback, {
     const uint32_t c = frame.Arg(4);
     ParticleManagerSetSimpleLight(frame.Arg(3), ReadSimpleLight(FlatRead8(c), c + 1, c + 5, FlatReadFloat32(c + 0xC), c + 0x10));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9AD4, MH3_EffectSimpleLightCallback, "EffectSimpleLightCallback");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8003929C, MH3_EffectSimpleLightCallback, "EffectSimpleLightCallback");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800F9A38, EffectSetSimpleLight, {
     EffectSetSimpleLight(frame.Arg(3), ReadSimpleLight(frame.Arg(4) & 0xFF, frame.Arg(5), frame.Arg(6), float(cpu->fpr[1].d), frame.Arg(7)), frame.Arg(8) != 0);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9A38, MH3_EffectSetSimpleLight, "EffectSetSimpleLight");
+#endif
 
-MH3_EFFECT_PORT(800F99EC, EffectChangeColor, {
+MH3_EFFECT_PORT(800381FC, EffectChangeColor, {
     EffectChangeColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F99EC, MH3_EffectChangeColor, "EffectChangeColor");
-
-MH3_EFFECT_PORT(800F9B24, EffectChangeScale, {
+REGISTER_NATIVE_FUNCTION_AS(0x800381FC, MH3_EffectChangeColor, "EffectChangeColor");
+MH3_EFFECT_PORT(8003828C, EffectChangeScale, {
     EffectChangeScale(cpu, frame.Arg(3), cpu->fpr[1].d);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9B24, MH3_EffectChangeScale, "EffectChangeScale");
-
-MH3_EFFECT_PORT(800F9C04, EffectChangeScaleVec, {
+REGISTER_NATIVE_FUNCTION_AS(0x8003828C, MH3_EffectChangeScale, "EffectChangeScale");
+MH3_EFFECT_PORT(8003832C, EffectChangeScaleVec, {
     EffectChangeScaleVec(cpu, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9C04, MH3_EffectChangeScaleVec, "EffectChangeScaleVec");
-
-MH3_EFFECT_PORT(800A5DF0, EffectSystemRetireEffectAll, { return EffectSystemRetireEffectAll(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A5DF0, MH3_EffectSystemRetireEffectAll, "EffectSystemRetireEffectAll");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8003832C, MH3_EffectChangeScaleVec, "EffectChangeScaleVec");
+MH3_EFFECT_PORT(804F5758, EffectSystemRetireEffectAll, { return EffectSystemRetireEffectAll(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F5758, MH3_EffectSystemRetireEffectAll, "EffectSystemRetireEffectAll");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800F9BCC, EmitterSetScale, {
     EmitterSetScale(cpu, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9BCC, MH3_EmitterSetScale, "EmitterSetScale");
+#endif
 
-MH3_EFFECT_PORT(800F9744, EffectSetRootTrans, {
+MH3_EFFECT_PORT(80037ECC, EffectSetRootTrans, {
     EffectSetRootTrans(cpu, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9744, MH3_EffectSetRootTrans, "EffectSetRootTrans");
-
-MH3_EFFECT_PORT(800F98E8, EffectHasManagers, { return EffectHasManagers(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800F98E8, MH3_EffectHasManagers, "EffectHasManagers");
-MH3_EFFECT_PORT(800F9984, EffectMove, { return EffectMove(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9984, MH3_EffectMove, "EffectMove");
-
+REGISTER_NATIVE_FUNCTION_AS(0x80037ECC, MH3_EffectSetRootTrans, "EffectSetRootTrans");
+MH3_EFFECT_PORT(800380BC, EffectHasManagers, { return EffectHasManagers(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x800380BC, MH3_EffectHasManagers, "EffectHasManagers");MH3_EFFECT_PORT(8003814C, EffectMove, { return EffectMove(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x8003814C, MH3_EffectMove, "EffectMove");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(800F99D0, EffectCalcVirtual, {
     EffectCalcVirtual(game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F99D0, MH3_EffectCalcVirtual, "EffectCalcVirtual");
+#endif
 
-MH3_EFFECT_PORT(800FFFFC, EffectGetPosition, { return EffectGetPosition(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800FFFFC, MH3_EffectGetPosition, "EffectGetPosition");
-
+MH3_EFFECT_PORT(8003E820, EffectGetPosition, { return EffectGetPosition(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x8003E820, MH3_EffectGetPosition, "EffectGetPosition");
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_EFFECT_PORT(80100088, EmitterGetTranslate, {
     if (!frame.Arg(4))
         Panic("emitter.h", 0x187, "trans != NULL");
@@ -2578,21 +2525,17 @@ MH3_EFFECT_PORT(80100088, EmitterGetTranslate, {
 
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x80100088, MH3_EmitterGetTranslate, "EmitterGetTranslate");
+#endif
 
-MH3_EFFECT_PORT(800FFF6C, EffectSpawnerRetireEffect, {
+MH3_EFFECT_PORT(8003E79C, EffectSpawnerRetireEffect, {
     EffectSpawnerRetireEffect(game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FFF6C, MH3_EffectSpawnerRetireEffect, "EffectSpawnerRetireEffect");
-
-MH3_EFFECT_PORT(800F9358, EffectObjectAlive, { return EffectObjectAlive(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9358, MH3_EffectObjectAlive, "EffectObjectAlive");
-MH3_GAME_PORT(800E3BA0, MHcharDrawPass, { return MHcharDrawPass(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800E3BA0, MH3_MHcharDrawPass, "MHcharDrawPass");
-MH3_EFFECT_PORT(800F93E4, EffectDrawFlags, { return EffectDrawFlags(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800F93E4, MH3_EffectDrawFlags, "EffectDrawFlags");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8003E79C, MH3_EffectSpawnerRetireEffect, "EffectSpawnerRetireEffect");
+MH3_EFFECT_PORT(80037A84, EffectObjectAlive, { return EffectObjectAlive(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80037A84, MH3_EffectObjectAlive, "EffectObjectAlive");MH3_GAME_PORT(802A18CC, MHcharDrawPass, { return MHcharDrawPass(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x802A18CC, MH3_MHcharDrawPass, "MHcharDrawPass");MH3_EFFECT_PORT(80037B14, EffectDrawFlags, { return EffectDrawFlags(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80037B14, MH3_EffectDrawFlags, "EffectDrawFlags");
 // A precise native (docs/optimizations/cpu/native-function-ports.md): its body names r1 and
 // r3 only, so translated callers call it directly, without the dispatch's
 // guard; the framed port runs only for its check.
@@ -2600,17 +2543,16 @@ static uint32_t PlMasterCheckBody(CpuContext*, GuestCall& game, const GuestFrame
     return PlMasterCheck(game, frame.Arg(3));
 }
 
-extern "C" void func_8026FE38(CpuContext* ctx);
+extern "C" void func_8033DBA4(CpuContext* ctx);
 extern "C" void MH3_PlMasterCheck(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("PlMasterCheck", ctx->gpr[1], func_8026FE38, FramedPort<0x8026FE38, PlMasterCheckBody, false>)) [[unlikely]]
+    if (PortCheck::RunPrecise("PlMasterCheck", ctx->gpr[1], func_8033DBA4, FramedPort<0x8033DBA4, PlMasterCheckBody, false>)) [[unlikely]]
         return;
 #endif
     ctx->gpr[3] = PlMaster(ctx->gpr[3]) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8026FE38, MH3_PlMasterCheck, "PlMasterCheck");
-
-MH3_EFFECT_PORT(800FA804, EftKeyRGB, {
+REGISTER_NATIVE_FUNCTION_AS(0x8033DBA4, MH3_PlMasterCheck, "PlMasterCheck");
+MH3_EFFECT_PORT(80038DE8, EftKeyRGB, {
     uint8_t rgb[3];
     EftKeyRGB(frame.Arg(3), int32_t(frame.Arg(4)), rgb);
 
@@ -2619,38 +2561,31 @@ MH3_EFFECT_PORT(800FA804, EftKeyRGB, {
 
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FA804, MH3_EftKeyRGB, "EftKeyRGB");
-
-MH3_EFFECT_PORT(800FA95C, EftKeyAlpha, { return EftKeyAlpha(game, frame.Arg(3), int32_t(frame.Arg(4))); });
-REGISTER_NATIVE_FUNCTION_AS(0x800FA95C, MH3_EftKeyAlpha, "EftKeyAlpha");
-
-MH3_EFFECT_PORT(800FF938, EffectSpawnerUpdate, {
+REGISTER_NATIVE_FUNCTION_AS(0x80038DE8, MH3_EftKeyRGB, "EftKeyRGB");
+MH3_EFFECT_PORT(80038F30, EftKeyAlpha, { return EftKeyAlpha(game, frame.Arg(3), int32_t(frame.Arg(4))); });
+REGISTER_NATIVE_FUNCTION_AS(0x80038F30, MH3_EftKeyAlpha, "EftKeyAlpha");
+MH3_EFFECT_PORT(8003E160, EffectSpawnerUpdate, {
     EffectSpawnerUpdate(cpu, game, frame.Arg(3), frame);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FF938, MH3_EffectSpawnerUpdate, "EffectSpawnerUpdate");
-
-MH3_EFFECT_PORT(8033065C, EffectObjectUpdate, {
+REGISTER_NATIVE_FUNCTION_AS(0x8003E160, MH3_EffectSpawnerUpdate, "EffectSpawnerUpdate");
+MH3_EFFECT_PORT(8006DFA0, EffectObjectUpdate, {
     EffectObjectUpdate(cpu, game, frame.Arg(3), frame);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x8033065C, MH3_EffectObjectUpdate, "EffectObjectUpdate");
-
-MH3_EFFECT_PORT(800FFD10, EffectSpawnerSpawn, {
+REGISTER_NATIVE_FUNCTION_AS(0x8006DFA0, MH3_EffectObjectUpdate, "EffectObjectUpdate");
+MH3_EFFECT_PORT(8003E558, EffectSpawnerSpawn, {
     EffectSpawnerSpawn(cpu, game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FFD10, MH3_EffectSpawnerSpawn, "EffectSpawnerSpawn");
-
-MH3_EFFECT_PORT(800F943C, EffectDrawRequest, {
+REGISTER_NATIVE_FUNCTION_AS(0x8003E558, MH3_EffectSpawnerSpawn, "EffectSpawnerSpawn");
+MH3_EFFECT_PORT(80037B74, EffectDrawRequest, {
     EffectDrawRequest(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), int32_t(frame.Arg(6)), frame.Arg(7));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F943C, MH3_EffectDrawRequest, "EffectDrawRequest");
-
-MH3_EFFECT_PORT(80308D64, EffectFadeUpdate, { return EffectFadeUpdate(game, frame.Arg(3), frame); });
-REGISTER_NATIVE_FUNCTION_AS(0x80308D64, MH3_EffectFadeUpdate, "EffectFadeUpdate");
-
+REGISTER_NATIVE_FUNCTION_AS(0x80037B74, MH3_EffectDrawRequest, "EffectDrawRequest");
+MH3_EFFECT_PORT(8006BE6C, EffectFadeUpdate, { return EffectFadeUpdate(game, frame.Arg(3), frame); });
+REGISTER_NATIVE_FUNCTION_AS(0x8006BE6C, MH3_EffectFadeUpdate, "EffectFadeUpdate");
 // 0x80115AE4 HunterTrailUpdate (the hunter effect 0x801156C8's update): each
 // trail model (data +0x38: count, then per model 0x120 bytes of six Mtx34
 // from +0xC) is drawn through a history of the hunter's joint 7: every step
@@ -2659,7 +2594,7 @@ REGISTER_NATIVE_FUNCTION_AS(0x80308D64, MH3_EffectFadeUpdate, "EffectFadeUpdate"
 // without a whole tick, the history is first shifted back (0 = 1, ..., 4 =
 // 5), so the original's shift leaves it as it was and only the head follows
 // the joint. The trail keeps its length in game time at any step length.
-extern "C" void func_80115AE4(CpuContext* ctx);
+extern "C" void func_8006D894(CpuContext* ctx);
 
 static void HunterTrailUpdatePort(CpuContext* ctx) {
     if (GameStep::Ticks() == 0) {
@@ -2674,18 +2609,18 @@ static void HunterTrailUpdatePort(CpuContext* ctx) {
         }
     }
 
-    func_80115AE4(ctx);
+    func_8006D894(ctx);
 }
 
 extern "C" void MH3_HunterTrailUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "HunterTrailUpdate", func_80115AE4, HunterTrailUpdatePort);
+    PortCheck::Call(ctx, "HunterTrailUpdate", func_8006D894, HunterTrailUpdatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80115AE4, MH3_HunterTrailUpdate, "HunterTrailUpdate");
-
-MH3_GAME_PORT(800E3BF0, PrimRequest, { return PrimRequest(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame.Arg(7), frame.Arg(8), frame.Arg(9)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800E3BF0, MH3_PrimRequest, "PrimRequest");
+REGISTER_NATIVE_FUNCTION_AS(0x8006D894, MH3_HunterTrailUpdate, "HunterTrailUpdate");
+MH3_GAME_PORT(802A191C, PrimRequest, { return PrimRequest(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame.Arg(7), frame.Arg(8), frame.Arg(9)); });
+REGISTER_NATIVE_FUNCTION_AS(0x802A191C, MH3_PrimRequest, "PrimRequest");// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(8007F130, ScnRootPushBack, { return ScnRootPushBack(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x8007F130, MH3_ScnRootPushBack, "ScnRootPushBack");
+#endif
 
 // A precise native, like PlMasterCheck.
 static uint32_t GetJointWposBody(CpuContext* cpu, GuestCall& game, const GuestFrame& frame) {
@@ -2693,18 +2628,19 @@ static uint32_t GetJointWposBody(CpuContext* cpu, GuestCall& game, const GuestFr
     return cpu->gpr[3];
 }
 
-extern "C" void func_800E0AF8(CpuContext* ctx);
+extern "C" void func_802A28C4(CpuContext* ctx);
 extern "C" void MH3_GetJointWpos(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("GetJointWpos", ctx->gpr[1], func_800E0AF8, FramedPort<0x800E0AF8, GetJointWposBody, false>)) [[unlikely]]
+    if (PortCheck::RunPrecise("GetJointWpos", ctx->gpr[1], func_802A28C4, FramedPort<0x802A28C4, GetJointWposBody, false>)) [[unlikely]]
         return;
 #endif
     JointWpos(ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E0AF8, MH3_GetJointWpos, "GetJointWpos");
-
+REGISTER_NATIVE_FUNCTION_AS(0x802A28C4, MH3_GetJointWpos, "GetJointWpos");
 // ResNode::GetID (0x8006FE30): the id (+0x10) of the ResNode the handle at
 // r3 holds.
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(8006FE30, ResNodeGetId, {
     const uint32_t node = FlatRead32(frame.Arg(3));
 
@@ -2713,96 +2649,85 @@ MH3_GAME_PORT(8006FE30, ResNodeGetId, {
 
     return FlatRead32(node + 0x10);
 });
-REGISTER_NATIVE_FUNCTION_AS(0x8006FE30, MH3_ResNodeGetId, "ResNodeGetId");
+#endif
 
-MH3_GAME_PORT(802BDD44, GetCameraPos, {
+MH3_GAME_PORT(80375E2C, GetCameraPos, {
     GetCameraPos(game, frame.Arg(3), frame[0x10]);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x802BDD44, MH3_GetCameraPos, "GetCameraPos");
-
-MH3_GAME_PORT(800473FC, ViewCamera, { return ViewCamera(game); });
-REGISTER_NATIVE_FUNCTION_AS(0x800473FC, MH3_ViewCamera, "ViewCamera");
-MH3_GAME_PORT(80082C30, ScnRootCurrentCamera, { return ScnRootCurrentCamera(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x80082C30, MH3_ScnRootCurrentCamera, "ScnRootCurrentCamera");
-MH3_GAME_PORT(80082BD4, ScnRootGetCamera, { return ScnRootGetCamera(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x80082BD4, MH3_ScnRootGetCamera, "ScnRootGetCamera");
-
-MH3_GAME_PORT(80074A2C, CameraGetPosition, {
+REGISTER_NATIVE_FUNCTION_AS(0x80375E2C, MH3_GetCameraPos, "GetCameraPos");
+MH3_GAME_PORT(802AF770, ViewCamera, { return ViewCamera(game); });
+REGISTER_NATIVE_FUNCTION_AS(0x802AF770, MH3_ViewCamera, "ViewCamera");MH3_GAME_PORT(80535B2C, ScnRootCurrentCamera, { return ScnRootCurrentCamera(game, frame.Arg(3)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80535B2C, MH3_ScnRootCurrentCamera, "ScnRootCurrentCamera");MH3_GAME_PORT(80535AD0, ScnRootGetCamera, { return ScnRootGetCamera(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x80535AD0, MH3_ScnRootGetCamera, "ScnRootGetCamera");
+MH3_GAME_PORT(80532454, CameraGetPosition, {
     CameraGetPosition(game, frame.Arg(3), frame.Arg(4));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x80074A2C, MH3_CameraGetPosition, "CameraGetPosition");
-
-MH3_GAME_PORT(802FB9E0, StarQuestFirstStages, { return StarQuestFirstStages(game); });
-REGISTER_NATIVE_FUNCTION_AS(0x802FB9E0, MH3_StarQuestFirstStages, "StarQuestFirstStages");
+REGISTER_NATIVE_FUNCTION_AS(0x80532454, MH3_CameraGetPosition, "CameraGetPosition");
+MH3_GAME_PORT(80218194, StarQuestFirstStages, { return StarQuestFirstStages(game); });
+REGISTER_NATIVE_FUNCTION_AS(0x80218194, MH3_StarQuestFirstStages, "StarQuestFirstStages");// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(802FB558, StarQuestGroupCurrent, { return StarQuestGroupCurrent(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x802FB558, MH3_StarQuestGroupCurrent, "StarQuestGroupCurrent");
+#endif
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(802FB520, StarQuestGroupDone, { return StarQuestGroupDone(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x802FB520, MH3_StarQuestGroupDone, "StarQuestGroupDone");
+#endif
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(802FB414, StarQuestGroupDoneLow, { return StarQuestGroupDoneLow(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x802FB414, MH3_StarQuestGroupDoneLow, "StarQuestGroupDoneLow");
+#endif
+// Inlined into callers in RMHJ08:
+#if 0
 MH3_GAME_PORT(802FB498, StarQuestGroupDoneHigh, { return StarQuestGroupDoneHigh(game, frame.Arg(3)); });
-REGISTER_NATIVE_FUNCTION_AS(0x802FB498, MH3_StarQuestGroupDoneHigh, "StarQuestGroupDoneHigh");
+#endif
 
-MH3_EFFECT_PORT(800A9778, EmitterGetManager, { return EmitterGetManager(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800A9778, MH3_EmitterGetManager, "EmitterGetManager");
-MH3_GAME_PORT(802B035C, StageEffectColor, { return StageEffectColor(game, frame.Arg(3), frame.Arg(4)); });
-REGISTER_NATIVE_FUNCTION_AS(0x802B035C, MH3_StageEffectColor, "StageEffectColor");
-MH3_GAME_PORT(800FA26C, ZoneContains, { return ZoneContains(game, frame.Arg(3), frame.Arg(4)) ? 1 : 0; });
-REGISTER_NATIVE_FUNCTION_AS(0x800FA26C, MH3_ZoneContains, "ZoneContains");
-
-MH3_EFFECT_PORT(800F9E68, ZoneApplyColor, {
+MH3_EFFECT_PORT(804F7CB0, EmitterGetManager, { return EmitterGetManager(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x804F7CB0, MH3_EmitterGetManager, "EmitterGetManager");MH3_GAME_PORT(8037DAE4, StageEffectColor, { return StageEffectColor(game, frame.Arg(3), frame.Arg(4)); });
+REGISTER_NATIVE_FUNCTION_AS(0x8037DAE4, MH3_StageEffectColor, "StageEffectColor");MH3_GAME_PORT(800389B4, ZoneContains, { return ZoneContains(game, frame.Arg(3), frame.Arg(4)) ? 1 : 0; });
+REGISTER_NATIVE_FUNCTION_AS(0x800389B4, MH3_ZoneContains, "ZoneContains");
+MH3_EFFECT_PORT(80038594, ZoneApplyColor, {
     ZoneApplyColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame.Arg(7), frame[0x10]);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800F9E68, MH3_ZoneApplyColor, "ZoneApplyColor");
-
-MH3_EFFECT_PORT(800FA4B4, EffectZoneColor, {
+REGISTER_NATIVE_FUNCTION_AS(0x80038594, MH3_ZoneApplyColor, "ZoneApplyColor");
+MH3_EFFECT_PORT(80038AD8, EffectZoneColor, {
     EffectZoneColor(game, frame.Arg(3), frame[0x10]);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FA4B4, MH3_EffectZoneColor, "EffectZoneColor");
-
-MH3_GAME_PORT(800FA638, ModelZoneColor, {
+REGISTER_NATIVE_FUNCTION_AS(0x80038AD8, MH3_EffectZoneColor, "EffectZoneColor");
+MH3_GAME_PORT(80038C98, ModelZoneColor, {
     ModelZoneColor(game, frame.Arg(3), frame.Arg(4), frame[0x10]);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800FA638, MH3_ModelZoneColor, "ModelZoneColor");
-
-MH3_GAME_PORT(800E2950, SetMatColor, {
+REGISTER_NATIVE_FUNCTION_AS(0x80038C98, MH3_ModelZoneColor, "ModelZoneColor");
+MH3_GAME_PORT(802A4AB4, SetMatColor, {
     SetMatColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame.Arg(7));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800E2950, MH3_SetMatColor, "SetMatColor");
-
-MH3_GAME_PORT(800E2B58, GetMatColor, { return GetMatColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6)); });
-REGISTER_NATIVE_FUNCTION_AS(0x800E2B58, MH3_GetMatColor, "GetMatColor");
-
-MH3_GAME_PORT(800E2D38, GetTevKColor, {
+REGISTER_NATIVE_FUNCTION_AS(0x802A4AB4, MH3_SetMatColor, "SetMatColor");
+MH3_GAME_PORT(802A4D18, GetMatColor, { return GetMatColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6)); });
+REGISTER_NATIVE_FUNCTION_AS(0x802A4D18, MH3_GetMatColor, "GetMatColor");
+MH3_GAME_PORT(802A4EE4, GetTevKColor, {
     GetTevKColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800E2D38, MH3_GetTevKColor, "GetTevKColor");
-
-MH3_GAME_PORT(800E2DC4, SetTevKColor, {
+REGISTER_NATIVE_FUNCTION_AS(0x802A4EE4, MH3_GetTevKColor, "GetTevKColor");
+MH3_GAME_PORT(802A4F64, SetTevKColor, {
     SetTevKColor(game, frame.Arg(3), frame.Arg(4), frame.Arg(5), frame.Arg(6), frame[0x10]);
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x800E2DC4, MH3_SetTevKColor, "SetTevKColor");
-
+REGISTER_NATIVE_FUNCTION_AS(0x802A4F64, MH3_SetTevKColor, "SetTevKColor");
 // The ResMatChan and ResMatTevColor accessors take the handle's address.
-MH3_GAME_PORT(80096DE0, ResMatChanSetColor, {
+MH3_GAME_PORT(8051E688, ResMatChanSetColor, {
     MatChanSetColor(FlatRead32(frame.Arg(3)), frame.Arg(4), frame.Arg(5));
     return cpu->gpr[3];
 });
-REGISTER_NATIVE_FUNCTION_AS(0x80096DE0, MH3_ResMatChanSetColor, "ResMatChanSetColor");
-
-MH3_GAME_PORT(80096EF0, ResMatChanGetColor, { return MatChanGetColor(FlatRead32(frame.Arg(3)), frame.Arg(4), frame.Arg(5)); });
-REGISTER_NATIVE_FUNCTION_AS(0x80096EF0, MH3_ResMatChanGetColor, "ResMatChanGetColor");
-MH3_GAME_PORT(80096424, ResTevColorGetKColor, { return TevKColorGet(FlatRead32(frame.Arg(3)), frame.Arg(4), frame.Arg(5)); });
-REGISTER_NATIVE_FUNCTION_AS(0x80096424, MH3_ResTevColorGetKColor, "ResTevColorGetKColor");
-
+REGISTER_NATIVE_FUNCTION_AS(0x8051E688, MH3_ResMatChanSetColor, "ResMatChanSetColor");
+MH3_GAME_PORT(8051E730, ResMatChanGetColor, { return MatChanGetColor(FlatRead32(frame.Arg(3)), frame.Arg(4), frame.Arg(5)); });
+REGISTER_NATIVE_FUNCTION_AS(0x8051E730, MH3_ResMatChanGetColor, "ResMatChanGetColor");MH3_GAME_PORT(8051DEF4, ResTevColorGetKColor, { return TevKColorGet(FlatRead32(frame.Arg(3)), frame.Arg(4), frame.Arg(5)); });
+REGISTER_NATIVE_FUNCTION_AS(0x8051DEF4, MH3_ResTevColorGetKColor, "ResTevColorGetKColor");
 // The geometry tests write no guest memory but their result (and the
 // segment's parameter): checked on every call.
 [[maybe_unused]] static void HitPointSpherePort(CpuContext* cpu) {
@@ -2810,16 +2735,15 @@ REGISTER_NATIVE_FUNCTION_AS(0x80096424, MH3_ResTevColorGetKColor, "ResTevColorGe
 }
 
 // A precise native: translated callers call it directly.
-extern "C" void func_8028F680(CpuContext* ctx);
+extern "C" void func_801A1008(CpuContext* ctx);
 extern "C" void MH3_HitPointSphere(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPurePrecise("HitPointSphere", ctx->gpr[1], PortCheck::Returns::Gpr3, func_8028F680, HitPointSpherePort)) [[unlikely]]
+    if (PortCheck::RunPurePrecise("HitPointSphere", ctx->gpr[1], PortCheck::Returns::Gpr3, func_801A1008, HitPointSpherePort)) [[unlikely]]
         return;
 #endif
     ctx->gpr[3] = HitPointSphere(ctx->gpr[3], ctx->gpr[4], float(ctx->fpr[1].d)) ? 1 : 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028F680, MH3_HitPointSphere, "HitPointSphere");
-
+REGISTER_NATIVE_FUNCTION_AS(0x801A1008, MH3_HitPointSphere, "HitPointSphere");
 // (segment r3: start +0, direction +0x18; point r4; t out r5) -> f1.
 static void SegmentPointDistanceSqPort(CpuContext* cpu) {
     float start[3], dir[3], point[3], t;
@@ -2830,26 +2754,25 @@ static void SegmentPointDistanceSqPort(CpuContext* cpu) {
     FlatWriteFloat32(cpu->gpr[5], t);
 }
 
-extern "C" void func_8028F8D0(CpuContext* ctx);
+extern "C" void func_801A12D0(CpuContext* ctx);
 extern "C" void MH3_SegmentPointDistanceSq(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("SegmentPointDistanceSq")) [[unlikely]]
-        return PortCheck::RunOutput(ctx, "SegmentPointDistanceSq", PortCheck::Returns::Fpr1, func_8028F8D0, SegmentPointDistanceSqPort, {{ctx->gpr[5], 4}});
+        return PortCheck::RunOutput(ctx, "SegmentPointDistanceSq", PortCheck::Returns::Fpr1, func_801A12D0, SegmentPointDistanceSqPort, {{ctx->gpr[5], 4}});
 #endif
     SegmentPointDistanceSqPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028F8D0, MH3_SegmentPointDistanceSq, "SegmentPointDistanceSq");
-
+REGISTER_NATIVE_FUNCTION_AS(0x801A12D0, MH3_SegmentPointDistanceSq, "SegmentPointDistanceSq");
 static void CapsuleHitPort(CpuContext* cpu) {
     cpu->gpr[3] = CapsuleHit(cpu->gpr[3], cpu->gpr[4]) ? 1 : 0;
 }
 
-extern "C" void func_80290820(CpuContext* ctx);
+extern "C" void func_801A27DC(CpuContext* ctx);
 extern "C" void MH3_CapsuleHit(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("CapsuleHit")) [[unlikely]]
-        return PortCheck::RunPure(ctx, "CapsuleHit", PortCheck::Returns::Gpr3, func_80290820, CapsuleHitPort);
+        return PortCheck::RunPure(ctx, "CapsuleHit", PortCheck::Returns::Gpr3, func_801A27DC, CapsuleHitPort);
 #endif
     CapsuleHitPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80290820, MH3_CapsuleHit, "CapsuleHit");
+REGISTER_NATIVE_FUNCTION_AS(0x801A27DC, MH3_CapsuleHit, "CapsuleHit");

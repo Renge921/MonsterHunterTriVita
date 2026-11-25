@@ -35,8 +35,7 @@ void ObjectAgesTickPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_80344EBC(CpuContext* ctx);
 extern "C" void MH3_ObjectAgesTick(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ObjectAgesTick", func_80344EBC, ObjectAgesTickPort);
+    ObjectAgesTickPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80344EBC, MH3_ObjectAgesTick, "ObjectAgesTick");
+// JPN inlined into ObjectAgesUpdate (0x8014FE9C; covered by tick_sites.inc): REGISTER_NATIVE_FUNCTION_AS(0x80344EBC, MH3_ObjectAgesTick, "ObjectAgesTick");

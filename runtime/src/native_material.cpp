@@ -1,6 +1,7 @@
 // Typed native material state, pure equation generation, and direct frame-slot
 // uniforms. No GX state, command-list decoder, FIFO, or GPU wait participates.
 #include "frame_split.h"
+#include "diag_log.h"
 #include "fatal.h"
 #include "bytes_equal.h"
 #include "native_graphics.h"
@@ -21,6 +22,7 @@
 #include "native_frame_packet.h"
 #include "native_material_gpu.h"
 #include "model_cull.h"
+#include "render_diag.h"
 #include "../native/mh3_shade.h"
 #ifdef MH3_DEVELOPMENT
 #include "dev_options.h"
@@ -311,6 +313,17 @@ const mh3_shade_scene& ShadeScene(uint64_t& upload) {
         for (unsigned i = 0; i < 8; ++i)
             if (render.lightSlots.valid_mask & (1u << i))
                 scene.lights[i] = render.preparedLights[i];
+        {
+            float colors[8][4]{};
+            float dirs[8][3]{};
+            for (unsigned i = 0; i < 8; ++i) {
+                std::memcpy(colors[i], scene.lights[i].color, 16);
+                std::memcpy(dirs[i], scene.lights[i].direction, 12);
+            }
+            RenderDiag::NoteLighting(render.lightSlots.valid_mask, render.lightSlots.diffuse_color, render.lightSlots.specular_color,
+                                     render.lightSlots.ambient.r, render.lightSlots.ambient.g, render.lightSlots.ambient.b, render.lightSlots.ambient.a,
+                                     colors, dirs);
+        }
         const uint32_t type = render.fogKnown ? render.fogSource.type : 0;
         auto fog = render.preparedFog;
 
@@ -1440,6 +1453,14 @@ void CountCensusDraw(const mh3_resolved_mesh_submit& mesh, uint64_t material, GL
                             NativeShaderVertexName(variant) + "+" + NativeShaderFragmentName(variant) + (shading.model == MH3_SHADE_CHAIN ? std::string() : BasicStructure(shading))});
 }
 #endif
+// A 3x4 matrix as three rows of four floats: enough to tell a collapsed pose
+// (a zero row) from a translation off screen, and the same layout the shader
+// reads.
+void NoteMatrix(const char* label, unsigned model, unsigned slot, const float* m) {
+    MH3DiagLog("MH3 diag: %s model=%u slot=%u m=%.3f,%.3f,%.3f,%.3f/%.3f,%.3f,%.3f,%.3f/%.3f,%.3f,%.3f,%.3f\n", label, model, slot, m[0], m[1], m[2], m[3], m[4], m[5], m[6],
+               m[7], m[8], m[9], m[10], m[11]);
+}
+
 void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeModelGPUView& resident) {
 #ifdef MH3_DEVELOPMENT
     ReportMaterialGpu();
@@ -1478,8 +1499,10 @@ void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeMod
         vertexBlock = block ? &block->vertex : nullptr;
     }
 
-    if (!vertexBlock)
+    if (!vertexBlock) {
+        RenderDiag::Count(RenderDiag::SubmitNoUniforms);
         return;
+    }
     // Built here and copied once: the frame's uniform memory is uncached CDRAM
     // on the Vita, where clearing it and then writing the fields cost twice.
     // Only up to the last texture role's texgen: the program reads no other.
@@ -1529,8 +1552,10 @@ void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeMod
 
     const auto* view = ShadeViewMemory(inputs.projection);
 
-    if (!view)
+    if (!view) {
+        RenderDiag::Count(RenderDiag::SubmitNoView);
         return;
+    }
 
     vertex.flags[0] = (inputs.matrix_index_mask & 1 && !skinned ? MH3_SHADE_FLAG_MATRIX_SELECTOR : 0) | (present(2) ? MH3_SHADE_FLAG_COLOR0 : 0);
 
@@ -1634,8 +1659,10 @@ void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeMod
 
         const auto materialBlock = animatedBlock ? ShadeMaterialBlock(entry, *baked, values) : std::nullopt;
 
-        if (!materialBlock)
+        if (!materialBlock) {
+            RenderDiag::Count(RenderDiag::SubmitNoMaterial);
             return;
+        }
 
         variant.material_gpu = true;
         variant.dynamic = entry.dynamic && !ResolvesOnCpu(entry);
@@ -1644,8 +1671,10 @@ void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeMod
         auto animatedBlock = ShadeAnimated(entry, bias, srt, srtRoles);
         const auto materialBlock = animatedBlock ? ShadeMaterialBlock(entry, *baked, animated.values[animated.last]) : std::nullopt;
 
-        if (!materialBlock)
+        if (!materialBlock) {
+            RenderDiag::Count(RenderDiag::SubmitNoMaterial);
             return;
+        }
 
         variant.material_gpu = true;
         variant.dynamic = entry.dynamic && !ResolvesOnCpu(entry);
@@ -1656,13 +1685,42 @@ void SubmitShadedModelMesh(const mh3_resolved_mesh_submit& mesh, const NativeMod
         blocks = ShadeBlocks(memory, shading.model, paletteBytes);
     }
 
-    if (!blocks)
+    if (!blocks) {
+        RenderDiag::Count(RenderDiag::SubmitNoBlocks);
         return;
+    }
 
     blocks->view = view;
     blocks->viewBytes = sizeof *view;
     blocks->viewRevision = shade.viewRevision;
     const GLuint program = ShadeProgram(variant)->get();
+
+    // Per model, once: the state the draw actually reaches the GPU with. The
+    // prepared palette is what the shader reads (for a skinned mesh its bone
+    // rows), so it is the last word on a pose that collapses the mesh.
+    if (RenderDiag::WantDrawProbe(mesh.resident_handle)) {
+        int32_t scissor[4];
+
+        if (!GetNativeScissor(scissor, NativeOwner::Render))
+            scissor[0] = scissor[1] = scissor[2] = scissor[3] = -1;
+
+        MH3DiagLog("MH3 diag: draw model=%u asset=%u shape=%u idx=%u gpu=%u skin=%u rows=%u mask=%04x nz=%02x zz=%02x tex=%u lit=%u program=%u\n", mesh.model_id, mesh.asset_id,
+                   mesh.shape_id, mesh.index_count, gpu ? 1u : 0u, skinned ? 1u : 0u, mesh.skin_row_count, unsigned(inputs.matrix_index_mask), unsigned(inputs.nonzero_projective_mask),
+                   unsigned(inputs.zero_projective_mask), unsigned(coordinates), lighting.lit() ? 1u : 0u, unsigned(program));
+        MH3DiagLog("MH3 diag: draw range vb=%u/%u ib=%u/%u first=%u count=%u viewport=%.1f,%.1f,%.1f,%.1f near=%.3f far=%.3f scissor=%d,%d,%d,%d\n",
+                   resident.mesh->vertex_offset, resident.mesh->vertex_count, resident.mesh->index_offset, resident.mesh->index_count, mesh.first_index, mesh.index_count, viewport[0],
+                   viewport[1], viewport[2], viewport[3], viewport[4], viewport[5], scissor[0], scissor[1], scissor[2], scissor[3]);
+        NoteMatrix("draw main", mesh.model_id, 0, inputs.position.v[0]);
+
+        if (!skinned)
+            for (unsigned slot = 0; slot < 10; ++slot)
+                if (inputs.matrix_index_mask & (1u << slot))
+                    NoteMatrix("draw slot", mesh.model_id, slot, palette.position[slot]);
+
+        if (skinned)
+            NoteMatrix("draw skin0", mesh.model_id, 0, palette.position[0]);
+    }
+
 #ifdef MH3_DEVELOPMENT
     CountCensusDraw(mesh, entry.key, program, variant, shading);
     const NativeRenderPartScope gl(NativeRenderSplit::Gl);
@@ -1738,6 +1796,11 @@ void SubmitShadedMaterialGeometry(const AuroraNativeMaterialGeometry& geometry) 
         return;
 
     const GLuint program = ShadeProgram(variant)->get();
+    {
+        const auto& raster = GetNativeDrawState(NativeOwner::Render).raster;
+        if (raster.blend_mode != 0)
+            RenderDiag::NoteBlendDraw(raster.blend_mode, raster.src_factor, raster.dst_factor, raster.depth_test ? 1 : 0, variant.textures, uint8_t(variant.lighting), uint8_t(variant.model), 0, 0, geometry.index_count / 3);
+    }
 #ifdef MH3_DEVELOPMENT
     CountFill(geometry, variant, shading);
 #endif
@@ -2070,6 +2133,7 @@ void OverlayNativeMaterialIndirectMatrices(const mh3_pack_indirect_matrix matric
 }
 
 void SetNativeFog(const mh3_native_fog& source) {
+    RenderDiag::NoteFog(source.type, source.start, source.end, source.near_plane, source.far_plane, source.color.r, source.color.g, source.color.b, source.color.a);
     auto& m = M();
     const float width = GetNativeDrawState().viewport[2];
 
@@ -2570,15 +2634,22 @@ void SetNativeMaterialGpuDraw(NativeMaterialGpuRef material, NativeMaterialGpuAn
 }
 
 void SubmitNativeModelMesh(const mh3_resolved_mesh_submit& mesh) {
-    if (!mesh.index_count)
+    RenderDiag::Count(RenderDiag::Submit);
+
+    if (!mesh.index_count) {
+        RenderDiag::Count(RenderDiag::SubmitEmpty);
         return;
+    }
 
     ObserveNativeModelAssetDemand(mesh.resident_handle, mesh.resident_generation);
 
-    if (!NativeGraphicsFrameShouldRender())
+    if (!NativeGraphicsFrameShouldRender()) {
+        RenderDiag::Count(RenderDiag::SubmitNoFrame);
         return;
+    }
 
     if (!EnsureNativeModelAssetGPU(mesh.resident_handle, mesh.resident_generation)) {
+        RenderDiag::Count(RenderDiag::SubmitAssetFailed);
         CancelNativeGraphicsFrame();
         return;
     }
@@ -2588,8 +2659,33 @@ void SubmitNativeModelMesh(const mh3_resolved_mesh_submit& mesh) {
     if (mesh.material != &Mat(render))
         MH3_THROW(std::runtime_error("Model draw material is not the render owner's"));
     // Residency and demand above stay counted: a culled mesh keeps its assets.
-    if (CullNativeModelMesh(mesh))
+    if (CullNativeModelMesh(mesh)) {
+        RenderDiag::Count(RenderDiag::SubmitCulled);
         return;
+    }
+
+    RenderDiag::Count(RenderDiag::SubmitDrawn);
+
+    // Per model, once: the pose the draw will use, the palette/batch state that
+    // selected it, and the mesh bounds. A zero row or a zero translation
+    // separates a collapsed pose from a model the camera simply does not see.
+    if (RenderDiag::WantPoseProbe(mesh.resident_handle)) {
+        MH3DiagLog("MH3 diag: pose model=%u asset=%u shape=%u idx=%u skin=%u batch=%u required=%03x valid=%03x selectors=%u bounds=%.2f,%.2f,%.2f/%.2f,%.2f,%.2f\n", mesh.model_id,
+                   mesh.asset_id, mesh.shape_id, mesh.index_count, mesh.skin_row_count, mesh.palette_batch ? 1u : 0u,
+                   mesh.palette_batch ? unsigned(mesh.palette_batch->position_required) : 0u, mesh.palette ? unsigned(mesh.palette->position_valid) : 0u,
+                   unsigned((mesh.layout.flags >> MH3_LAYOUT_MATRIX_MASK_SHIFT) & 1u), mesh.mesh.bounds_min[0], mesh.mesh.bounds_min[1], mesh.mesh.bounds_min[2], mesh.mesh.bounds_max[0],
+                   mesh.mesh.bounds_max[1], mesh.mesh.bounds_max[2]);
+
+        if (mesh.skin_palette) {
+            NoteMatrix("pose skin0", mesh.model_id, 0, mesh.skin_palette[0]);
+
+            if (mesh.skin_row_count > 1)
+                NoteMatrix("pose skinN", mesh.model_id, mesh.skin_row_count - 1, mesh.skin_palette[mesh.skin_row_count - 1]);
+        } else if (mesh.palette)
+            NoteMatrix("pose rigid", mesh.model_id, 0, mesh.palette->position[0].v[0]);
+        else
+            MH3DiagLog("MH3 diag: pose model=%u has no matrix\n", mesh.model_id);
+    }
 
     SubmitShadedModelMesh(mesh, resident);
 }

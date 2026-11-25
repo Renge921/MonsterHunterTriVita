@@ -150,5 +150,5 @@ extern "C" void MH3_ChatPostDirect(CpuContext* ctx) {
     Post(ctx, func_80451A00);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80451938, MH3_ChatPost, "ChatPost");
-REGISTER_NATIVE_FUNCTION_AS(0x80451A00, MH3_ChatPostDirect, "ChatPostDirect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80451938, MH3_ChatPost, "ChatPost");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80451A00, MH3_ChatPostDirect, "ChatPostDirect");

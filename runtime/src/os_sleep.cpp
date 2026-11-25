@@ -42,7 +42,7 @@ void SleepTicks(CpuContext* cpu, Pump pump) {
     ScopeExit restore([&] { *cpu = saved; });
 
     do {
-        if (Memory::Read32(saved.gpr[13] - 14984) && !GuestThreads::Started())
+        if (Memory::Read32(saved.gpr[13] - 16536) && !GuestThreads::Started())
             MH3_THROW(std::runtime_error("OSSleepTicks requires runnable guest thread switching"));
 
         pump();
@@ -82,7 +82,7 @@ void PumpDevices(CpuContext* cpu) {
 
 extern "C" void MH3_OSSleepTicks(CpuContext* cpu) {
     // With other guest threads (or one ready to run), sleep in the scheduler.
-    if (GuestThreads::Started() || Memory::Read32(cpu->gpr[13] - 14984)) {
+    if (GuestThreads::Started() || Memory::Read32(cpu->gpr[13] - 16536)) {
         const auto ticks = (uint64_t(cpu->gpr[3]) << 32) | cpu->gpr[4];
         const auto deadline = GuestThreads::Clock::now() + TimeBaseContract::TicksToDuration(ticks);
 
@@ -92,11 +92,11 @@ extern "C" void MH3_OSSleepTicks(CpuContext* cpu) {
 
     SleepTicks(cpu, [&] { PumpDevices(cpu); });
 }
-REGISTER_NATIVE_FUNCTION(0x804D5320, MH3_OSSleepTicks);
+REGISTER_NATIVE_FUNCTION(0x8042BEBC, MH3_OSSleepTicks);
 
 void RunSleepSelfTests(CpuContext* cpu) {
     const auto original = *cpu;
-    const auto pending = cpu->gpr[13] - 14984;
+    const auto pending = cpu->gpr[13] - 16536;
     const auto oldPending = Memory::Read32(pending);
     Memory::Write32(pending, 0);
     cpu->gpr[3] = 0;

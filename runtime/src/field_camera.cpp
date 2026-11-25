@@ -47,40 +47,56 @@ extern "C" double MH3_EaseDivisor(double d); // tick_sites.cpp
 namespace {
 
 enum : uint32_t {
-    GetOnlineMode = 0x800CF26C,
-    OptionConfig = 0x803BED04,  // get_option_cfg (player, option) -> u8
-    CameraFollowMode = 0x802B8AF0, // (camera, PLW): +0x9C
-    CameraPosition = 0x802BDD44,   // get_camera_pos (VEC3*)
-    CameraTarget = 0x802BDE14,     // (VEC3*)
-    AngleBetween = 0x80050AF4,     // calcVecAng2 (VEC3*, VEC3*) -> yaw
-    AngleX = 0x80050BAC,           // calcVecAngX (VEC3*) -> pitch
-    CameraTargetMode = 0x802B8C4C, // (camera, PLW), when +0x92
-    CameraClimbMode = 0x802B7880,  // (camera) -> 1 in the climbing view
-    CameraPitchInput = 0x802B6D30, // (camera, camera, PLW)
-    CameraYawInput = 0x802B6864,   // (camera, camera, PLW)
-    PlCarried = 0x8027CC90,        // (PLW) -> 1
-    VecSubtract = 0x80050D04,      // (out, a, b): a - b
-    VecAdd = 0x800513DC,           // (out, a, b): a + b
-    VecCopy = 0x80041EA4,          // (to, from)
-    VecSet = 0x8005000C,           // setVector3 (VEC3*; f1, f2, f3)
-    RotY = 0x800510C8,             // rotVecY (VEC3*, angle)
-    RotX = 0x8005101C,             // rotVecX (VEC3*, angle)
-    CameraSurfaced = 0x802B79E4,   // (PLW) -> 1 swimming at the surface
-    ActionCheck = 0x8026FECC,      // Pl_act_ck (PLW, u8 kind, u16 action) -> 1
-    PlStateCheck = 0x8027D850,     // (PLW, 2) -> 1
-    CameraEvent = 0x802B7A1C,      // (PLW, kind) -> 1
-    JointPosition = 0x8026A3EC,    // pl_get_joint_wpos (PLW, joint, VEC3*)
-    FrameCheck = 0x8026A378,       // Pl_frame_check (PLW, 0; f1, f2) -> nonzero
-    CameraAngleEase = 0x802BDC90,  // (target, angle, shift) -> the step
-    CameraCollide = 0x802B8244,    // (camera, PLW)
-    CameraPush = 0x802B8940,       // (camera), when +0xA6
-    VecAddInPlace = 0x80073FCC,    // (a, b): a += b
-    BindCamera = 0x802B8ED0,       // (camera, PLW): a monster's hold of the player (below)
-    CameraLimit = 0x802B72BC,      // (camera, camera, PLW)
-    ResetCurve = 0x802BB0B0,       // (r3 s16 steps left; f1 rate, f2) -> f1 old weight
-    Lerp = 0x80052298,             // (out, a, b; f1 t): a*t + b*(1-t)
-    CameraSet = 0x802BE158,        // (kind, eye, target; f1, f2)
+    GetOnlineMode = 0x802BC6BC,
+    OptionConfig = 0x802CAC4C,     // get_option_cfg (player, option) -> u8
+    CameraFollowMode = 0x80370950, // (camera, PLW): +0x9C
+    CameraPosition = 0x80375E2C,   // get_camera_pos (VEC3*)
+    CameraTarget = 0x80375F00,     // (VEC3*)
+    AngleBetween = 0x8028B678,     // calcVecAng2 (VEC3*, VEC3*) -> yaw
+    AngleX = 0x8028B788,           // calcVecAngX (VEC3*) -> pitch
+    CameraTargetMode = 0x80370A80, // (camera, PLW), when +0x92
+    CameraClimbMode = 0x8036F6FC,  // (camera) -> 1 in the climbing view
+    CameraPitchInput = 0x8036EB98, // (camera, camera, PLW)
+    CameraYawInput = 0x8036E6E0,   // (camera, camera, PLW)
+    PlCarried = 0x8034D308,        // (PLW) -> 1
+    VecSet = 0x8028A7F4,           // setVector3 (VEC3*; f1, f2, f3)
+    RotY = 0x8028BD04,             // rotVecY (VEC3*, angle)
+    RotX = 0x8028BC54,             // rotVecX (VEC3*, angle)
+    CameraSurfaced = 0x8036F858,   // (PLW) -> 1 swimming at the surface
+    ActionCheck = 0x8033DC3C,      // Pl_act_ck (PLW, u8 kind, u16 action) -> 1
+    PlStateCheck = 0x8034E044,     // (PLW, 2) -> 1
+    CameraEvent = 0x8036F890,      // (PLW, kind) -> 1
+    JointPosition = 0x80338648,    // pl_get_joint_wpos (PLW, joint, VEC3*)
+    FrameCheck = 0x803385D4,       // Pl_frame_check (PLW, 0; f1, f2) -> nonzero
+    CameraAngleEase = 0x80375DA4,  // (target, angle, shift) -> the step
+    CameraCollide = 0x80370054,    // (camera, PLW)
+    CameraPush = 0x80370778,       // (camera), when +0xA6
+    BindCamera = 0x80370D48,       // (camera, PLW): a monster's hold of the player (below)
+    CameraLimit = 0x8036EF28,      // (camera, camera, PLW)
+    ResetCurve = 0x8037301C,       // (r3 s16 steps left; f1 rate, f2) -> f1 old weight
+    Lerp = 0x8028D19C,             // (out, a, b; f1 t): a*t + b*(1-t)
+    CameraSet = 0x8037630C,        // (kind, eye, target; f1, f2)
 };
+
+inline void VecSubtractHost(uint32_t out, uint32_t a, uint32_t b) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::WriteFloat32(out + k * 4, Memory::ReadFloat32(a + k * 4) - Memory::ReadFloat32(b + k * 4));
+}
+
+inline void VecAddHost(uint32_t out, uint32_t a, uint32_t b) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::WriteFloat32(out + k * 4, Memory::ReadFloat32(a + k * 4) + Memory::ReadFloat32(b + k * 4));
+}
+
+inline void VecCopyHost(uint32_t to, uint32_t from) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::Write32(to + k * 4, Memory::Read32(from + k * 4));
+}
+
+inline void VecAddInPlaceHost(uint32_t a, uint32_t b) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::WriteFloat32(a + k * 4, Memory::ReadFloat32(a + k * 4) + Memory::ReadFloat32(b + k * 4));
+}
 
 // Camera work.
 enum : uint32_t {
@@ -131,28 +147,28 @@ enum : uint32_t {
     kPlwYaw = 0x58,
 };
 
-constexpr uint32_t kRows = 0x805D03A8;       // distance rows, 28 bytes: +4 height, +8 back, +16 target height
-constexpr uint32_t kRowsSwimming = 0x805D0488;
-constexpr uint32_t kRowClimb = 0x805D0450;
-constexpr uint32_t kRowCarried = 0x805D0530;
+constexpr uint32_t kRows = 0x806E2128;       // distance rows, 28 bytes: +4 height, +8 back, +16 target height
+constexpr uint32_t kRowsSwimming = 0x806E2208;
+constexpr uint32_t kRowClimb = 0x806E21D0;
+constexpr uint32_t kRowCarried = 0x806E22B0;
 constexpr uint32_t kRowRidingMid = kRows + 140;
 
-constexpr uint32_t kZero = 0x8079C998;     // f32 0
-constexpr uint32_t kSitDrop = 0x8079C9A4;  // f32
-constexpr uint32_t kOne = 0x8079C9AC;      // f32 1
-constexpr uint32_t kNearest = 0x8079C9B0;  // f32: start of the nearest-row search
-constexpr uint32_t kBack = 0x8079C9B4;     // f32
-constexpr uint32_t kSitHeight = 0x8079C9B8;
-constexpr uint32_t kEaseSit = 0x8079C9BC;  // f32 divisors
-constexpr uint32_t kHeightSwim = 0x8079C9C0;
-constexpr uint32_t kHeightState = 0x8079C9C4;
-constexpr uint32_t kEaseTarget = 0x8079C9C8;
-constexpr uint32_t kEaseEye = 0x8079C9CC;
-constexpr uint32_t kJointUp = 0x8079C9D0;
-constexpr uint32_t kSwimFrame = 0x8079C9D4;
-constexpr uint32_t kEaseSwimEye = 0x8079C9D8;
-constexpr uint32_t kEaseSwimTarget = 0x8079C9DC;
-constexpr uint32_t kResetShape = 0x8079C9E0;
+constexpr uint32_t kZero = 0x808A76F8;     // f32 0
+constexpr uint32_t kSitDrop = 0x808A7704;  // f32
+constexpr uint32_t kOne = 0x808A770C;      // f32 1
+constexpr uint32_t kNearest = 0x808A7710;  // f32: start of the nearest-row search
+constexpr uint32_t kBack = 0x808A7714;     // f32
+constexpr uint32_t kSitHeight = 0x808A7718;
+constexpr uint32_t kEaseSit = 0x808A771C;  // f32 divisors
+constexpr uint32_t kHeightSwim = 0x808A7720;
+constexpr uint32_t kHeightState = 0x808A7724;
+constexpr uint32_t kEaseTarget = 0x808A7728;
+constexpr uint32_t kEaseEye = 0x808A772C;
+constexpr uint32_t kJointUp = 0x808A7730;
+constexpr uint32_t kSwimFrame = 0x808A7734;
+constexpr uint32_t kEaseSwimEye = 0x808A7738;
+constexpr uint32_t kEaseSwimTarget = 0x808A773C;
+constexpr uint32_t kResetShape = 0x808A7740;
 
 float F(uint32_t address) {
     return Memory::ReadFloat32(address);
@@ -238,9 +254,9 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
 
     if (view != 0xFF && view != 2 && view != 3) {
         game.Call<CameraPosition>({frame[92]});
-        game.Call<VecCopy>({frame[128], frame[92]});
+        VecCopyHost(frame[128], frame[92]);
         game.Call<CameraTarget>({frame[80]});
-        game.Call<VecCopy>({frame[116], frame[80]});
+        VecCopyHost(frame[116], frame[80]);
         const uint32_t yaw = game.Call<AngleBetween>({frame[116], frame[128]});
         W32(cam + kYaw, yaw);
         W32(cam + kYawTarget, yaw);
@@ -249,7 +265,7 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
     if (Memory::Read8(cam + kTargetMode) != 0)
         game.Call<CameraTargetMode>({cam, plw});
 
-    game.Call<VecCopy>({player, plw + kPlwPosition});
+    VecCopyHost(player, plw + kPlwPosition);
 
     if (game.Call<CameraClimbMode>({cam}) == 1) {
         W32(cam + kRow, kRowClimb);
@@ -274,8 +290,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
         Memory::Write8(cam + kReset, 1);
         Memory::Write16(cam + kResetLeft, 19);
         WF(cam + kResetRate, F(kOne) / float(20));
-        game.Call<VecSubtract>({frame[68], cam + kOrbit, player});
-        game.Call<VecCopy>({frame[104], frame[68]});
+        VecSubtractHost(frame[68], cam + kOrbit, player);
+        VecCopyHost(frame[104], frame[68]);
         float best = F(kNearest);
         const float height = F(frame[108]);
         uint32_t row = 0;
@@ -384,8 +400,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
         W32(offset + 8, R32(row + 8));
         game.Call<VecSet>({local}, {F(kZero), F(kZero), F(kBack)});
         game.Call<RotY>({local, R32(plw + kPlwYaw)});
-        game.Call<VecSubtract>({frame[56], player, local});
-        game.Call<VecCopy>({local, frame[56]});
+        VecSubtractHost(frame[56], player, local);
+        VecCopyHost(local, frame[56]);
         W32(cam + kTargetWanted, R32(local));
         WF(cam + kTargetWanted + 4, F(kSitHeight) + F(player + 4));
         W32(cam + kTargetWanted + 8, R32(local + 8));
@@ -420,8 +436,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
         game.Call<JointPosition>({plw, 1, player});
         game.Call<VecSet>({local}, {F(kZero), F(kJointUp), F(kBack)});
         game.Call<RotY>({local, R32(plw + kPlwYaw)});
-        game.Call<VecAdd>({frame[44], player, local});
-        game.Call<VecCopy>({cam + kTargetWanted, frame[44]});
+        VecAddHost(frame[44], player, local);
+        VecCopyHost(cam + kTargetWanted, frame[44]);
     }
 
     // Swimming pitch and the settle timer, in whole ticks.
@@ -467,8 +483,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
     }
 
     game.Call<RotY>({offset, R32(cam + kYaw)});
-    game.Call<VecAdd>({frame[32], offset, player});
-    game.Call<VecCopy>({cam + kEyeWanted, frame[32]});
+    VecAddHost(frame[32], offset, player);
+    VecCopyHost(cam + kEyeWanted, frame[32]);
     Memory::Write8(cam + kPush, 0);
     game.Call<CameraCollide>({cam, plw});
 
@@ -493,14 +509,14 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
     if (Memory::Read8(cam + kPush) != 0)
         game.Call<CameraPush>({cam});
 
-    game.Call<VecAddInPlace>({cam + kEye, cam + kShakeEye});
-    game.Call<VecAddInPlace>({cam + kTarget, cam + kShakeTarget});
+    VecAddInPlaceHost(cam + kEye, cam + kShakeEye);
+    VecAddInPlaceHost(cam + kTarget, cam + kShakeTarget);
     game.Call<BindCamera>({cam, plw});
     game.Call<CameraLimit>({cam, cam, plw});
 
     if (game.Call<CameraEvent>({plw, 3}) == 1) {
-        game.Call<VecCopy>({cam + kEye, cam + kOldEye});
-        game.Call<VecCopy>({cam + kTarget, cam + kOldTarget});
+        VecCopyHost(cam + kEye, cam + kOldEye);
+        VecCopyHost(cam + kTarget, cam + kOldTarget);
     }
 
     // A reset blends from the old eye and target: each tick keeps t of the
@@ -509,9 +525,9 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
 
     if (reset == 1) {
         game.Call<CameraPosition>({frame[20]});
-        game.Call<VecCopy>({cam + kOldEye, frame[20]});
+        VecCopyHost(cam + kOldEye, frame[20]);
         game.Call<CameraTarget>({frame[8]});
-        game.Call<VecCopy>({cam + kOldTarget, frame[8]});
+        VecCopyHost(cam + kOldTarget, frame[8]);
         Memory::Write8(cam + kReset, uint8_t(reset + 1));
     }
 
@@ -530,8 +546,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
         game.Call<Lerp>({cam + kTarget, cam + kOldTarget, cam + kTarget}, {keep});
     }
 
-    game.Call<VecCopy>({cam + kOldEye, cam + kEye});
-    game.Call<VecCopy>({cam + kOldTarget, cam + kTarget});
+    VecCopyHost(cam + kOldEye, cam + kEye);
+    VecCopyHost(cam + kOldTarget, cam + kTarget);
 #ifdef MH3_DEVELOPMENT
     ReportMonsters();
 
@@ -544,8 +560,8 @@ static void FieldCameraUpdatePort(CpuContext* ctx) {
     if (const int monster = DebugCameraMonster(&distance); monster >= 0) {
         if (const uint32_t m = Cheats::MoveWork(Cheats::Kind::Monster, uint32_t(monster)); m && Memory::Read16(m)) {
             const uint32_t target = frame[8], eye = frame[20];
-            game.Call<VecCopy>({target, m + kMovePosition});
-            game.Call<VecCopy>({eye, cam + kEye});
+            VecCopyHost(target, m + kMovePosition);
+            VecCopyHost(eye, cam + kEye);
 
             if (distance > 0.0f) {
                 float away[3], length = 0.0f;
@@ -615,7 +631,7 @@ struct BindPlace {
     }
 };
 
-extern "C" void func_802B8ED0(CpuContext* ctx);
+extern "C" void func_80370D48(CpuContext* ctx);
 
 // One tick of the original; true when it placed the eye and target (a hold
 // past its delay). The eye's x is marked first to tell: no path reads it.
@@ -626,7 +642,7 @@ static bool BindTick(CpuContext* ctx, uint32_t cam, uint32_t plw) {
     W32(cam + kEye, kUnplaced);
     ctx->gpr[3] = cam;
     ctx->gpr[4] = plw;
-    func_802B8ED0(ctx);
+    func_80370D48(ctx);
 
     if (R32(cam + kEye) != kUnplaced)
         return true;
@@ -682,9 +698,9 @@ static void BindCameraPort(CpuContext* ctx) {
 }
 
 extern "C" void MH3_BindCamera(CpuContext* ctx) {
-    PortCheck::Call(ctx, "BindCamera", func_802B8ED0, BindCameraPort);
+    PortCheck::Call(ctx, "BindCamera", func_80370D48, BindCameraPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B8ED0, MH3_BindCamera, "BindCamera");
+REGISTER_NATIVE_FUNCTION_AS(0x80370D48, MH3_BindCamera, "BindCamera");
 
 // 0x802BB0B0 CameraResetCurve (r3 steps left; f1 1 / length, f2 power) -> f1,
 // the share of the old pose a camera blend keeps: with x = left / length,
@@ -704,10 +720,10 @@ struct TimedCurve {
 };
 
 constexpr TimedCurve kTimedCurves[] = {
-    {0x802B884C, 0.0f},  // CameraCollide: release blends (u8 +0x102, +0x103)
-    {0x802B9F4C, 0.0f},  // offset blend (s16 +0x234)
-    {0x802BACE4, -1.0f}, // zone camera, kind 0: distance and angles (s16 zone +0x44)
-    {0x802BAF18, -1.0f}, // zone camera, kind 1: the eye's point
+    {0x80370698, 0.0f},  // CameraCollide: release blends (u8 +0x102, +0x103)
+    {0x80371E50, 0.0f},  // offset blend (s16 +0x234)
+    {0x80372BB4, -1.0f}, // zone camera, kind 0: distance and angles (s16 zone +0x44)
+    {0x80372E44, -1.0f}, // zone camera, kind 1: the eye's point
 };
 
 static void CameraResetCurvePort(CpuContext* ctx) {
@@ -741,16 +757,16 @@ static void CameraResetCurvePort(CpuContext* ctx) {
     ctx->fpr[1].d = double(keep);
 }
 
-extern "C" void func_802BB0B0(CpuContext* ctx);
+extern "C" void func_8037301C(CpuContext* ctx);
 extern "C" void MH3_CameraResetCurve(CpuContext* ctx) {
     if (PortCheck::Enabled("CameraResetCurve")) [[unlikely]]
-        PortCheck::RunPure(ctx, "CameraResetCurve", PortCheck::Returns::Fpr1, func_802BB0B0, CameraResetCurvePort);
+        PortCheck::RunPure(ctx, "CameraResetCurve", PortCheck::Returns::Fpr1, func_8037301C, CameraResetCurvePort);
     else
         CameraResetCurvePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802BB0B0, MH3_CameraResetCurve, "CameraResetCurve");
+REGISTER_NATIVE_FUNCTION_AS(0x8037301C, MH3_CameraResetCurve, "CameraResetCurve");
 
-// 0x802B9C68 AimCamera (camera), each step after the field camera: the
+// 0x80371B8C AimCamera (camera), each step after the field camera: the
 // gunner's aim view (the aim pitch PLW +0x64F). While it is on (+0x232, and
 // +0x9E this step) its yaw offset (s16 +0x23E) eases toward +-0x800 (the sign
 // of +0x240) by 6/64 of the gap a step, so at 400 fps it swung 13 times as
@@ -761,7 +777,7 @@ REGISTER_NATIVE_FUNCTION_AS(0x802BB0B0, MH3_CameraResetCurve, "CameraResetCurve"
 // step.
 constexpr uint32_t kAimOn = 0x232, kAimWanted = 0x9E, kAimOffset = 0x23E, kAimSide = 0x240;
 
-extern "C" void func_802B9C68(CpuContext* ctx);
+extern "C" void func_80371B8C(CpuContext* ctx);
 
 static void AimCameraPort(CpuContext* ctx) {
     const uint32_t cam = ctx->gpr[3];
@@ -777,19 +793,19 @@ static void AimCameraPort(CpuContext* ctx) {
         Memory::Write16(cam + kAimOffset, uint16_t(from));
     }
 
-    func_802B9C68(ctx);
+    func_80371B8C(ctx);
 
     if (easing && int16_t(Memory::Read16(cam + kAimOffset)) == from)
         Memory::Write16(cam + kAimOffset, uint16_t(offset));
 }
 
 extern "C" void MH3_AimCamera(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AimCamera", func_802B9C68, AimCameraPort);
+    PortCheck::Call(ctx, "AimCamera", func_80371B8C, AimCameraPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B9C68, MH3_AimCamera, "AimCamera");
+REGISTER_NATIVE_FUNCTION_AS(0x80371B8C, MH3_AimCamera, "AimCamera");
 
-extern "C" void func_802B5CBC(CpuContext* ctx);
+extern "C" void func_8036DA90(CpuContext* ctx);
 extern "C" void MH3_FieldCameraUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "FieldCameraUpdate", func_802B5CBC, FieldCameraUpdatePort);
+    PortCheck::Call(ctx, "FieldCameraUpdate", func_8036DA90, FieldCameraUpdatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802B5CBC, MH3_FieldCameraUpdate, "FieldCameraUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8036DA90, MH3_FieldCameraUpdate, "FieldCameraUpdate");

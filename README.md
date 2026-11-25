@@ -1,227 +1,183 @@
-# Monster Hunter Tri for the PS Vita
+# Monster Hunter Tri (日本版 / RMHJ08) for PS Vita
 
-A static recompilation of Monster Hunter Tri (Wii) to native ARM code. The
-game's PowerPC code is translated to C++ and linked with a native runtime
-that replaces the Wii's hardware and system software: there is no emulator,
-interpreter or JIT. Rendering goes through native GXM on the PS Vita and
-OpenGL ES 3.0 on Linux; a WebAssembly build draws through WebGPU.
+Wii 向け『モンスターハンター3（トライ）』（日本版 `RMHJ08`）を PlayStation Vita（ARM Cortex-A9 / GXM）向けに静的リコンパイル移植したプロジェクトです。
 
-The repository contains no game code or data. You need your own copy of the
-**European** disc (`RMHP08`, "Monster Hunter Tri (Europe) (En,Fr,De,Es,It)")
-as an **ISO or RVZ** image. WIA images are recognized too, but untested and
-possibly unstable. Other regions are not supported.
+本プロジェクトは [Grarak/mh3-wii](https://github.com/Grarak/mh3-wii)（v0.3.1 ベース）をフォークし、**日本版ディスク（`RMHJ08`）専用**として関数アドレス・メモリ配置・ファイル構成・日本語フォント・クエスト形式・ランチャー UI などを全面対応させたものです。
 
-How the port reaches full speed on a 444 MHz Cortex-A9, written so that the
-techniques carry over to other Wii games:
-[docs/optimizations](docs/optimizations/README.md).
+ゲームの PowerPC コードをビルド時に C++ へ静的翻訳し、Wii のハードウェア・OS 機能を置き換えるネイティブランタイムとリンクして実行します（エミュレータ・インタプリタ・JIT は使用していません）。描画は PS Vita ではネイティブ GXM、Linux では OpenGL ES 3.0 を使用します。
 
-## Installing on the PS Vita
+> **重要**
+> 本リポジトリにはゲーム本体のアセットやディスクイメージは一切含まれていません。
+> プレイおよびビルドには、ご自身で所有する **日本版『モンスターハンター3（トライ）』ディスク（Game ID: `RMHJ08`）** の **ISO または RVZ イメージ** が必要です。欧州版（`RMHP08`）や北米版（`RMHE08`）には対応していません。
 
-1. Install the kernel plugins [kubridge](https://github.com/bythos14/kubridge/releases)
-   (0.3.1 or newer) and [CapUnlocker](https://github.com/GrapheneCt/CapUnlocker/releases)
-   under `*KERNEL` in `ux0:tai/config.txt` (or `ur0:tai/config.txt`), then
-   reboot:
+---
 
-   ```
-   *KERNEL
-   ur0:tai/kubridge.skprx
-   ur0:tai/CapUnlocker.skprx
-   ```
-   or
-   ```
-   *KERNEL
-   ux0:tai/kubridge.skprx
-   ux0:tai/CapUnlocker.skprx
-   ```
+## 主な特徴
 
-2. Install `mh3-vita.vpk` with VitaShell.
-3. Copy the disc image to `ux0:/data/mh3-wii/`.
-   Name of the file doesn't matter, as long it has the correct file extension (iso, rvz)
-   Make sure your ROM file is not corrupted, and that you have enough storage space left after putting the ROM there.
+- **日本版（`RMHJ08`）ネイティブ対応**
+  - 日本版 `main.dol` および全 18 種の動的オーバーレイ（RSO）を静的リコンパイル。
+  - 日本版の FST ファイル構成、Shift-JIS テキスト／動的フォントアトラス描画、日本版クエストデータ形式（XOR `0xFF` 符号化・`0x3BC` レイアウト）に対応。
+  - PS Vita 向けランチャーおよびサブメニュー（クエスト選択・カスタムクエスト作成・設定等）を日本語化。
+- **60FPS 動作・可変ステップ（ゲーム速度補正）対応**
+  - 視錐台カリング、マルチスレッド描画パイプライン、動的フォントアトラスのスロットキャッシュ、CPU/NEON ホットパス最適化により高フレームレート動作を実現。
+  - 60FPS 設定時でもゲーム進行速度が 2 倍速にならないよう、可変ステップ（`tick_sites` / `step_counter_sites` およびアクション・AI・カメラ・エフェクト群）を日本版向けに移植。
+- **倍速プレイモード（`L + SELECT`）**
+  - プレイ中に `L + SELECT` を押すことで、描画や音声ピッチを維持したまま **通常（1 倍速）⇔ 2 倍速** をトグル切り替え可能（移動や採取の効率化に便利です）。
+- **充実したランチャー機能**
+  - タイトル画面からの通常起動に加え、モガの村への直行、オフライン／オンライン／闘技大会クエストの直接開始、オリジナルクエスト作成に対応。
+  - ワイド画面（16:9 / 4:3）、アップスケール（544 ライン / 448 ライン）、フレーム制限（60 FPS / 30 FPS / オフ）、MSAA（オフ / 2x / 4x）の設定が可能。
 
-The first start checks the image and writes about 7 MB of disc metadata to
-`ux0:/data/mh3-wii/disc/`; textures and models are converted while the game
-loads them and cached there. Saves live in `ux0:/data/mh3-wii/saves/`
-([format](docs/save-format.md)). The
-launcher's menus start the game, quests and custom quests, and set cheats,
-widescreen, upscaling, MSAA and the frame limit
-([controls](docs/vita-controls.md)). Online play uses the community
-[MH3SP](https://github.com/sepalani/MH3SP) servers ([online](docs/online.md)),
-or ad hoc play between nearby consoles with no server or router.
+### 現在の制限事項・未対応機能
 
-The VPK holds the translated code and nothing of the disc: the game's
-executable sections (`sys/main.dol`, checked by hash), textures, models,
-sound and movies are read from your image.
+- **チート機能**: ランチャー上にメニュー項目は存在しますが、大半のチート用フックは欧州版アドレスのまま無効化されているため、日本版では一部を除き機能しません。
+- **オンライン／アドホック通信**: 一部のネットワーク関連ネイティブフックは未移植のため、オンライン集会所・アドホック通信の動作は保証されません。
+- **Vita システムキーボード**: システムキーボード連携フックは未移植のため、文字入力はゲーム内キーボードを使用してください。
 
-## Building
+---
 
-Tested on arm64 Linux. Every target needs:
+## PS Vita へのインストール手順
 
-- Python 3, CMake 3.25+, Ninja and Git;
-- the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) for the
-  translator, in `tools/dotnet/` or named by `DOTNET_BIN`;
-- [nodtool](https://github.com/encounter/nod/releases) to extract the disc
-  for the translator (the commands below expect it in `tools/`).
+### 1. 必要なカーネルプラグインの導入
 
-The PS Vita and Linux builds also need **clang-21** with lld-21 and llvm-21
-(`clang-21`, `clang++-21`, `llvm-ar-21` on `PATH`; the Vita build compiles
-with them as well, not with VitaSDK's gcc), and the PS Vita and arm32 builds
-need Docker.
+以下のプラグインを導入し、`ur0:tai/config.txt`（または `ux0:tai/config.txt`）の `*KERNEL` セクションに追記して PS Vita を再起動してください。
 
-For the PS Vita: [VitaSDK](https://vitasdk.org) (`VITASDK`, default
-`/usr/local/vitasdk`) and **a copy of Sony's `psp2cgc.exe`** shader compiler
-from the official PS Vita SDK's host tools, which cannot be distributed here.
-Export its absolute path:
+- [kubridge](https://github.com/bythos14/kubridge/releases)（0.3.1 以降）
+- [CapUnlocker](https://github.com/GrapheneCt/CapUnlocker/releases)
 
-```sh
-export PSP2CGC=/absolute/path/to/psp2cgc.exe
+```ini
+*KERNEL
+ur0:tai/kubridge.skprx
+ur0:tai/CapUnlocker.skprx
 ```
 
-The build runs psp2cgc under Wine in Docker; the image is built from
-[docker/psp2cgc-wine.Dockerfile](docker/psp2cgc-wine.Dockerfile) on first use
-(on an arm64 host through qemu-user binfmt for i386). Every shader is
-compiled once at build time into the executable.
+（`ux0:tai/` に配置した場合はパスを `ux0:tai/...` に読み替えてください）
 
-For the web (WebAssembly):
+> **補足（シェーダーフォールバックについて）**
+> ビルド時に事前コンパイルされた GXM シェーダーバンクに未収録のシェーダーに遭遇した場合、実機上で `vitaShaRK` によるランタイムコンパイルへフォールバックする構成になっています。未収録シェーダーが発生した際に備え、`ur0:data/libshacccg.suprx`（PSM Runtime 由来のシェーダーコンパイラ）を導入しておくことを推奨します。
 
-- the [Emscripten SDK](https://emscripten.org) 6.0.11 in `~/emsdk` (or
-  named by `EMSDK`):
+### 2. VPK のインストールとディスクイメージの配置
 
+1. VitaShell を使って `mh3-vita.vpk` をインストールします。
+2. ご自身の日本版『モンスターハンター3』ディスクイメージ（`.rvz` または `.iso`）を以下のフォルダへコピーします。
+
+   ```text
+   ux0:/data/mh3-wii/
+   ```
+
+   ファイル名は任意ですが、拡張子は `.rvz` または `.iso` にしてください。コピー後にもキャッシュ展開用の空き容量が十分残っていることを確認してください。
+
+### 3. 起動とデータ保存先
+
+- LiveArea の「Monster Hunter Tri」アイコンから起動します。
+- 初回起動時にディスクイメージの検証が行われ、約 7 MB のメタデータが `ux0:/data/mh3-wii/disc/` に書き込まれます。テクスチャやモデルはゲームロード時に変換・キャッシュされます。
+- セーブデータは `ux0:/data/mh3-wii/saves/`（日本版タイトル ID: `524d484a`）に保存されます（詳細は [docs/save-format.md](docs/save-format.md) を参照）。
+
+---
+
+## 操作方法（PS Vita）
+
+ゲーム内では Wii リモコン＋クラシックコントローラ（RVL-005）として認識されます。ボタン配置は元のクラシックコントローラに準拠しており、ゲーム内オプションの操作タイプ（クラシックタイプ 1 / 2）もそのまま機能します。
+
+| クラシックコントローラ | PS Vita | PS TV コントローラ | 主な操作 |
+| --- | --- | --- | --- |
+| 左スティック | 左スティック | 左スティック | 移動 |
+| 右スティック | 右スティック | 右スティック | 攻撃（初期設定）またはカメラ操作 |
+| A | ○ | ○ | 決定・アクション |
+| B | × | × | キャンセル・回避 |
+| X | △ | △ | 操作タイプ準拠 |
+| Y | □ | □ | 操作タイプ準拠 |
+| 十字キー | 十字キー | 十字キー | メニュー移動・カメラ操作 |
+| L | L | L1 | 操作タイプ準拠・メニュータブ |
+| R | R | R1 | 操作タイプ準拠・メニュータブ |
+| ZL / ZR | — | L2 / R2 | 操作タイプ準拠 |
+| + | START | START | ポーズメニュー |
+| − | SELECT | SELECT | 操作タイプ準拠 |
+| HOME | — | L3 + R3 | HOME メニュー |
+| — | **L + SELECT** | **L1 + SELECT** | **倍速プレイ切替（1 倍速 ⇔ 2 倍速）** |
+
+- ランチャーのメニュー操作は `×` 決定、`○` 戻る、`十字キー` 移動です。
+- 前面タッチスクリーンは Wii リモコンのポインタとして動作します（モンスターを長押ししてログへドラッグ可能）。
+- 詳細なスティック補正や PC（Linux / SDL）での操作は [docs/vita-controls.md](docs/vita-controls.md) を参照してください。
+
+---
+
+## ビルド方法
+
+Linux（または WSL2）環境でのビルドを前提としています。
+
+### 必要なツール
+
+全ターゲット共通:
+- Python 3、CMake 3.25 以上、Ninja、Git
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)（`tools/dotnet/` に配置するか環境変数 `DOTNET_BIN` で指定）
+- [nodtool](https://github.com/encounter/nod/releases)（`tools/nodtool` に配置）
+- **Clang 21 / LLD 21 / LLVM 21**（`clang-21`, `clang++-21`, `ld.lld-21`, `llvm-ar-21` が `PATH` 上にあること）
+
+PS Vita ビルド追加要件:
+- [VitaSDK](https://vitasdk.org)（デフォルト: `/usr/local/vitasdk`、環境変数 `VITASDK` で変更可）
+- （オフライン GXM シェーダーバンクを新規コンパイルする場合）Docker および公式 PS Vita SDK 付属の `psp2cgc.exe`（本リポジトリでは配布していません）:
   ```sh
-  git clone https://github.com/emscripten-core/emsdk.git ~/emsdk
-  ~/emsdk/emsdk install 6.0.11 && ~/emsdk/emsdk activate 6.0.11
+  export PSP2CGC=/absolute/path/to/psp2cgc.exe
   ```
 
-- glslangValidator, zstd and [naga](https://github.com/gfx-rs/wgpu/tree/trunk/naga),
-  which convert the shaders to WebGPU's WGSL, a C++ compiler for the build
-  machine, and Liberation Sans or DejaVu Sans, the launcher's font:
+### 1. 日本版ディスクイメージの展開
 
-  ```sh
-  sudo apt install glslang-tools zstd fonts-liberation clang
-  cargo install naga-cli
-  ```
-
-### 1. Extract the disc
+ご自身の日本版 ROM（`RMHJ08`）を `Assets/DATA` へ展開します。
 
 ```sh
-tools/nodtool extract -q 'Monster Hunter Tri (Europe) (En,Fr,De,Es,It).rvz' Assets/DATA
+tools/nodtool extract -q RMHJ08.rvz Assets/DATA
 ```
 
-The build compiles the translator with dotnet and translates the game into
-`generated/` by itself (the first build takes about 5 minutes longer), and
-again, step by step, after a change of `symbols.txt`, `recomp.yml`, a site
-list, the translator or a native port's registration or registers.
-`generated/` and `Assets/` are not part
-of the repository; `scripts/translate.sh` translates outside a build.
+ビルド実行時に自動でトランスレータ（C#）がビルドされ、`generated/` 配下へ PowerPC → C++ 静的翻訳が行われます（初回は数分かかります）。手動で翻訳のみ実行したい場合は `scripts/translate.sh` または `python3 scripts/translate.py` を使用します。
 
-### 2. Build
-
-The Linux and web scripts print one line when they are done and write the
-compiler's output to `logs/` (`aurora-build.log`, `web-build.log`); read it
-when a script stops without that line.
-
-PS Vita (`build/vita/mh3-vita.vpk`):
+### 2. PS Vita 向けビルド（`build/vita/mh3-vita.vpk`）
 
 ```sh
-scripts/build-vita.sh                        # release: ThinLTO and the PGO profile
-MH3_DEVELOPMENT=ON scripts/build-vita.sh     # development: statistics and debug tools
+# リリースビルド（ThinLTO）
+scripts/build-vita.sh
+
+# 開発ビルド（診断ログ mh3.log・デバッグツール有効）
+MH3_DEVELOPMENT=ON scripts/build-vita.sh
 ```
 
-Release builds use the checked-in profile `pgo/mh3-release.profdata.tar.zst`
-([PGO and ThinLTO](docs/optimizations/cpu/pgo-and-thinlto.md)).
+並列数は環境変数 `BUILD_JOBS` / `OVERLAY_JOBS` で調整できます（例: `BUILD_JOBS=4 OVERLAY_JOBS=2 scripts/build-vita.sh`）。
 
-Linux, arm64 (development host, `build/linux-arm64-dev/MH3`):
+### 3. Linux 向け検証ビルド
+
+デバッグや動作確認用に、Linux（x86_64 / arm64）上で直接実行できるネイティブビルドも構築できます。
 
 ```sh
+# Linux (arm64 の例)
 MH3_ARCH=arm64 MH3_BUILD_DIR=build/linux-arm64-dev \
-  MH3_EXTRA_CMAKE_ARGS='-DMH3_DEVELOPMENT=ON -DMH3_BUILD_VITA_TEXTURE_PACKER=OFF' scripts/build-aurora.sh
+  MH3_EXTRA_CMAKE_ARGS='-DMH3_DEVELOPMENT=ON -DMH3_BUILD_VITA_TEXTURE_PACKER=OFF' \
+  scripts/build-aurora.sh
 ```
 
-Linux, arm32 (armhf, Cortex-A9 code; for a Raspberry Pi or another ARMv7+
-board; `build/linux-arm32/MH3`), cross-compiled in a Docker image built from
-[docker/armhf-cross.Dockerfile](docker/armhf-cross.Dockerfile) on first use:
+実行例:
 
 ```sh
-MH3_EXTRA_CMAKE_ARGS='-DMH3_BUILD_VITA_TEXTURE_PACKER=OFF' scripts/docker-build.sh scripts/build-aurora.sh
+./build/linux-arm64-dev/MH3 --rom RMHJ08.rvz --village   # 初回起動（モガの村へ直行）
+./build/linux-arm64-dev/MH3 --list quests                # クエスト一覧表示
+./build/linux-arm64-dev/MH3 --quest 1000                 # クエスト直接起動
+./build/linux-arm64-dev/MH3 --launcher                   # ランチャー UI 起動（開発ビルド）
 ```
 
-Like the Vita's, Linux builds are release builds unless `-DMH3_DEVELOPMENT=ON`
-is added.
+---
 
-Web (WebAssembly and WebGPU, `build/web`):
+## 関連ドキュメント
 
-```sh
-scripts/build-web.sh                      # release: ThinLTO, build/web
-MH3_DEVELOPMENT=ON scripts/build-web.sh   # development: statistics and debug tools, build/web-dev
-scripts/serve-web.py build/web            # play it at http://localhost:8080/
-```
+- [docs/vita-controls.md](docs/vita-controls.md) — コントローラ・タッチ・キーボード操作の詳細
+- [docs/save-format.md](docs/save-format.md) — セーブデータ構造
+- [docs/optimizations/README.md](docs/optimizations/README.md) — Cortex-A9 向け高速化・最適化手法の解説（上流ドキュメント）
 
-The site is six files in `build/web`: `index.html`, `mh3-web.js`,
-`isolation.js`, `MH3.js`, `MH3.wasm` and `MH3.data` (the launcher's font).
-The first build also converts every shader to WGSL, which later builds take
-from `~/.cache/mh3-web-shader-bank`. A release page always opens the launcher; a
-development page also takes the command line from its address
-(`?args=--quest+19001+--area+1&env=MH3_STATS=1`), which
-`scripts/web-check.mjs` uses to test the web build in headless Chromium.
+---
 
-## Playing in a browser
+## クレジット・ライセンス
 
-`scripts/serve-web.py build/web` serves the page at `http://localhost:8080/`;
-browsers run it only from `localhost` or over HTTPS. Any static HTTPS host
-works too (GitHub Pages: publish those six files): the page then adds the
-cross-origin isolation headers through a service worker and reloads once.
-Open it in Chrome or Edge 113 or newer (Firefox and Safari where WebGPU is
-turned on), choose your disc image and press Start. The page copies the
-image into the browser's storage once (keep its size free on disk: 2.4 GB
-for the RVZ), and keeps it, your saves and the settings between visits. The setup panel imports a save
-(Dolphin's `Wii/title/00010000/524d4850` folder, or `saves` from Linux or the
-Vita) and sets the display and mouse options and a frame counter
-(<kbd>F2</kbd> during play). Start opens the Vita launcher's menus (the game,
-quests, custom quests, cheats, SSAA, the frame limit) for keyboard, mouse or
-gamepad: everything but online play.
-
-## Running on Linux
-
-```sh
-MH3 --rom 'Monster Hunter Tri (Europe) (En,Fr,De,Es,It).rvz' --village   # first start
-MH3 --village                   # file 1, character 1, straight into the village
-MH3 --list quests               # also online-quests, arena-quests
-MH3 --quest 19001 --area 1      # a quest, here Alatreon
-MH3 --launcher                  # development builds: the Vita launcher's menus
-```
-
-The image is read in place; pass `--rom` again after moving it. Saves go to
-`saves/` (`MH3_USER_DIR`). Keyboard and mouse follow Monster Hunter World's
-defaults (WASD moves, a click captures the mouse for the camera, left and
-right buttons attack, Q held with a click scrolls the item bar, Space evades:
-[controls](docs/vita-controls.md)); SDL gamepads work too.
-
-## Languages
-
-The European disc has English, French, German, Italian and Spanish. The launcher adds more languages when it starts and picks them in its **Language** row; on Linux, `MH3 --import-language FILE` adds one, and `MH3_LANGUAGE=CODE` plays one.
-
-- **Japanese** comes from your own Japanese disc (RMHJ08): put its image beside the European one (`ux0:data/mh3-wii` on the Vita) or in `languages/` in the game data folder (`ux0:data/mh3-wii/disc/languages`). The launcher imports it and makes it the language. Its text, font and textures are copied into the language, so you can delete the image afterwards. You still play from the European disc. The name entry keyboard stays Latin.
-- **Translations** are JSON files in `languages/`. The launcher imports each new or changed one when it starts. **Write a translation template** (or `MH3 --export-language FILE`) writes `template.json` with all the English text, which is a language at once (`My language`). Translate it in place or in a copy with its own `code`, `name` and translated `strings`:
-
-```json
-{
-  "format": 1,
-  "code": "zh-hans",
-  "name": "Chinese (Simplified)",
-  "font": "NotoSansSC-Regular.ttf",
-  "strings": {
-    "data00.0.5": "小桶爆弹"
-  }
-}
-```
-
-Strings you leave out or unchanged stay English, so a translation can start small; remove the rest. `name` shows in the launcher, so it must use plain Latin letters. `font` is needed when the text has characters the game's font lacks (it has Western European letters): a TrueType or OpenType file beside the JSON file. Textures stay English in a translation.
-
-## License
-
-The translator and the code derived from WiiCompiled are GPLv3 (`LICENSE`,
-`toolchain/ORIGIN.md`, `toolchain/THIRD-PARTY-NOTICES.md`). Aurora is MIT
-(`aurora-main/LICENSE`). The embedded multiplayer server
-(`runtime/src/net/local_server*`) is derived from the
-[MH3 Server Project](https://github.com/sepalani/MH3SP) and stays under its
-AGPL-3.0-or-later.
+- **ベースプロジェクト**: [Grarak/mh3-wii](https://github.com/Grarak/mh3-wii)（v0.3.1）
+- **ライセンス**:
+  - トランスレータおよび WiiCompiled 由来のコードは **GPLv3** です（[LICENSE](LICENSE), `toolchain/ORIGIN.md`, `toolchain/THIRD-PARTY-NOTICES.md`）。
+  - Aurora レンダラは **MIT License** です（`aurora-main/LICENSE`）。
+  - 組み込みマルチプレイヤーサーバー（`runtime/src/net/local_server*`）は [MH3 Server Project](https://github.com/sepalani/MH3SP) 由来であり、**AGPL-3.0-or-later** が適用されます。
+- **免責事項**:
+  - 『モンスターハンター3（トライ）』は株式会社カプコンの著作物・登録商標です。本プロジェクトは非公式の移植プロジェクトであり、権利元とは一切関係ありません。

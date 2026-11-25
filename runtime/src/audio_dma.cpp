@@ -56,7 +56,7 @@ extern "C" void MH3_AIInitDMA(CpuContext* cpu) {
     dma.address = address;
     dma.length = length;
 }
-REGISTER_NATIVE_FUNCTION(0x8046DAF0, MH3_AIInitDMA);
+REGISTER_NATIVE_FUNCTION(0x8043FBF4, MH3_AIInitDMA);
 extern "C" void MH3_AIStartDMA(CpuContext*) {
     if (!dma.enabled) {
         previous = Clock::now();
@@ -67,26 +67,26 @@ extern "C" void MH3_AIStartDMA(CpuContext*) {
 
     dma.enabled = true;
 }
-REGISTER_NATIVE_FUNCTION(0x8046DB70, MH3_AIStartDMA);
+REGISTER_NATIVE_FUNCTION(0x8043FC70, MH3_AIStartDMA);
 extern "C" void MH3_AIStopDMA(CpuContext*) {
     dma.enabled = false;
     dma.elapsedNs = 0;
     previousEnabledServiceValid = false;
 }
-REGISTER_NATIVE_FUNCTION(0x8046DB90, MH3_AIStopDMA);
+REGISTER_NATIVE_FUNCTION(0x8043FC84, MH3_AIStopDMA);
 extern "C" void MH3_AIGetDMABytesLeft(CpuContext* cpu) {
     ServiceAudioDma(cpu);
     cpu->gpr[3] = dma.BytesLeft(Rate());
 }
-REGISTER_NATIVE_FUNCTION(0x8046DBB0, MH3_AIGetDMABytesLeft);
+REGISTER_NATIVE_FUNCTION(0x8043FC98, MH3_AIGetDMABytesLeft);
 extern "C" void MH3_AIGetDMAStartAddr(CpuContext* cpu) {
     cpu->gpr[3] = dma.address;
 }
-REGISTER_NATIVE_FUNCTION(0x8046DBC0, MH3_AIGetDMAStartAddr);
+REGISTER_NATIVE_FUNCTION(0x8043FCA8, MH3_AIGetDMAStartAddr);
 extern "C" void MH3_AIGetDMALength(CpuContext* cpu) {
     cpu->gpr[3] = dma.length;
 }
-REGISTER_NATIVE_FUNCTION(0x8046DBE0, MH3_AIGetDMALength);
+REGISTER_NATIVE_FUNCTION(0x8043FCC0, MH3_AIGetDMALength);
 
 void ServiceAudioDma(CpuContext* cpu) {
     ++statistics.serviceCalls;
@@ -141,8 +141,8 @@ void ServiceAudioDma(CpuContext* cpu) {
         MH3_THROW(std::runtime_error("Audio DMA output requires the Aurora/SDL build"));
 #endif
         cpu->msr &= ~0x8000u;
-        const auto busy = saved.gpr[13] - 0x3F94;
-        const auto callback = Memory::Read32(saved.gpr[13] - 0x3F60);
+        const auto busy = saved.gpr[13] - 0x3E14;
+        const auto callback = Memory::Read32(saved.gpr[13] - 0x3DE0);
 
         if (callback) {
             Memory::Write32(busy, 1);

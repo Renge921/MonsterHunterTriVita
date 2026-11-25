@@ -68,6 +68,7 @@ struct Site {
 
 constexpr Site kSites[] = {
 #include "tick_sites.inc"
+    {0xFFFFFFFF, TickSite::Countup, 0, nullptr}
 };
 
 // Find() takes the first site at a pc: two modules' sites can't share one.

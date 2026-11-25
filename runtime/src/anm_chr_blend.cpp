@@ -30,13 +30,13 @@
 #include <cstring>
 #include <initializer_list>
 
-extern "C" void func_800606BC(CpuContext* ctx);
-extern "C" void func_80501404(CpuContext* ctx); // logf
-extern "C" void func_80501378(CpuContext* ctx); // expf
-extern "C" void func_804C73F0(CpuContext* ctx); // C_QUATMtx
-extern "C" void func_804C75C0(CpuContext* ctx); // C_QUATSlerp
-extern "C" void func_804C6AB0(CpuContext* ctx); // PSMTXQuat
-extern "C" void func_804C72A0(CpuContext* ctx); // PSVECCrossProduct
+extern "C" void func_80525EC0(CpuContext* ctx);
+extern "C" void func_8053D328(CpuContext* ctx); // logf
+extern "C" void func_8053D29C(CpuContext* ctx); // expf
+extern "C" void func_8043043C(CpuContext* ctx); // C_QUATMtx
+extern "C" void func_80430608(CpuContext* ctx); // C_QUATSlerp
+extern "C" void func_8042FB84(CpuContext* ctx); // PSMTXQuat
+extern "C" void func_80430300(CpuContext* ctx); // PSVECCrossProduct
 extern "C" void MH3_PSVECNormalize(CpuContext* ctx);
 
 namespace {
@@ -87,7 +87,7 @@ constexpr uint32_t kResultBytes = 0x4C;
 
 uint32_t BlendResult(CpuContext* ctx) {
     const uint32_t self = ctx->gpr[3], result = ctx->gpr[4], node = ctx->gpr[5];
-    const double zero = Load(0x80798208u), one = Load(0x8079820Cu);
+    const double zero = 0.0, one = 1.0;
     const int32_t count = int32_t(Read32(self + 0x18));
     const uint32_t anms = Read32(self + 0x1C), weights = Read32(self + 0x20);
 
@@ -154,7 +154,7 @@ uint32_t BlendResult(CpuContext* ctx) {
     for (uint32_t k = 4; k < 0x10; k += 4)
         Store(result + k, zero);
 
-    const double mtxZero = Load(0x8079F988u);
+    const double mtxZero = 0.0;
 
     for (uint32_t k = 0x1C; k < 0x4C; k += 4)
         Store(result + k, mtxZero);
@@ -176,7 +176,7 @@ uint32_t BlendResult(CpuContext* ctx) {
             if (!unitScale) {
                 for (unsigned k = 0; k < 3; ++k) {
                     const double s = Load(res + 4 + 4 * k);
-                    const double log = s > zero ? call(func_80501404, {}, {s}) : Load(0x80798210u);
+                    const double log = s > zero ? call(func_8053D328, {}, {s}) : double(__builtin_nanf(""));
                     logs[k] = Fadds(logs[k], Fmuls(w, log));
                 }
             }
@@ -191,7 +191,7 @@ uint32_t BlendResult(CpuContext* ctx) {
 
         if (slerp) {
             if (!noRotation) {
-                call(func_804C73F0, {quat, res + 0x1C});
+                call(func_8043043C, {quat, res + 0x1C});
             } else {
                 Store(quat, zero);
                 Store(quat + 4, zero);
@@ -201,7 +201,7 @@ uint32_t BlendResult(CpuContext* ctx) {
 
             weightsSoFar = Fadds(weightsSoFar, weight);
             const double t = Fmuls(weight, Reciprocal(weightsSoFar));
-            call(func_804C75C0, {blend, quat, blend}, {t}, 0xF0000000u);
+            call(func_80430608, {blend, quat, blend}, {t}, 0xF0000000u);
         } else if (!noRotation) {
             if (i == 0) {
                 for (unsigned r = 0; r < 3; ++r)
@@ -214,7 +214,7 @@ uint32_t BlendResult(CpuContext* ctx) {
         } else {
             if (i == 0) {
                 for (unsigned k = 0; k < 9; ++k)
-                    Store(saved + 4 * k, k % 4 == 0 ? Load(0x8079F98Cu) : mtxZero);
+                    Store(saved + 4 * k, k % 4 == 0 ? 1.0 : mtxZero);
             }
 
             Store(result + 0x1C, Fadds(Load(result + 0x1C), w));
@@ -231,7 +231,7 @@ uint32_t BlendResult(CpuContext* ctx) {
 
     if (logScale) {
         for (unsigned k = 0; k < 3; ++k)
-            Store(result + 4 + 4 * k, call(func_80501378, {}, {logs[k]}));
+            Store(result + 4 + 4 * k, call(func_8053D29C, {}, {logs[k]}));
     }
 
     const uint32_t row0 = result + 0x1C, row1 = result + 0x2C, row2 = result + 0x3C;
@@ -242,12 +242,12 @@ uint32_t BlendResult(CpuContext* ctx) {
         for (unsigned k = 0; k < 3; ++k)
             translation[k] = Read32(result + 0x28 + 0x10 * k);
 
-        call(func_804C6AB0, {row0, blend});
+        call(func_8042FB84, {row0, blend});
 
         for (unsigned k = 0; k < 3; ++k)
             MemoryInline::FlatWrite32(result + 0x28 + 0x10 * k, translation[k]);
     } else {
-        call(func_804C72A0, {row0, row1, row2});
+        call(func_80430300, {row0, row1, row2});
 
         if (SquareMag(row0) == zero || SquareMag(row2) == zero) {
             for (unsigned r = 0; r < 3; ++r)
@@ -256,7 +256,7 @@ uint32_t BlendResult(CpuContext* ctx) {
         } else {
             call(MH3_PSVECNormalize, {row0, row0});
             call(MH3_PSVECNormalize, {row2, row2});
-            call(func_804C72A0, {row2, row0, row1});
+            call(func_80430300, {row2, row0, row1});
         }
     }
 
@@ -276,10 +276,10 @@ extern "C" void MH3_AnmChrBlendGetResult(CpuContext* ctx) {
     const bool check = PortCheck::Enabled("AnmChrBlendGetResult");
 
     if (check) [[unlikely]] {
-        PortCheck::Run(ctx, "AnmChrBlendGetResult", func_800606BC, BlendPort);
+        PortCheck::Run(ctx, "AnmChrBlendGetResult", func_80525EC0, BlendPort);
         return;
     }
 #endif
     BlendPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800606BC, MH3_AnmChrBlendGetResult, "AnmChrBlendGetResult");
+REGISTER_NATIVE_FUNCTION_AS(0x80525EC0, MH3_AnmChrBlendGetResult, "AnmChrBlendGetResult");

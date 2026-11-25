@@ -89,14 +89,12 @@ void SearchKeys(int32_t frame, double time, uint32_t keys, uint32_t stride, int3
     uint64_t magic = uint64_t(0x43300000u) << 32 | (uint32_t(frame) ^ 0x80000000u);
     double biased;
     std::memcpy(&biased, &magic, 8);
-    const uint64_t biasBits = uint64_t(MemoryInline::FlatRead32(r2 - 0x7AD8)) << 32 | MemoryInline::FlatRead32(r2 - 0x7AD8 + 4);
+    constexpr uint64_t biasBits = 0x4330000080000000ULL;
     double bias;
     std::memcpy(&bias, &biasBits, 8);
     const double frameF = double(float(biased - bias));
     const float distance = std::fabs(float(frameF - time));
-    const uint32_t epsilonBits = MemoryInline::FlatRead32(r2 - 0x7AB4);
-    float epsilon;
-    std::memcpy(&epsilon, &epsilonBits, 4);
+    constexpr float epsilon = 1.1920928955078125e-07f; // 0x34000000 (2^-23)
     const uint8_t onTime = double(distance) < double(epsilon);
 
     int32_t mid = (lo + hi) / 2;
@@ -165,17 +163,12 @@ void SearchKeys(int32_t frame, double time, uint32_t keys, uint32_t stride, int3
     out.Exact(0);
 }
 
+#if 0 // AnimCurveKeySearch is inlined into AnimCurveExecute* in RMHJ08.
 void Search(const Args& a) {
     GuestKeyOutputs out{a.index, a.exact, a.lower, a.upper};
     SearchKeys(a.frame, a.time, a.keys, a.stride, a.lo, a.hi, a.r2, out);
 }
-
-float Sda2Float(uint32_t r2, int32_t offset) {
-    const uint32_t bits = MemoryInline::FlatRead32(r2 + uint32_t(offset));
-    float f;
-    std::memcpy(&f, &bits, 4);
-    return f;
-}
+#endif
 
 uint32_t ToInt(float v) {
     return PPC_FprLowWordInline(PPC_Fctiwz(v));
@@ -187,6 +180,7 @@ uint32_t ToInt(float v) {
 // only bit 0 set) or hermite with the ends' slopes from bits 2 and 3 (clamped
 // to 0-255), 2 step. Mode 3 panics. Equal keys give r4 as it came.
 uint32_t BlendU8(uint32_t t, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r2) {
+    (void)r2;
     const uint32_t a = r4 & 0xFF, b = r5 & 0xFF, mode = r6 & 0xFF;
 
     if (a == b)
@@ -196,29 +190,25 @@ uint32_t BlendU8(uint32_t t, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r2)
     case 0:
         return (a + ((t * (b - a)) >> 16 & 0xFFFF)) & 0xFF;
     case 1: {
-        auto k = [&](int32_t offset) {
-            return Sda2Float(r2, offset);
-        };
-
-        const float f5 = float(t) / k(-0x7ACC);
+        const float f5 = float(t) / 65536.0f;
         const float span = float(int32_t(b - a));
 
         if (mode == 1) {
-            const float ease = k(-0x7AC8) - k(-0x7AC4) * f5;
+            const float ease = 3.0f - 2.0f * f5;
             return ToInt(float(a) + f5 * (f5 * (ease * span)));
         }
 
-        const float f7 = (mode >> 2 & 1) ? k(-0x7AC0) : k(-0x7AE8);
-        const float f6 = (mode >> 3 & 1) ? k(-0x7AC0) : k(-0x7AE8);
+        const float f7 = (mode >> 2 & 1) ? 1.5f : 0.0f;
+        const float f6 = (mode >> 3 & 1) ? 1.5f : 0.0f;
         const float f3 = f5 * span;
-        const float f2 = f5 * (f5 * ((f6 + f7) - k(-0x7AC4)));
-        const float f0 = f5 * (k(-0x7AC8) + (k(-0x7ABC) * f6 - f7));
+        const float f2 = f5 * (f5 * ((f6 + f7) - 2.0f));
+        const float f0 = f5 * (3.0f + (-2.0f * f6 - f7));
         const float v = float(a) + f3 * (f6 + (f2 + f0));
 
-        if (!(v >= k(-0x7AE8)))
+        if (!(v >= 0.0f))
             return 0;
 
-        if (v > k(-0x7AB8))
+        if (v > 255.0f)
             return 0xFF;
 
         return ToInt(v);
@@ -233,12 +223,15 @@ uint32_t BlendU8(uint32_t t, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r2)
     }
 }
 
+#if 0 // AnimCurveKeySearch is inlined into AnimCurveExecute* in RMHJ08.
 Args FromContext(const CpuContext* c) {
     return Args{c->gpr[3], c->gpr[4], c->gpr[5], c->gpr[6], int32_t(c->gpr[7]), c->fpr[1].d, c->gpr[8], c->gpr[9], int32_t(c->gpr[10]), int32_t(MemoryInline::FlatRead32(c->gpr[1] + 8)), c->gpr[2]};
 }
+#endif
 
 } // namespace
 
+#if 0 // Inlined into AnimCurveExecute* in RMHJ08.
 extern "C" void func_8009EFEC(CpuContext* ctx);
 
 static void SearchPort(CpuContext* p) {
@@ -275,7 +268,6 @@ extern "C" void MH3_AnimCurveKeySearch(CpuContext* ctx) {
     SearchChecked(ctx->gpr[1], Args{ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], int32_t(ctx->gpr[7]), ctx->fpr[1].d, ctx->gpr[8], ctx->gpr[9], int32_t(ctx->gpr[10]),
                                     int32_t(MemoryInline::FlatRead32(ctx->gpr[1] + 8)), ctx->gpr[2]});
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009EFEC, MH3_AnimCurveKeySearch, "AnimCurveKeySearch");
 
 extern "C" void func_8009E8B8(CpuContext* ctx);
 static void BlendU8Port(CpuContext* p) {
@@ -306,7 +298,7 @@ static uint32_t BlendU8Checked(uint32_t r1, uint32_t r2, uint32_t r3, uint32_t r
 extern "C" void MH3_AnimCurveBlendU8(CpuContext* ctx) {
     ctx->gpr[3] = BlendU8Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009E8B8, MH3_AnimCurveBlendU8, "AnimCurveBlendU8");
+#endif
 
 // ---------------------------------------------------------------------------
 // The u8 curve executor (0x8009DF14) and the helpers it runs, reconstructed
@@ -341,11 +333,11 @@ uint32_t PickSeed(uint32_t particleSeed, uint32_t salt, uint32_t set, uint32_t l
 
 // 0x8009F898 / 0x8009F8AC: channels in a mask, and its highest channel bit.
 uint32_t ChannelCount(uint32_t mask) {
-    return MemoryInline::FlatRead8(0x80592428u + (mask & 0xFF));
+    return MemoryInline::FlatRead8(0x807193F8u + (mask & 0xFF));
 }
 
 uint32_t ChannelBound(uint32_t mask) {
-    return MemoryInline::FlatRead8(0x80592528u + (mask & 0xFF));
+    return MemoryInline::FlatRead8(0x807194F8u + (mask & 0xFF));
 }
 
 // __cvt_fp2unsigned (0x80457360).
@@ -655,26 +647,24 @@ void ExecuteU8(uint32_t track, uint32_t target, uint32_t tick, uint32_t particle
 // 0x800A0228 (AnimCurveBlendF32): the value between keys a and b at t (0-1)
 // by the interpolation mode, as BlendU8 without the byte rounding.
 float BlendF32(float t, float a, float b, uint32_t mode, uint32_t r2) {
+    (void)r2;
     if (a == b)
         return a;
 
     mode &= 0xFF;
-    auto k = [&](int32_t offset) {
-        return Sda2Float(r2, offset);
-    };
 
     switch (mode & 3) {
     case 0:
         return a + t * (b - a);
     case 1: {
         if (mode == 1)
-            return a + t * (t * ((k(-0x7AC8) - k(-0x7AC4) * t) * (b - a)));
+            return a + t * (t * ((3.0f - 2.0f * t) * (b - a)));
 
-        const float f6 = (mode >> 3 & 1) ? k(-0x7AC0) : k(-0x7AE8);
-        const float f7 = (mode >> 2 & 1) ? k(-0x7AC0) : k(-0x7AE8);
+        const float f6 = (mode >> 3 & 1) ? 1.5f : 0.0f;
+        const float f7 = (mode >> 2 & 1) ? 1.5f : 0.0f;
         const float f5 = t * (b - a);
-        const float f4 = t * (t * ((f6 + f7) - k(-0x7AC4)));
-        const float f0 = t * (k(-0x7AC8) + (k(-0x7ABC) * f6 - f7));
+        const float f4 = t * (t * ((f6 + f7) - 2.0f));
+        const float f0 = t * (3.0f + (-2.0f * f6 - f7));
         return a + f5 * (f6 + (f4 + f0));
     }
     case 2:
@@ -1049,16 +1039,17 @@ uint32_t EfPickSeed(uint32_t particleSeed, uint32_t salt, uint32_t set, uint32_t
     return PickSeed(particleSeed, salt, set, loop);
 }
 
+extern "C" void func_804FC7DC(CpuContext* ctx);
+extern "C" void func_804F7DE4(CpuContext* ctx);
+extern "C" void func_804FCB24(CpuContext* ctx);
+extern "C" void func_804F90DC(CpuContext* ctx);
+extern "C" void func_804FA0C8(CpuContext* ctx);
+
+#if 0 // Inlined into AnimCurveExecute* in RMHJ08.
 extern "C" void func_8009CE20(CpuContext* ctx);
 extern "C" void func_800A2818(CpuContext* ctx);
 extern "C" void func_8009F290(CpuContext* ctx);
 extern "C" void func_8009EAB0(CpuContext* ctx);
-extern "C" void func_800A2568(CpuContext* ctx);
-extern "C" void func_8009DF14(CpuContext* ctx);
-extern "C" void func_800A0228(CpuContext* ctx);
-extern "C" void func_800A2D54(CpuContext* ctx);
-extern "C" void func_8009F8C0(CpuContext* ctx);
-extern "C" void func_800A035C(CpuContext* ctx);
 
 static void TickToFramePort(CpuContext* p) {
     const TickFrame r = TickToFrame(p->gpr[3], p->gpr[4], p->gpr[5]);
@@ -1104,7 +1095,6 @@ static void TickToFrameChecked(uint32_t r1, uint32_t r2, uint32_t life, uint32_t
 extern "C" void MH3_AnimCurveTickToFrame(CpuContext* ctx) {
     TickToFrameChecked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7], ctx->gpr[8]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009CE20, MH3_AnimCurveTickToFrame, "AnimCurveTickToFrame");
 
 // 0x800A2818 (AnimCurveFrameIndex): TickToFrame's whole frame alone, for
 // (header r3, tick r4, u16* out r5, life r6).
@@ -1136,7 +1126,6 @@ static void FrameIndexChecked(uint32_t r1, uint32_t header, uint32_t tick, uint3
 extern "C" void MH3_AnimCurveFrameIndex(CpuContext* ctx) {
     FrameIndexChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A2818, MH3_AnimCurveFrameIndex, "AnimCurveFrameIndex");
 
 static void StoreTables(const Tables& t, uint32_t header, uint32_t keys, uint32_t random, uint32_t pool, uint32_t names) {
     MemoryInline::FlatWrite32(header, t.header);
@@ -1181,7 +1170,6 @@ static void ResolveTablesChecked(uint32_t r1, uint32_t track, uint32_t header, u
 extern "C" void MH3_AnimCurveTables(CpuContext* ctx) {
     ResolveTablesChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7], ctx->gpr[8]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009F290, MH3_AnimCurveTables, "AnimCurveTables");
 
 static void AdjustLoopsStore(uint32_t header, uint32_t keys, uint32_t index, uint32_t lowAddress, uint32_t highAddress) {
     uint32_t low = MemoryInline::FlatRead32(lowAddress), high;
@@ -1222,7 +1210,7 @@ static void AdjustLoopsChecked(uint32_t r1, uint32_t header, uint32_t keys, uint
 extern "C" void MH3_AnimCurveKeyLoops(CpuContext* ctx) {
     AdjustLoopsChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009EAB0, MH3_AnimCurveKeyLoops, "AnimCurveKeyLoops");
+#endif
 
 static void BakedU8Port(CpuContext* p) {
     ExecuteBaked<1>(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6]);
@@ -1239,7 +1227,7 @@ static void BakedU8Checked(uint32_t r1, uint32_t track, uint32_t target, uint32_
         c->gpr[4] = target;
         c->gpr[5] = tick;
         c->gpr[6] = life;
-        PortCheck::RunOutput(c, "AnimCurveExecuteBakedU8", func_800A2568, BakedU8Port, {{target, 8}});
+        PortCheck::RunOutput(c, "AnimCurveExecuteBakedU8", func_804FC7DC, BakedU8Port, {{target, 8}});
         return;
     }
 #else
@@ -1251,7 +1239,7 @@ static void BakedU8Checked(uint32_t r1, uint32_t track, uint32_t target, uint32_
 extern "C" void MH3_AnimCurveExecuteBakedU8(CpuContext* ctx) {
     BakedU8Checked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A2568, MH3_AnimCurveExecuteBakedU8, "AnimCurveExecuteBakedU8");
+REGISTER_NATIVE_FUNCTION_AS(0x804FC7DC, MH3_AnimCurveExecuteBakedU8, "AnimCurveExecuteBakedU8");
 
 static void ExecuteU8Port(CpuContext* p) {
     ExecuteU8(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[7], p->gpr[2]);
@@ -1270,7 +1258,7 @@ static void ExecuteU8Checked(uint32_t r1, uint32_t r2, uint32_t track, uint32_t 
         c->gpr[5] = tick;
         c->gpr[6] = seed;
         c->gpr[7] = life;
-        PortCheck::RunOutput(c, "AnimCurveExecuteU8", func_8009DF14, ExecuteU8Port, {{target, 8}});
+        PortCheck::RunOutput(c, "AnimCurveExecuteU8", func_804F7DE4, ExecuteU8Port, {{target, 8}});
         return;
     }
 #else
@@ -1282,8 +1270,9 @@ static void ExecuteU8Checked(uint32_t r1, uint32_t r2, uint32_t track, uint32_t 
 extern "C" void MH3_AnimCurveExecuteU8(CpuContext* ctx) {
     ExecuteU8Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009DF14, MH3_AnimCurveExecuteU8, "AnimCurveExecuteU8");
+REGISTER_NATIVE_FUNCTION_AS(0x804F7DE4, MH3_AnimCurveExecuteU8, "AnimCurveExecuteU8");
 
+#if 0 // Inlined into AnimCurveExecute* in RMHJ08.
 static void BlendF32Port(CpuContext* p) {
     p->fpr[1].d = double(BlendF32(float(p->fpr[1].d), float(p->fpr[2].d), float(p->fpr[3].d), p->gpr[3], p->gpr[2]));
 }
@@ -1312,7 +1301,7 @@ static double BlendF32Checked(uint32_t r1, uint32_t r2, uint32_t mode, double t,
 extern "C" void MH3_AnimCurveBlendF32(CpuContext* ctx) {
     ctx->fpr[1].d = BlendF32Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->fpr[1].d, ctx->fpr[2].d, ctx->fpr[3].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A0228, MH3_AnimCurveBlendF32, "AnimCurveBlendF32");
+#endif
 
 static void BakedF32Port(CpuContext* p) {
     ExecuteBaked<4>(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6]);
@@ -1329,7 +1318,7 @@ static void BakedF32Checked(uint32_t r1, uint32_t track, uint32_t target, uint32
         c->gpr[4] = target;
         c->gpr[5] = tick;
         c->gpr[6] = life;
-        PortCheck::RunOutput(c, "AnimCurveExecuteBakedF32", func_800A2D54, BakedF32Port, {{target, 32}});
+        PortCheck::RunOutput(c, "AnimCurveExecuteBakedF32", func_804FCB24, BakedF32Port, {{target, 32}});
         return;
     }
 #else
@@ -1341,7 +1330,7 @@ static void BakedF32Checked(uint32_t r1, uint32_t track, uint32_t target, uint32
 extern "C" void MH3_AnimCurveExecuteBakedF32(CpuContext* ctx) {
     BakedF32Checked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A2D54, MH3_AnimCurveExecuteBakedF32, "AnimCurveExecuteBakedF32");
+REGISTER_NATIVE_FUNCTION_AS(0x804FCB24, MH3_AnimCurveExecuteBakedF32, "AnimCurveExecuteBakedF32");
 
 static void ExecuteF32Port(CpuContext* p) {
     ExecuteFloat<false>(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[7], p->gpr[2]);
@@ -1360,7 +1349,7 @@ static void ExecuteF32Checked(uint32_t r1, uint32_t r2, uint32_t track, uint32_t
         c->gpr[5] = tick;
         c->gpr[6] = seed;
         c->gpr[7] = life;
-        PortCheck::RunOutput(c, "AnimCurveExecuteF32", func_8009F8C0, ExecuteF32Port, {{target, 32}});
+        PortCheck::RunOutput(c, "AnimCurveExecuteF32", func_804F90DC, ExecuteF32Port, {{target, 32}});
         return;
     }
 #else
@@ -1372,7 +1361,7 @@ static void ExecuteF32Checked(uint32_t r1, uint32_t r2, uint32_t track, uint32_t
 extern "C" void MH3_AnimCurveExecuteF32(CpuContext* ctx) {
     ExecuteF32Checked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009F8C0, MH3_AnimCurveExecuteF32, "AnimCurveExecuteF32");
+REGISTER_NATIVE_FUNCTION_AS(0x804F90DC, MH3_AnimCurveExecuteF32, "AnimCurveExecuteF32");
 
 static void ExecuteRotatePort(CpuContext* p) {
     ExecuteFloat<true>(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[7], p->gpr[2]);
@@ -1391,7 +1380,7 @@ static void ExecuteRotateChecked(uint32_t r1, uint32_t r2, uint32_t track, uint3
         c->gpr[5] = tick;
         c->gpr[6] = seed;
         c->gpr[7] = life;
-        PortCheck::RunOutput(c, "AnimCurveExecuteRotate", func_800A035C, ExecuteRotatePort, {{target, 32}});
+        PortCheck::RunOutput(c, "AnimCurveExecuteRotate", func_804FA0C8, ExecuteRotatePort, {{target, 32}});
         return;
     }
 #else
@@ -1403,13 +1392,15 @@ static void ExecuteRotateChecked(uint32_t r1, uint32_t r2, uint32_t track, uint3
 extern "C" void MH3_AnimCurveExecuteRotate(CpuContext* ctx) {
     ExecuteRotateChecked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A035C, MH3_AnimCurveExecuteRotate, "AnimCurveExecuteRotate");
+REGISTER_NATIVE_FUNCTION_AS(0x804FA0C8, MH3_AnimCurveExecuteRotate, "AnimCurveExecuteRotate");
 
+extern "C" void func_804FB1C0(CpuContext* ctx);
+extern "C" void func_804FB7BC(CpuContext* ctx);
+extern "C" void func_804FB810(CpuContext* ctx);
+
+#if 0 // Inlined into AnimCurveExecuteTexture in RMHJ08.
 extern "C" void func_8009D624(CpuContext* ctx);
 extern "C" void func_800A1310(CpuContext* ctx);
-extern "C" void func_800A0D68(CpuContext* ctx);
-extern "C" void func_800A1508(CpuContext* ctx);
-extern "C" void func_800A1568(CpuContext* ctx);
 
 // (life r3, header r4, tick r5, u16* frame r6, f32* frame r7, u32* loop r8,
 // u8* final r9).
@@ -1437,7 +1428,6 @@ extern "C" void MH3_AnimCurveTextureTick(CpuContext* ctx) {
 #endif
     TextureTickPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009D624, MH3_AnimCurveTextureTick, "AnimCurveTextureTick");
 
 // (s32* out r3, frame r4, keys r5, stride r6, lo r7, hi r8, before r9).
 static void TextureKeySearchPort(CpuContext* p) {
@@ -1457,7 +1447,7 @@ extern "C" void MH3_AnimCurveTextureKeySearch(CpuContext* ctx) {
 #endif
     TextureKeySearchPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A1310, MH3_AnimCurveTextureKeySearch, "AnimCurveTextureKeySearch");
+#endif
 
 // (track r3, particle r4, tick r5, seed r6, life r7, names out r8, texture
 // slot out r9, result r10).
@@ -1472,14 +1462,14 @@ static void ExecuteTexturePort(CpuContext* p) {
 extern "C" void MH3_AnimCurveExecuteTexture(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("AnimCurveExecuteTexture")) [[unlikely]] {
-        PortCheck::RunOutput(ctx, "AnimCurveExecuteTexture", func_800A0D68, ExecuteTexturePort,
+        PortCheck::RunOutput(ctx, "AnimCurveExecuteTexture", func_804FB1C0, ExecuteTexturePort,
                              {{ctx->gpr[4] + 0x88, 16}, {ctx->gpr[8], 4}, {ctx->gpr[9], 4}, {ctx->gpr[10], 16}});
         return;
     }
 #endif
     ExecuteTexturePort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A0D68, MH3_AnimCurveExecuteTexture, "AnimCurveExecuteTexture");
+REGISTER_NATIVE_FUNCTION_AS(0x804FB1C0, MH3_AnimCurveExecuteTexture, "AnimCurveExecuteTexture");
 
 // (particle r3, result r4).
 static void TextureFlagsPort(CpuContext* p) {
@@ -1492,13 +1482,13 @@ static void TextureFlagsPort(CpuContext* p) {
 extern "C" void MH3_ParticleTextureFlags(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     if (PortCheck::Enabled("ParticleTextureFlags")) [[unlikely]] {
-        PortCheck::RunOutput(ctx, "ParticleTextureFlags", func_800A1508, TextureFlagsPort, {{ctx->gpr[3] + 0x94, 4}, {ctx->gpr[3] + 0xE4, 1}});
+        PortCheck::RunOutput(ctx, "ParticleTextureFlags", func_804FB7BC, TextureFlagsPort, {{ctx->gpr[3] + 0x94, 4}, {ctx->gpr[3] + 0xE4, 1}});
         return;
     }
 #endif
     TextureFlagsPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A1508, MH3_ParticleTextureFlags, "ParticleTextureFlags");
+REGISTER_NATIVE_FUNCTION_AS(0x804FB7BC, MH3_ParticleTextureFlags, "ParticleTextureFlags");
 
 // 0x800A1568 (ParticleTextureRotate): a texture track of an emitter whose
 // particles start on different frames (r5 = ParticleParameter +0..3: frame
@@ -1521,7 +1511,7 @@ static void TextureRotatePort(CpuContext* p) {
             index = (index - (last & 0xFFFF)) & 0xFFFF;
     } else if ((index & 0xFFFF) == last) {
         GuestCall game{p};
-        game.Call<0x800AB8E4>({manager, particle});
+        game.Call<0x80501380>({manager, particle});
     }
 
     FoldPointer(names);
@@ -1530,6 +1520,6 @@ static void TextureRotatePort(CpuContext* p) {
 }
 
 extern "C" void MH3_ParticleTextureRotate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleTextureRotate", func_800A1568, TextureRotatePort);
+    PortCheck::Call(ctx, "ParticleTextureRotate", func_804FB810, TextureRotatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A1568, MH3_ParticleTextureRotate, "ParticleTextureRotate");
+REGISTER_NATIVE_FUNCTION_AS(0x804FB810, MH3_ParticleTextureRotate, "ParticleTextureRotate");

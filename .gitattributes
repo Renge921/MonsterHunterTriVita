@@ -1,0 +1,5 @@
+# Ensure shell scripts and build scripts always keep LF line endings on Windows/WSL
+*.sh text eol=lf
+*.py text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf

@@ -361,7 +361,7 @@ void StepMonsters();
 void StepMovementCodes();
 
 // The game's data.
-constexpr uint32_t kSystem = 0x8065AA60; // system_w
+constexpr uint32_t kSystem = 0x80768AA8; // system_w (RMHJ08)
 
 // The character's save data (the userdata), 0 before one is loaded.
 inline uint32_t UserData() {

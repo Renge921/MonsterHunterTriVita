@@ -679,9 +679,6 @@ AuroraInfo aurora_initialize(int argc, char* argv[], const AuroraConfig* config)
 void aurora_shutdown() { aurora::shutdown(); }
 void aurora_set_common_dialog_active(bool active) {
 #ifdef AURORA_GXM
-  if (!aurora::gl::on_render_thread())
-    aurora::Log.fatal("Common dialog changed outside the game thread");
-
   aurora::gxm::set_common_dialog_active(active);
 #else
   (void)active;

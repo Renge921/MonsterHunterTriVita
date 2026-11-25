@@ -36,11 +36,11 @@ struct Ease {
 };
 
 constexpr Ease kEases[] = {
-    {0x80201974u, 0},                    // 0x802014C8 (the village NPC's step)
-    {0x80203070u, 10},                   // 0x80202F64
-    {0x802052B0u, 5},                    // 0x80205110 (no +0x1D4)
-    {0x802058E8u, 10}, {0x80205950u, 10}, // 0x802057C8
-    {0x802078A8u, 10}, {0x80207910u, 10}, // 0x80207738
+    {0x80249464u, 0},                    // 0x80248F58? (the village NPC's step)
+    {0x8024A4F0u, 10},                   // 0x8024A3F8
+    {0x8024C578u, 5},                    // 0x8024C3D0 (no +0x1D4)
+    {0x8024CAA8u, 10}, {0x8024CB10u, 10}, // 0x8024C978
+    {0x8024F154u, 10}, {0x8024F1BCu, 10}, // 0x8024EFD4
 };
 
 // 0x802014C8's divisor (r31), set by the action (s16 +0x1CC) it switches on:
@@ -86,11 +86,11 @@ void TimedTurnStepPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_801FDEA0(CpuContext* ctx);
+extern "C" void func_80245970(CpuContext* ctx);
 extern "C" void MH3_NpcYawTo(CpuContext* ctx) {
     const double s = GameStep::Scale();
     const int32_t d = s == 1.0 ? 0 : EaseDivisor(ctx->lr, ctx->gpr[3]);
-    func_801FDEA0(ctx);
+    func_80245970(ctx);
 
     if (d <= 1)
         return;
@@ -99,10 +99,10 @@ extern "C" void MH3_NpcYawTo(CpuContext* ctx) {
     const double gap = std::round(int16_t(ctx->gpr[3]) * closed);
     ctx->gpr[3] = uint32_t(int32_t(std::clamp(gap, -32768.0, 32767.0)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801FDEA0, MH3_NpcYawTo, "NpcYawTo");
+REGISTER_NATIVE_FUNCTION_AS(0x80245970, MH3_NpcYawTo, "NpcYawTo");
 
-extern "C" void func_801FDED8(CpuContext* ctx);
+extern "C" void func_802459A8(CpuContext* ctx);
 extern "C" void MH3_NpcTimedTurnStep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "NpcTimedTurnStep", func_801FDED8, TimedTurnStepPort);
+    PortCheck::Call(ctx, "NpcTimedTurnStep", func_802459A8, TimedTurnStepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801FDED8, MH3_NpcTimedTurnStep, "NpcTimedTurnStep");
+REGISTER_NATIVE_FUNCTION_AS(0x802459A8, MH3_NpcTimedTurnStep, "NpcTimedTurnStep");

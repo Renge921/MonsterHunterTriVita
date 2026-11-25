@@ -47,9 +47,7 @@ static void CreatureFade(CpuContext* ctx) {
     }
 }
 
-extern "C" void func_803822D8(CpuContext* ctx);
-
 extern "C" void MH3_CreatureFade(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CreatureFade", func_803822D8, CreatureFade);
+    CreatureFade(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803822D8, MH3_CreatureFade, "CreatureFade");
+// JPN inlined into VolcanoCreatureStep (0x80105254; covered by tick_sites.inc PerStep): REGISTER_NATIVE_FUNCTION_AS(0x803822D8, MH3_CreatureFade, "CreatureFade");

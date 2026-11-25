@@ -85,6 +85,10 @@ void ReleaseView();
 // effect creation, the world split's worker job): joins the previous step's
 // calculation if it still runs. Other threads return at once.
 void Touch();
+
+// Removes a closing/retired effect from the pending deferred Calc queue and
+// uncalculated list when called on the game thread before Launch.
+void CancelDeferred(uint32_t effect);
 #ifdef MH3_DEVELOPMENT
 // MH3_TRACE=particles: child emissions an Effect::Calc found queued.
 void NoteQueuedChildren(uint32_t count);

@@ -68,12 +68,12 @@ enum : uint32_t {
     kAngleOffset = 0x20
 };
 
-constexpr uint32_t kEnemySets = 0x805CF1B0, kEnemyAnchors = 0x805CF020;
-constexpr uint32_t kPart5Sets = 0x805CF3A8, kPart5Anchors = 0x805CF0D8;
-constexpr uint32_t kPart4Sets = 0x805CF438, kPart4Anchors = 0x805CF120;
-constexpr uint32_t kPlaneJoints = 0x805CF4EC; // u8 by plane
-constexpr uint32_t kPlanes = 0x805CEE78;      // by plane: normal, point (MH vectors, 12 bytes each)
-constexpr uint32_t kGravity = 0x806BAC18;     // VEC3
+constexpr uint32_t kEnemySets = 0x806B1608, kEnemyAnchors = 0x806B1478;
+constexpr uint32_t kPart5Sets = 0x806B1800, kPart5Anchors = 0x806B1530;
+constexpr uint32_t kPart4Sets = 0x806B1890, kPart4Anchors = 0x806B1578;
+constexpr uint32_t kPlaneJoints = 0x806B1944; // u8 by plane
+constexpr uint32_t kPlanes = 0x806B12D0;      // by plane: normal, point (MH vectors, 12 bytes each)
+constexpr uint32_t kGravity = 0x8073DA68;     // VEC3
 constexpr float kTiny = 0.001f;
 
 // Stack frame layout (as the original's).
@@ -95,30 +95,27 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    Original = 0x802AC4E8,
-    Ready = 0x802248E8, // (player) the parts are loaded
-    DemoBusy = 0x803C4890,
-    DemoState4 = 0x803C4878,    // IsEventDemoState4
-    EnemyJointMtx = 0x80135994, // get_joint_wmat_em
-    EnemyJointPos = 0x8013599C, // get_joint_wpos_em
-    EnemyScale = 0x801359A4,    // get_em_scale
-    CharJointMtx = 0x800E0A78,
-    CharJointPos = 0x800E0AF8, // MHchar::get_joint_wpos
-    MtxTranslation = 0x80101470,
-    MtxCopy = 0x80053340,
-    MtxInverse = 0x80088428,
-    MulVecMtx = 0x800514A4, // v = m * v
-    RotateVec = 0x80501C48, // out = m (rotation only) * v
-    ToMhVec = 0x8005001C,   // vec_to_mh_vec3
-    Magnitude = 0x80050F88,
-    Magnitude2 = 0x80050F40,
-    Normalize = 0x800508B4,
-    ClampReach = 0x80051324, // (f1 reach, centre, point): point within reach of centre
-    Dot = 0x80052278,
-    OntoPlane = 0x80290588,
-    Atan2 = 0x80464488, // ForceSingleAngleWrapper
-    NodeAngles = 0x802AD830,
-    NodeHeading = 0x802AD958,
+    Original = 0x801E486C,
+    Ready = 0x802E6E40, // (player) the parts are loaded
+    DemoBusy = 0x8038CD84,
+    DemoState4 = 0x8038CD6C,    // IsEventDemoState4
+    EnemyJointMtx = 0x80171798, // get_joint_wmat_em
+    EnemyJointPos = 0x801717A0, // get_joint_wpos_em
+    EnemyScale = 0x801717A8,    // get_em_scale
+    CharJointMtx = 0x802A27C8,
+    CharJointPos = 0x802A28C4, // MHchar::get_joint_wpos
+    MtxInverse = 0x8042F66C,   // PSMTXInverse(src, dst)
+    MulVecMtx = 0x8028C3A8,    // v = m * v
+    RotateVec = 0x8053DB6C,    // out = m (rotation only) * v
+    ToMhVec = 0x8028A804,      // vec_to_mh_vec3
+    Magnitude = 0x8043029C,
+    Normalize = 0x80430258,    // PSVECNormalize(src, dst)
+    ClampReach = 0x8028C2B4,   // (f1 reach, centre, point): point within reach of centre
+    Dot = 0x8050F7EC,
+    OntoPlane = 0x801A22E0,
+    Atan2 = 0x80465C3C,        // ForceSingleAngleWrapper
+    NodeAngles = 0x801E60A0,
+    NodeHeading = 0x801E6238,
 };
 
 struct Vec {
@@ -144,7 +141,7 @@ float F(uint32_t a) {
 
 } // namespace
 
-extern "C" void func_802AC4E8(CpuContext* ctx);
+extern "C" void func_801E486C(CpuContext* ctx);
 
 static void YureChain(CpuContext* ctx) {
     {
@@ -153,7 +150,7 @@ static void YureChain(CpuContext* ctx) {
         const uint32_t chain = w + index * 0x90 + ((ctx->gpr[4] & 0xFF) ? 0x674 : 0x590);
 
         if (Memory::Read8(chain + kState) != 1) {
-            func_802AC4E8(ctx);
+            func_801E486C(ctx);
             return;
         }
     }
@@ -215,14 +212,16 @@ static void YureChain(CpuContext* ctx) {
 
     if (!player) {
         call.Call<EnemyJointMtx>({enemy, anchorJoint(), frame[sAnchorMtx]});
-        call.Call<MtxTranslation>({frame[sAnchorMtx], frame[sAnchor]});
+        for (uint32_t k = 0; k < 3; ++k)
+            Memory::Write32(frame[sAnchor] + 4 * k, Memory::Read32(frame[sAnchorMtx] + 12 + 16 * k));
 
         for (uint32_t i = 0; i < count; ++i) {
             call.Call<EnemyJointPos>({enemy, Memory::Read32(chain + kJoints + 4 * i), frame[sJoints] + 12 * i});
             Memory::WriteFloat32(frame[sLengths] + 4 * i, F(chain + kLength + 4 * i) + F(set() + 4 * i));
         }
 
-        call.Call<MtxCopy>({frame[sInverse], frame[sAnchorMtx]});
+        for (uint32_t k = 0; k < 12; ++k)
+            Memory::Write32(frame[sInverse] + 4 * k, Memory::Read32(frame[sAnchorMtx] + 4 * k));
         call.Call<EnemyScale>({enemy});
         scale = call.F1();
         const uint32_t t = set();
@@ -266,8 +265,12 @@ static void YureChain(CpuContext* ctx) {
     const float s = float(stepScale);
     const float keep = 1.0f - damping;
     const float damp = stepScale == 1.0 ? keep : float(std::pow(double(keep), stepScale));
-    auto magnitude = [&](uint32_t v, uint32_t fn) {
-        call(fn, {v});
+    auto magnitude = [&](uint32_t v) {
+        call.Call<Magnitude>({v});
+        return call.F1();
+    };
+    auto magnitude2 = [&](uint32_t v) {
+        call.Call<Dot>({v, v});
         return call.F1();
     };
 
@@ -286,14 +289,14 @@ static void YureChain(CpuContext* ctx) {
         call.Call<ClampReach>({target, node}, {scale * F(set() + kReach)});
         Store(frame[sDir], Load(node) - Load(root));
 
-        if (magnitude(frame[sDir], Magnitude2) > kTiny)
+        if (magnitude2(frame[sDir]) > kTiny)
             call.Call<Normalize>({frame[sDir], frame[sDir]});
 
         Store(node, Load(root) + Load(frame[sDir]) * length);
         Store(velocity, Load(velocity) + (Load(target) - Load(node)) * (spring * s));
         Store(velocity, Load(velocity) * damp);
         Store(frame[sDir], Load(root) - Load(node));
-        call.Call<MtxInverse>({frame[sInverse], frame[sAnchorMtx]});
+        call.Call<MtxInverse>({frame[sAnchorMtx], frame[sInverse]});
         call.Call<MulVecMtx>({frame[sDir], frame[sInverse]});
         call.Call<Atan2>({}, {F(frame[sDir] + 8), F(frame[sDir] + 4)});
         const float turn = 0.5f + (65536.0f * call.F1()) / 6.2831855f;
@@ -314,7 +317,7 @@ static void YureChain(CpuContext* ctx) {
         Store(velocity, Load(velocity) * damp + back);
         Store(frame[sDir], (Load(chain + kLastAnchor) - Load(root)) * 0.1f);
 
-        if (magnitude(frame[sDir], Magnitude) > 50.0f) {
+        if (magnitude(frame[sDir]) > 50.0f) {
             call.Call<Normalize>({frame[sDir], frame[sDir]});
             Store(frame[sDir], Load(frame[sDir]) * 50.0f);
         }
@@ -334,7 +337,7 @@ static void YureChain(CpuContext* ctx) {
         Store(accel, Load(accel) + Load(kGravity) * gravity);
         call.Call<ClampReach>({prev, node}, {scale * (10.0f + length)});
         Store(frame[sDir], Load(prev) - Load(node));
-        const float stretch = magnitude(frame[sDir], Magnitude);
+        const float stretch = magnitude(frame[sDir]);
 
         if (stretch > kTiny)
             call.Call<Normalize>({frame[sDir], frame[sDir]});
@@ -347,7 +350,7 @@ static void YureChain(CpuContext* ctx) {
 
         Store(frame[sDir], Load(node) - Load(prev));
 
-        if (magnitude(frame[sDir], Magnitude) > kTiny)
+        if (magnitude(frame[sDir]) > kTiny)
             call.Call<Normalize>({frame[sDir], frame[sDir]});
 
         const uint32_t out = frame[sOut] + 12 * i;
@@ -366,7 +369,7 @@ static void YureChain(CpuContext* ctx) {
 
         call.Call<ToMhVec>({frame[sPlaneN], kPlanes + plane * 24});
         call.Call<RotateVec>({frame[sRot], frame[sInverse], frame[sPlaneN]});
-        call.Call<Normalize>({frame[sPlane], frame[sRot]});
+        call.Call<Normalize>({frame[sRot], frame[sPlane]});
         call.Call<ToMhVec>({frame[sPlaneAt], kPlanes + plane * 24 + 12});
         call.Call<MulVecMtx>({frame[sPlaneAt], frame[sInverse]});
         Store(frame[sPlanePoint], Load(frame[sPlanePoint]) + Load(frame[sPlaneAt]));
@@ -406,6 +409,6 @@ static void YureChain(CpuContext* ctx) {
 }
 
 extern "C" void MH3_YureChain(CpuContext* ctx) {
-    PortCheck::Call(ctx, "YureChain", func_802AC4E8, YureChain);
+    PortCheck::Call(ctx, "YureChain", func_801E486C, YureChain);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AC4E8, MH3_YureChain, "YureChain");
+REGISTER_NATIVE_FUNCTION_AS(0x801E486C, MH3_YureChain, "YureChain");

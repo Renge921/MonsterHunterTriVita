@@ -54,9 +54,9 @@
 
 namespace {
 
-constexpr uint32_t kGrounds = 0x806AE508;      // the areas' grounds, 0x88 bytes each
-constexpr uint32_t kTaken = 0x806AED00;        // the triangles a query took (u32[5])
-constexpr uint32_t kAreaMasks = 0x806BD45C;    // u8 per area (0x802B0B50)
+constexpr uint32_t kGrounds = 0x8073BFA0;      // the areas' grounds, 0x88 bytes each
+constexpr uint32_t kTaken = 0x8073C798;        // the triangles a query took (u32[5])
+constexpr uint32_t kAreaMasks = 0x80784A7C;    // u8 per area
 constexpr uint32_t kGroundBytes = 0x88;
 constexpr int kMaxTaken = 5;
 constexpr float kAboveReach = 50.0f; // 0x8079C7F4
@@ -101,10 +101,10 @@ enum : uint16_t {
 };
 
 enum : uint32_t {
-    GetNowAreaNumber = 0x802AFCE8,
-    GetOnlineMode = 0x800CF26C,
-    GridCandidates = 0x802968D4, // (pos, ground, u32* cell x, u32* cell z)
-    PickResult = 0x80297878,     // (out, pos, records, heights, f32* height, count)
+    GetNowAreaNumber = 0x8037D338,
+    GetOnlineMode = 0x802BC6BC,
+    GridCandidates = 0x801A958C, // (pos, ground, u32* cell x, u32* cell z)
+    PickResult = 0x801AA8B4,     // (out, pos, records, heights, f32* height, count)
 };
 
 struct Point {
@@ -724,39 +724,39 @@ void HitGroundComon(CpuContext* cpu) {
 
 } // namespace
 
-extern "C" void func_80296A5C(CpuContext* cpu);
+extern "C" void func_801A9738(CpuContext* cpu);
 extern "C" void MH3_GroundHitPointInTriangle(CpuContext* cpu) {
     if (PortCheck::Enabled("GroundHitPointInTriangle"))
-        PortCheck::RunPure(cpu, "GroundHitPointInTriangle", PortCheck::Returns::Gpr3, func_80296A5C, PointInTrianglePort);
+        PortCheck::RunPure(cpu, "GroundHitPointInTriangle", PortCheck::Returns::Gpr3, func_801A9738, PointInTrianglePort);
     else
         PointInTrianglePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80296A5C, MH3_GroundHitPointInTriangle, "GroundHitPointInTriangle");
+REGISTER_NATIVE_FUNCTION_AS(0x801A9738, MH3_GroundHitPointInTriangle, "GroundHitPointInTriangle");
 
-extern "C" void func_802916C8(CpuContext* cpu);
+extern "C" void func_801A3B74(CpuContext* cpu);
 extern "C" void MH3_GetGroundHit2(CpuContext* cpu) {
     if (PortCheck::Enabled("GetGroundHit2"))
-        PortCheck::RunOutput(cpu, "GetGroundHit2", PortCheck::Returns::Fpr1, func_802916C8, GetGroundHit2, {{cpu->gpr[6], 1}, {kTaken, 4 * kMaxTaken}});
+        PortCheck::RunOutput(cpu, "GetGroundHit2", PortCheck::Returns::Fpr1, func_801A3B74, GetGroundHit2, {{cpu->gpr[6], 1}, {kTaken, 4 * kMaxTaken}});
     else
         GetGroundHit2(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802916C8, MH3_GetGroundHit2, "GetGroundHit2");
+REGISTER_NATIVE_FUNCTION_AS(0x801A3B74, MH3_GetGroundHit2, "GetGroundHit2");
 
 // An optional output for the check: absent ones become a constant neither
 // side writes (the 0.0f the originals compare with).
 uint32_t Given(uint32_t output) {
-    return output ? output : 0x8079C7F0;
+    return output ? output : 0x808A6098;
 }
 
-extern "C" void func_80291D34(CpuContext* cpu);
+extern "C" void func_801A4184(CpuContext* cpu);
 extern "C" void MH3_HitGroundComon(CpuContext* cpu) {
     if (PortCheck::Enabled("HitGroundComon")) {
         const uint32_t special10 = Memory::Read32(cpu->gpr[1] + 8);
-        PortCheck::RunOutput(cpu, "HitGroundComon", PortCheck::Returns::Gpr3, func_80291D34, HitGroundComon,
+        PortCheck::RunOutput(cpu, "HitGroundComon", PortCheck::Returns::Gpr3, func_801A4184, HitGroundComon,
                              {{cpu->gpr[5], kRecordBytes}, {cpu->gpr[6], 4}, {kTaken, 4 * kMaxTaken}, {Given(cpu->gpr[9]), 4},
                               {Given(cpu->gpr[10]), 4}, {Given(special10), 8}});
     } else {
         HitGroundComon(cpu);
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80291D34, MH3_HitGroundComon, "HitGroundComon");
+REGISTER_NATIVE_FUNCTION_AS(0x801A4184, MH3_HitGroundComon, "HitGroundComon");

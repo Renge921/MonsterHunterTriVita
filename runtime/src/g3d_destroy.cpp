@@ -50,17 +50,6 @@ uint32_t Read32(uint32_t address) {
     return Memory::Read32(address);
 }
 
-uint8_t Read8(uint32_t address) {
-    return Memory::Read8(address);
-}
-
-void Write32(uint32_t address, uint32_t value) {
-    Memory::Write32(address, value);
-}
-
-constexpr uint32_t Panic = 0x80501130; // nw4r::db::Panic(file, line, format, ...)
-constexpr uint32_t Free = 0x8007B3A4;  // G3dObj's allocator free (allocator, block)
-
 bool Drawn(uint32_t object) {
     return object && SceneQueue::HoldsPrepared(object, object + 1);
 }
@@ -84,6 +73,19 @@ void WaitForDraw(CpuContext* cpu, uint32_t self) {
 #endif
     DrawThread::Thread().Wait();
 }
+} // namespace
+
+#if 0 // Legacy PAL destructor reconstructions (replaced by thin GuardedDestroy wrappers for RMHJ08)
+uint8_t Read8(uint32_t address) {
+    return Memory::Read8(address);
+}
+
+void Write32(uint32_t address, uint32_t value) {
+    Memory::Write32(address, value);
+}
+
+constexpr uint32_t Panic = 0x80501130; // nw4r::db::Panic(file, line, format, ...)
+constexpr uint32_t Free = 0x8007B3A4;  // G3dObj's allocator free (allocator, block)
 
 // The class's delete (operator delete, 0x8005D444) is empty: G3dObj's
 // destructor freed the object.
@@ -251,44 +253,67 @@ void Destroy(CpuContext* cpu) {
 
     cpu->gpr[3] = self;
 }
+#endif
+
+extern "C" {
+void func_80528748(CpuContext*);
+void func_80534340(CpuContext*);
+void func_80535728(CpuContext*);
+void func_805360D8(CpuContext*);
+void func_80538D5C(CpuContext*);
+void func_8053B7A4(CpuContext*);
+void func_80523E5C(CpuContext*);
+void func_80523E9C(CpuContext*);
+void func_80525100(CpuContext*);
+void func_80525264(CpuContext*);
+void func_805253A0(CpuContext*);
+void func_805253E0(CpuContext*);
+void func_80526FF8(CpuContext*);
+void func_8052715C(CpuContext*);
+void func_805277FC(CpuContext*);
+void func_80527B48(CpuContext*);
+} // extern "C"
+
+namespace {
+template <void (*Original)(CpuContext*)>
+void GuardedDestroy(CpuContext* cpu) {
+    WaitForDraw(cpu, cpu->gpr[3]);
+    Original(cpu);
+}
 } // namespace
 
 extern "C" {
-void MH3_G3dObjDtor(CpuContext* cpu) { Destroy<G3dObj>(cpu); }
-void MH3_ScnObjDtor(CpuContext* cpu) { Destroy<ScnObj>(cpu); }
-void MH3_ScnLeafDtor(CpuContext* cpu) { Destroy<ScnLeaf>(cpu); }
-void MH3_ScnMdlSimpleDtor(CpuContext* cpu) { Destroy<ScnMdlSimple>(cpu); }
-void MH3_ScnMdlDtor(CpuContext* cpu) { Destroy<ScnMdl>(cpu); }
-void MH3_ScnGroupDtor(CpuContext* cpu) { Destroy<ScnGroup>(cpu); }
-void MH3_ScnRootDtor(CpuContext* cpu) { Destroy<ScnRoot>(cpu); }
-void MH3_AnmObjDtor(CpuContext* cpu) { Destroy<AnmObj>(cpu); }
-void MH3_AnmObj5E5F0Dtor(CpuContext* cpu) { Destroy<AnmObj5E5F0>(cpu); }
-void MH3_AnmObj5E64CDtor(CpuContext* cpu) { Destroy<AnmObj5E64C>(cpu); }
-void MH3_AnmObj63C64Dtor(CpuContext* cpu) { Destroy<AnmObj63C64>(cpu); }
-void MH3_AnmObj63DCCDtor(CpuContext* cpu) { Destroy<AnmObj63DCC>(cpu); }
-void MH3_AnmObj657CCDtor(CpuContext* cpu) { Destroy<AnmObj657CC>(cpu); }
-void MH3_AnmObj660E4Dtor(CpuContext* cpu) { Destroy<AnmObj660E4>(cpu); }
-void MH3_AnmObj6AAB0Dtor(CpuContext* cpu) { Destroy<AnmObj6AAB0>(cpu); }
-void MH3_AnmObj6AB0CDtor(CpuContext* cpu) { Destroy<AnmObj6AB0C>(cpu); }
-void MH3_AnmObj6E8CCDtor(CpuContext* cpu) { Destroy<AnmObj6E8CC>(cpu); }
-void MH3_AnmObj6EA2CDtor(CpuContext* cpu) { Destroy<AnmObj6EA2C>(cpu); }
-}
+void MH3_G3dDestroy_80528748(CpuContext* cpu) { GuardedDestroy<func_80528748>(cpu); }
+void MH3_G3dDestroy_80534340(CpuContext* cpu) { GuardedDestroy<func_80534340>(cpu); }
+void MH3_G3dDestroy_80535728(CpuContext* cpu) { GuardedDestroy<func_80535728>(cpu); }
+void MH3_G3dDestroy_805360D8(CpuContext* cpu) { GuardedDestroy<func_805360D8>(cpu); }
+void MH3_G3dDestroy_80538D5C(CpuContext* cpu) { GuardedDestroy<func_80538D5C>(cpu); }
+void MH3_G3dDestroy_8053B7A4(CpuContext* cpu) { GuardedDestroy<func_8053B7A4>(cpu); }
+void MH3_G3dDestroy_80523E5C(CpuContext* cpu) { GuardedDestroy<func_80523E5C>(cpu); }
+void MH3_G3dDestroy_80523E9C(CpuContext* cpu) { GuardedDestroy<func_80523E9C>(cpu); }
+void MH3_G3dDestroy_80525100(CpuContext* cpu) { GuardedDestroy<func_80525100>(cpu); }
+void MH3_G3dDestroy_80525264(CpuContext* cpu) { GuardedDestroy<func_80525264>(cpu); }
+void MH3_G3dDestroy_805253A0(CpuContext* cpu) { GuardedDestroy<func_805253A0>(cpu); }
+void MH3_G3dDestroy_805253E0(CpuContext* cpu) { GuardedDestroy<func_805253E0>(cpu); }
+void MH3_G3dDestroy_80526FF8(CpuContext* cpu) { GuardedDestroy<func_80526FF8>(cpu); }
+void MH3_G3dDestroy_8052715C(CpuContext* cpu) { GuardedDestroy<func_8052715C>(cpu); }
+void MH3_G3dDestroy_805277FC(CpuContext* cpu) { GuardedDestroy<func_805277FC>(cpu); }
+void MH3_G3dDestroy_80527B48(CpuContext* cpu) { GuardedDestroy<func_80527B48>(cpu); }
+} // extern "C"
 
-REGISTER_NATIVE_FUNCTION_AS(0x8007B338, MH3_G3dObjDtor, "G3dObjDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8008141C, MH3_ScnObjDtor, "ScnObjDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8007BAA8, MH3_ScnLeafDtor, "ScnLeafDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x80080FE0, MH3_ScnMdlSimpleDtor, "ScnMdlSimpleDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8007EECC, MH3_ScnMdlDtor, "ScnMdlDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x80082630, MH3_ScnGroupDtor, "ScnGroupDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x80083558, MH3_ScnRootDtor, "ScnRootDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8005D3E8, MH3_AnmObjDtor, "AnmObjDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8005E5F0, MH3_AnmObj5E5F0Dtor, "AnmObj5E5F0Dtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8005E64C, MH3_AnmObj5E64CDtor, "AnmObj5E64CDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x80063C64, MH3_AnmObj63C64Dtor, "AnmObj63C64Dtor");
-REGISTER_NATIVE_FUNCTION_AS(0x80063DCC, MH3_AnmObj63DCCDtor, "AnmObj63DCCDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x800657CC, MH3_AnmObj657CCDtor, "AnmObj657CCDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x800660E4, MH3_AnmObj660E4Dtor, "AnmObj660E4Dtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8006AAB0, MH3_AnmObj6AAB0Dtor, "AnmObj6AAB0Dtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8006AB0C, MH3_AnmObj6AB0CDtor, "AnmObj6AB0CDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8006E8CC, MH3_AnmObj6E8CCDtor, "AnmObj6E8CCDtor");
-REGISTER_NATIVE_FUNCTION_AS(0x8006EA2C, MH3_AnmObj6EA2CDtor, "AnmObj6EA2CDtor");
+REGISTER_NATIVE_FUNCTION_AS(0x80528748, MH3_G3dDestroy_80528748, "G3dDestroy_80528748");
+REGISTER_NATIVE_FUNCTION_AS(0x80534340, MH3_G3dDestroy_80534340, "G3dDestroy_80534340");
+REGISTER_NATIVE_FUNCTION_AS(0x80535728, MH3_G3dDestroy_80535728, "G3dDestroy_80535728");
+REGISTER_NATIVE_FUNCTION_AS(0x805360D8, MH3_G3dDestroy_805360D8, "G3dDestroy_805360D8");
+REGISTER_NATIVE_FUNCTION_AS(0x80538D5C, MH3_G3dDestroy_80538D5C, "G3dDestroy_80538D5C");
+REGISTER_NATIVE_FUNCTION_AS(0x8053B7A4, MH3_G3dDestroy_8053B7A4, "G3dDestroy_8053B7A4");
+REGISTER_NATIVE_FUNCTION_AS(0x80523E5C, MH3_G3dDestroy_80523E5C, "G3dDestroy_80523E5C");
+REGISTER_NATIVE_FUNCTION_AS(0x80523E9C, MH3_G3dDestroy_80523E9C, "G3dDestroy_80523E9C");
+REGISTER_NATIVE_FUNCTION_AS(0x80525100, MH3_G3dDestroy_80525100, "G3dDestroy_80525100");
+REGISTER_NATIVE_FUNCTION_AS(0x80525264, MH3_G3dDestroy_80525264, "G3dDestroy_80525264");
+REGISTER_NATIVE_FUNCTION_AS(0x805253A0, MH3_G3dDestroy_805253A0, "G3dDestroy_805253A0");
+REGISTER_NATIVE_FUNCTION_AS(0x805253E0, MH3_G3dDestroy_805253E0, "G3dDestroy_805253E0");
+REGISTER_NATIVE_FUNCTION_AS(0x80526FF8, MH3_G3dDestroy_80526FF8, "G3dDestroy_80526FF8");
+REGISTER_NATIVE_FUNCTION_AS(0x8052715C, MH3_G3dDestroy_8052715C, "G3dDestroy_8052715C");
+REGISTER_NATIVE_FUNCTION_AS(0x805277FC, MH3_G3dDestroy_805277FC, "G3dDestroy_805277FC");
+REGISTER_NATIVE_FUNCTION_AS(0x80527B48, MH3_G3dDestroy_80527B48, "G3dDestroy_80527B48");

@@ -33,9 +33,11 @@
 
 #include "abi_bridge.h"
 #include "audio/sound_engine.h"
+#include "audio/native_audio.h"
 #include "dev_options.h"
 #include "game_step.h"
 #include "native_effect_draw.h"
+#include "ios_host.h"
 #include "memory.h"
 #include "port_check.h"
 #include <algorithm>
@@ -45,7 +47,7 @@
 namespace {
 
 // Movie player state (0x806D6B80).
-constexpr uint32_t kMovie = 0x806D6B80;
+constexpr uint32_t kMovie = 0x80799B00;
 enum : uint32_t {
     kMovieWidth = 0x00,   // u32 video width
     kMovieHeight = 0x04,  // u32 video height
@@ -58,19 +60,19 @@ enum : uint32_t {
     kFrameDrawn = 0x1A4,  // u8
 };
 
-constexpr uint32_t kResetting = 0x8065AA65;   // u8: reset/fade-out in progress
-constexpr uint32_t kSourceFile = 0x80604BE0;  // "movie.cpp"
-constexpr uint32_t kDecodeError = 0x80604C2C; // "Failed to decode video data"
+constexpr uint32_t kResetting = 0x80768AAD;   // u8: reset/fade-out in progress
+constexpr uint32_t kSourceFile = 0x806454D7;  // "movie.cpp"
+constexpr uint32_t kDecodeError = 0x8064552B; // "Failed to decode video data"
 
 enum : int32_t {
-    kRenderMode = -0x46B8,   // GXRenderModeObj* (r13)
-    kRetraceCount = -0x379C, // VI library retrace count (VIGetRetraceCount, inlined)
+    kRenderMode = -0x4738,   // GXRenderModeObj* (r13)
+    kRetraceCount = -0x3E74, // VI library retrace count (VIGetRetraceCount, inlined)
 };
 
 enum : uint32_t {
-    DecodeFrame = 0x80434FFC, // returns 1 on a decode error
-    DrawFrame = 0x804351C4,   // (rmode, x, y, width, height)
-    OSPanic = 0x804CDD30,
+    DecodeFrame = 0x8040C330, // returns 1 on a decode error
+    DrawFrame = 0x8040C55C,   // (rmode, x, y, width, height)
+    OSPanic = 0x804241EC,
 };
 
 constexpr uint32_t kSoundSlot = 0;
@@ -130,6 +132,8 @@ uint32_t FramesToDecode() {
 } // namespace
 
 static void MovieDrawFrame(CpuContext* ctx) {
+    NativeAudio::ServiceNativeAudio(ctx);
+    PumpIosCompletions(ctx);
     const CpuContext saved = *ctx;
     const uint32_t sda = saved.gpr[13];
     ctx->gpr[1] = (saved.gpr[1] - 0x10) & ~0xFu;
@@ -156,6 +160,8 @@ static void MovieDrawFrame(CpuContext* ctx) {
                 NativeMovieFrameDecoded();
             }
         }
+        NativeAudio::ServiceNativeAudio(ctx);
+        PumpIosCompletions(ctx);
     }
 
     const uint32_t rmode = Memory::Read32(sda + uint32_t(kRenderMode));
@@ -165,7 +171,10 @@ static void MovieDrawFrame(CpuContext* ctx) {
     // above it) and the size too.
     const uint32_t x = (Memory::Read16(rmode + 4) - width) >> 1;
     const uint32_t y = (Memory::Read16(rmode + 6) - height) >> 1;
-    Memory::Write32(kMovie + kDrawResult, call(DrawFrame, {rmode, x, y, width, height}));
+    const uint32_t drawResult = call(DrawFrame, {rmode, x, y, width, height});
+    if (static_cast<int32_t>(drawResult) >= 0) {
+        Memory::Write32(kMovie + kDrawResult, drawResult);
+    }
     Memory::Write32(kMovie + kPendingFlag, 0);
     Memory::Write8(kMovie + kFrameDrawn, 1);
     *ctx = saved;
@@ -174,7 +183,8 @@ static void MovieDrawFrame(CpuContext* ctx) {
 extern "C" void MH3_MovieDrawFrame(CpuContext* ctx) {
     MovieDrawFrame(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804344F8, MH3_MovieDrawFrame, "MovieDrawFrame");
+REGISTER_NATIVE_FUNCTION(0x8040B72C, MH3_MovieDrawFrame);
+REGISTER_NATIVE_FUNCTION(0x8040B810, MH3_MovieDrawFrame);
 
 namespace {
 
@@ -190,30 +200,34 @@ uint32_t MovieFrames() {
 // Check_movie_finish: whether the frame drawn last (DrawFrame's result) is
 // the movie's last, compared unsigned (never with no movie open).
 void CheckMovieFinishPort(CpuContext* ctx) {
-    ctx->gpr[3] = Memory::Read32(kMovie + kDrawResult) >= MovieFrames() - 1;
+    const uint32_t result = Memory::Read32(kMovie + kDrawResult);
+    const uint32_t frames = MovieFrames();
+    if (result == 0xFFFFFFFFu || frames == 0) {
+        ctx->gpr[3] = 0;
+        return;
+    }
+    ctx->gpr[3] = result >= frames - 1;
 }
 
 } // namespace
 
-extern "C" void func_80434604(CpuContext* ctx);
+extern "C" void func_8040B934(CpuContext* ctx);
 
 extern "C" void MH3_MovieFrames(CpuContext* ctx) {
     ctx->gpr[3] = MovieFrames();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804352A4, MH3_MovieFrames, "MovieFrames");
+REGISTER_NATIVE_FUNCTION(0x8040C634, MH3_MovieFrames);
 
 extern "C" void MH3_CheckMovieFinish(CpuContext* ctx) {
-    PortCheck::Call(ctx, "CheckMovieFinish", func_80434604, CheckMovieFinishPort);
+    CheckMovieFinishPort(ctx);
 #ifdef MH3_DEVELOPMENT
-    // As Movie_cut, only with no frame pending (a read or decode in flight
-    // would land in the closed movie's buffers).
     if (skipMovie && Memory::Read32(kMovie + kPendingFlag) == 0) {
         skipMovie = false;
         ctx->gpr[3] = 1;
     }
 #endif
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80434604, MH3_CheckMovieFinish, "Check_movie_finish");
+REGISTER_NATIVE_FUNCTION(0x8040B934, MH3_CheckMovieFinish);
 #ifdef MH3_DEVELOPMENT
 
 bool SkipMovie() {

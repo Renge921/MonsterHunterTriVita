@@ -911,74 +911,74 @@ extern "C" void func_80513010(CpuContext*);
 extern "C" void MH3_NNAddressToString(CpuContext* cpu) {
     PortCheck::Call(cpu, "NNAddressToString", func_80512B80, NNAddressToStringPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512B80, MH3_NNAddressToString, "NNAddressToString");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512B80, MH3_NNAddressToString, "NNAddressToString");
 
 extern "C" void MH3_NatifyThink(CpuContext* cpu) {
     NatifyThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512C70, MH3_NatifyThink, "NatifyThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512C70, MH3_NatifyThink, "NatifyThink");
 
 extern "C" void MH3_NatifyThinkEntry(CpuContext* cpu) {
     NatifyThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513000, MH3_NatifyThinkEntry, "NatifyThinkEntry");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513000, MH3_NatifyThinkEntry, "NatifyThinkEntry");
 
 extern "C" void MH3_DetermineNatType(CpuContext* cpu) {
     PortCheck::Call(cpu, "DetermineNatType", func_80513010, DetermineNatTypePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513010, MH3_DetermineNatType, "DetermineNatType");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513010, MH3_DetermineNatType, "DetermineNatType");
 
 extern "C" void MH3_NNFreeNegotiateList(CpuContext* cpu) {
     NNFreeNegotiateListPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805132D0, MH3_NNFreeNegotiateList, "NNFreeNegotiateList");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805132D0, MH3_NNFreeNegotiateList, "NNFreeNegotiateList");
 
 extern "C" void MH3_NegotiationFinished(CpuContext* cpu) {
     NegotiationFinishedPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513310, MH3_NegotiationFinished, "NegotiationFinished");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513310, MH3_NegotiationFinished, "NegotiationFinished");
 
 extern "C" void MH3_SendInitPackets(CpuContext* cpu) {
     SendInitPacketsPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513510, MH3_SendInitPackets, "SendInitPackets");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513510, MH3_SendInitPackets, "SendInitPackets");
 
 extern "C" void MH3_NatifyStatusThink(CpuContext* cpu) {
     NatifyStatusThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513830, MH3_NatifyStatusThink, "NatifyStatusThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513830, MH3_NatifyStatusThink, "NatifyStatusThink");
 
 extern "C" void MH3_NNCancel(CpuContext* cpu) {
     NNCancelPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513C60, MH3_NNCancel, "NNCancel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513C60, MH3_NNCancel, "NNCancel");
 
 extern "C" void MH3_NegotiateThink(CpuContext* cpu) {
     NegotiateThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80513D10, MH3_NegotiateThink, "NegotiateThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80513D10, MH3_NegotiateThink, "NegotiateThink");
 
 extern "C" void MH3_NNThink(CpuContext* cpu) {
     NNThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514230, MH3_NNThink, "NNThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514230, MH3_NNThink, "NNThink");
 
 extern "C" void MH3_ProcessConnectPacket(CpuContext* cpu) {
     ProcessConnectPacketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805142B0, MH3_ProcessConnectPacket, "ProcessConnectPacket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805142B0, MH3_ProcessConnectPacket, "ProcessConnectPacket");
 
 extern "C" void MH3_ProcessPingPacket(CpuContext* cpu) {
     ProcessPingPacketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514500, MH3_ProcessPingPacket, "ProcessPingPacket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514500, MH3_ProcessPingPacket, "ProcessPingPacket");
 
 extern "C" void MH3_ProcessInitAckPacket(CpuContext* cpu) {
     ProcessInitAckPacketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514880, MH3_ProcessInitAckPacket, "ProcessInitAckPacket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514880, MH3_ProcessInitAckPacket, "ProcessInitAckPacket");
 
 extern "C" void MH3_NNProcessData(CpuContext* cpu) {
     NNProcessDataPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80514A80, MH3_NNProcessData, "NNProcessData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80514A80, MH3_NNProcessData, "NNProcessData");

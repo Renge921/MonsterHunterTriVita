@@ -73,6 +73,10 @@ void ShellRateAddGPort(CpuContext* ctx) {
     AddScaled(shell + kVelocity, shell + kAcceleration, s);
 }
 
+// VecAddInPlace (PAL 0x80073FCC) and VecMagWrapper (PAL 0x80050F88) remain
+// disabled on RMHJ08 because JPN uses direct paired-single velocity helpers
+// (e.g. 0x80170F84 EnemyAddVelocity, 0x80170FA8 EnemyAddVelAcc) and PSVECMag.
+#if 0
 // VecAddInPlace calls that move by a rate, by return address (the bl + 4).
 constexpr uint32_t kRateCalls[] = {
     0x801354ACu, 0x801354B8u,                           // 0x8013548C enemy: position += velocity, velocity += acceleration
@@ -140,96 +144,73 @@ float VecMagWrapper(uint32_t lr, uint32_t v) {
 void VecMagWrapperPort(CpuContext* ctx) {
     ctx->fpr[1].d = VecMagWrapper(ctx->lr, ctx->gpr[3]);
 }
+#endif
 
 constexpr uint32_t kTintPhases[] = {0x13E, 0x140}; // u16
 
 } // namespace
 
-extern "C" void func_802AB3A8(CpuContext* ctx);
+extern "C" void func_80362D28(CpuContext* ctx);
 extern "C" void MH3_ShellRateAdd(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ShellRateAdd", func_802AB3A8, ShellRateAddPort);
+    PortCheck::Call(ctx, "ShellRateAdd", func_80362D28, ShellRateAddPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AB3A8, MH3_ShellRateAdd, "ShellRateAdd");
+REGISTER_NATIVE_FUNCTION_AS(0x80362D28, MH3_ShellRateAdd, "ShellRateAdd");
 
-extern "C" void func_802AB3B8(CpuContext* ctx);
+extern "C" void func_80362D4C(CpuContext* ctx);
 extern "C" void MH3_ShellRateAddG(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ShellRateAddG", func_802AB3B8, ShellRateAddGPort);
+    PortCheck::Call(ctx, "ShellRateAddG", func_80362D4C, ShellRateAddGPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802AB3B8, MH3_ShellRateAddG, "ShellRateAddG");
+REGISTER_NATIVE_FUNCTION_AS(0x80362D4C, MH3_ShellRateAddG, "ShellRateAddG");
 
-extern "C" void func_80073FCC(CpuContext* ctx);
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80073FCC, MH3_VecAddInPlace, "VecAddInPlace");
 
-// The registered body names only r1, r3, r4 and lr, so callers keep a precise
-// call boundary; MH3_PORT_CHECK=VecAddInPlace checks the written vector.
-static void VecAddInPlaceChecked([[maybe_unused]] uint32_t r1, uint32_t lr, uint32_t out, uint32_t add) {
-#ifdef MH3_DEVELOPMENT
-    const bool check = PortCheck::Enabled("VecAddInPlace");
-
-    if (check) [[unlikely]] {
-        CpuContext* c = TryGetCpuContext();
-        c->gpr[1] = r1;
-        c->gpr[3] = out;
-        c->gpr[4] = add;
-        c->lr = lr;
-        PortCheck::RunOutput(c, "VecAddInPlace", func_80073FCC, VecAddInPlacePort, {{out, 12}});
-        return;
-    }
-#endif
-    VecAddInPlace(lr, out, add);
-}
-
-extern "C" void MH3_VecAddInPlace(CpuContext* ctx) {
-    VecAddInPlaceChecked(ctx->gpr[1], ctx->lr, ctx->gpr[3], ctx->gpr[4]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x80073FCC, MH3_VecAddInPlace, "VecAddInPlace");
-
-// 0x8013547C: enemy position (+0x188) += velocity (+0x310), a tail call of
-// VecAddInPlace from its callers (whose return addresses it then sees): the
-// move of every enemy that calls it, so it always takes the step's share.
-constexpr uint32_t kEnemyPosition = 0x188, kEnemyVelocity = 0x310;
+// 0x80170F84: enemy position (+0x188) += velocity (+0x310) (leaves r3/r4 untouched).
+// 0x80170FA8: enemy position (+0x188) += velocity (+0x310), velocity += acceleration (+0x31C).
+constexpr uint32_t kEnemyPosition = 0x188, kEnemyVelocity = 0x310, kEnemyAcceleration = 0x31C;
 static void EnemyAddVelocityPort(CpuContext* ctx) {
     const uint32_t enemy = ctx->gpr[3];
     AddScaled(enemy + kEnemyPosition, enemy + kEnemyVelocity, float(GameStep::Scale()));
-    ctx->gpr[3] = enemy + kEnemyPosition;
-    ctx->gpr[4] = enemy + kEnemyVelocity;
 }
 
-extern "C" void func_8013547C(CpuContext* ctx);
+extern "C" void func_80170F84(CpuContext* ctx);
 extern "C" void MH3_EnemyAddVelocity(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
     const bool check = PortCheck::Enabled("EnemyAddVelocity");
 
     if (check) [[unlikely]] {
-        PortCheck::RunOutput(ctx, "EnemyAddVelocity", func_8013547C, EnemyAddVelocityPort, {{ctx->gpr[3] + kEnemyPosition, 12}});
+        PortCheck::RunOutput(ctx, "EnemyAddVelocity", func_80170F84, EnemyAddVelocityPort, {{ctx->gpr[3] + kEnemyPosition, 12}});
         return;
     }
 #endif
     EnemyAddVelocityPort(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8013547C, MH3_EnemyAddVelocity, "EnemyAddVelocity");
+REGISTER_NATIVE_FUNCTION_AS(0x80170F84, MH3_EnemyAddVelocity, "EnemyAddVelocity");
 
-extern "C" void func_80050F88(CpuContext* ctx);
-static double VecMagWrapperChecked(uint32_t lr, uint32_t v) {
+static void EnemyAddVelAccPort(CpuContext* ctx) {
+    const uint32_t enemy = ctx->gpr[3];
+    const float s = float(GameStep::Scale());
+    AddScaled(enemy + kEnemyPosition, enemy + kEnemyVelocity, s);
+    AddScaled(enemy + kEnemyVelocity, enemy + kEnemyAcceleration, s);
+}
+
+extern "C" void func_80170FA8(CpuContext* ctx);
+extern "C" void MH3_EnemyAddVelAcc(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    const bool check = PortCheck::Enabled("VecMagWrapper");
+    const bool check = PortCheck::Enabled("EnemyAddVelAcc");
 
     if (check) [[unlikely]] {
-        CpuContext* c = TryGetCpuContext();
-        c->gpr[3] = v;
-        c->lr = lr;
-        PortCheck::RunPure(c, "VecMagWrapper", PortCheck::Returns::Fpr1, func_80050F88, VecMagWrapperPort);
-        return c->fpr[1].d;
+        PortCheck::RunOutput(ctx, "EnemyAddVelAcc", func_80170FA8, EnemyAddVelAccPort,
+                             {{ctx->gpr[3] + kEnemyPosition, 12}, {ctx->gpr[3] + kEnemyVelocity, 12}});
+        return;
     }
 #endif
-    return VecMagWrapper(lr, v);
+    EnemyAddVelAccPort(ctx);
 }
+REGISTER_NATIVE_FUNCTION_AS(0x80170FA8, MH3_EnemyAddVelAcc, "EnemyAddVelAcc");
 
-extern "C" void MH3_VecMagWrapper(CpuContext* ctx) {
-    ctx->fpr[1].d = VecMagWrapperChecked(ctx->lr, ctx->gpr[3]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x80050F88, MH3_VecMagWrapper, "VecMagWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050F88, MH3_VecMagWrapper, "VecMagWrapper");
 
-extern "C" void func_802E77EC(CpuContext* ctx);
+extern "C" void func_801911BC(CpuContext* ctx);
 extern "C" void MH3_PlayerTintPulse(CpuContext* ctx) {
     const uint32_t work = ctx->gpr[3];
     uint16_t before[2];
@@ -237,7 +218,7 @@ extern "C" void MH3_PlayerTintPulse(CpuContext* ctx) {
     for (int i = 0; i < 2; ++i)
         before[i] = Memory::Read16(work + kTintPhases[i]);
 
-    func_802E77EC(ctx);
+    func_801911BC(ctx);
 
     if (GameStep::Scale() == 1.0)
         return;
@@ -251,11 +232,11 @@ extern "C" void MH3_PlayerTintPulse(CpuContext* ctx) {
         Memory::Write16(work + kTintPhases[i], uint16_t(before[i] + GameStep::Share(advance)));
     }
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802E77EC, MH3_PlayerTintPulse, "PlayerTintPulse");
+REGISTER_NATIVE_FUNCTION_AS(0x801911BC, MH3_PlayerTintPulse, "PlayerTintPulse");
 
-extern "C" void func_80130460(CpuContext* ctx);
+extern "C" void func_8016A678(CpuContext* ctx);
 extern "C" void MH3_EnemyHeightAdd(CpuContext* ctx) {
     ctx->fpr[1].d = float(ctx->fpr[1].d * GameStep::Scale());
-    func_80130460(ctx);
+    func_8016A678(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80130460, MH3_EnemyHeightAdd, "EnemyHeightAdd");
+REGISTER_NATIVE_FUNCTION_AS(0x8016A678, MH3_EnemyHeightAdd, "EnemyHeightAdd");

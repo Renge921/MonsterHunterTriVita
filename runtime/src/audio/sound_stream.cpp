@@ -109,14 +109,14 @@ enum : uint32_t {
 };
 
 // Guest functions.
-constexpr uint32_t kDvdReadAsyncPrio = 0x804A69A0;  // (file, buffer, length, offset, callback, priority)
-constexpr uint32_t kDvdCancelAsync = 0x804AAE90;    // (block, callback)
-constexpr uint32_t kDvdClose = 0x804A67A0;          // (file)
-constexpr uint32_t kDvdGetCommandBlockStatus = 0x804AACC0;
+constexpr uint32_t kDvdReadAsyncPrio = 0x80430FD4;  // JPN RMHJ08 (was 0x804A69A0)
+constexpr uint32_t kDvdCancelAsync = 0x804354E0;    // JPN RMHJ08 (was 0x804AAE90)
+constexpr uint32_t kDvdClose = 0x80430DF0;          // JPN RMHJ08 (was 0x804A67A0)
+constexpr uint32_t kDvdGetCommandBlockStatus = 0x8043531C; // JPN RMHJ08 (was 0x804AACC0)
 
 // The DVD callbacks below (their guest addresses are passed to the reads).
-constexpr uint32_t kReadLeftDone = 0x800EA6E4, kReadRightDone = 0x800EA848, kReadLeftRestDone = 0x800EA9C8, kReadRightRestDone = 0x800EAAB8;
-constexpr uint32_t kCancelDone = 0x800EAB7C;
+constexpr uint32_t kReadLeftDone = 0x80368B60, kReadRightDone = 0x80368CCC, kReadLeftRestDone = 0x80368DB0, kReadRightRestDone = 0x80368E50; // JPN RMHJ08
+constexpr uint32_t kCancelDone = 0x80368E2C; // JPN RMHJ08 (was 0x800EAB7C)
 
 uint32_t ChannelBytes() {
     return FlatRead32(kStreamChannelBytes);
@@ -1122,31 +1122,10 @@ void MH3_StreamSamplesToAddress(CpuContext* cpu) {  // 0x800EE9DC (info, samples
 
 } // extern "C"
 
-REGISTER_NATIVE_FUNCTION_AS(0x800EADE4, MH3_StreamTick, "StreamTick");
-REGISTER_NATIVE_FUNCTION_AS(0x800EAFAC, MH3_StreamUpdate, "StreamUpdate");
-REGISTER_NATIVE_FUNCTION_AS(0x800EAF10, MH3_StreamVoiceDropped, "StreamVoiceDropped");
-REGISTER_NATIVE_FUNCTION_AS(0x800E9EB8, MH3_StreamVoiceCallback, "StreamVoiceCallback");
-REGISTER_NATIVE_FUNCTION_AS(0x800ED07C, MH3_StreamStop, "StreamStop");
-REGISTER_NATIVE_FUNCTION_AS(0x800ED120, MH3_StreamPause, "StreamPause");
-REGISTER_NATIVE_FUNCTION_AS(0x800ED198, MH3_StreamResume, "StreamResume");
-REGISTER_NATIVE_FUNCTION_AS(0x800EB128, MH3_StreamStart, "StreamStart");
-REGISTER_NATIVE_FUNCTION_AS(0x800EB378, MH3_StreamUpdateVolume, "StreamUpdateVolume");
-REGISTER_NATIVE_FUNCTION_AS(0x800EABBC, MH3_StreamFollow, "StreamFollow");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA4A8, MH3_StreamSetVoiceRing, "StreamSetVoiceRing");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA5EC, MH3_StreamSeek, "StreamSeek");
-REGISTER_NATIVE_FUNCTION_AS(0x800ECDE0, MH3_StreamServiceDisc, "StreamServiceDisc");
-REGISTER_NATIVE_FUNCTION_AS(0x800ECEBC, MH3_StreamRefill, "StreamRefill");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE5EC, MH3_StreamSetupVoice, "StreamSetupVoice");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE7E4, MH3_StreamSetupVoices, "StreamSetupVoices");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA6E4, MH3_StreamReadLeftDone, "StreamReadLeftDone");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA848, MH3_StreamReadRightDone, "StreamReadRightDone");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA9C8, MH3_StreamReadLeftRestDone, "StreamReadLeftRestDone");
-REGISTER_NATIVE_FUNCTION_AS(0x800EAAB8, MH3_StreamReadRightRestDone, "StreamReadRightRestDone");
-REGISTER_NATIVE_FUNCTION_AS(0x800EAB7C, MH3_StreamCancelDone, "StreamCancelDone");
-REGISTER_NATIVE_FUNCTION_AS(0x800EBAAC, MH3_StreamTakeBuffer, "StreamTakeBuffer");
-REGISTER_NATIVE_FUNCTION_AS(0x800EBB04, MH3_StreamGiveBuffer, "StreamGiveBuffer");
-REGISTER_NATIVE_FUNCTION_AS(0x800EA81C, MH3_StreamRoundUp, "StreamRoundUp");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE8CC, MH3_StreamBytesToAddress, "StreamBytesToAddress");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE918, MH3_StreamAddressToBytes, "StreamAddressToBytes");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE964, MH3_StreamSamplesToBytes, "StreamSamplesToBytes");
-REGISTER_NATIVE_FUNCTION_AS(0x800EE9DC, MH3_StreamSamplesToAddress, "StreamSamplesToAddress");
+REGISTER_NATIVE_FUNCTION(0x80368260, MH3_StreamVoiceCallback);
+REGISTER_NATIVE_FUNCTION(0x80368B60, MH3_StreamReadLeftDone);
+REGISTER_NATIVE_FUNCTION(0x80368CCC, MH3_StreamReadRightDone);
+REGISTER_NATIVE_FUNCTION(0x80368DB0, MH3_StreamReadLeftRestDone);
+REGISTER_NATIVE_FUNCTION(0x80368E50, MH3_StreamReadRightRestDone);
+REGISTER_NATIVE_FUNCTION(0x80368E2C, MH3_StreamCancelDone);
+REGISTER_NATIVE_FUNCTION(0x80369308, MH3_StreamStart);

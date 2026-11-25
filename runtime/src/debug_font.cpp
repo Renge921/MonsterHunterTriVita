@@ -29,7 +29,12 @@
 //
 // An imported language's font (language_pack.h) goes on after the table, in a
 // larger atlas holding the European glyphs at their cells.
+//
+// Note: In Japanese MH3 (RMHJ08), text encoding is Shift-JIS, so this PAL UTF-8
+// optimization is disabled below via #if 0.
 #include "abi_bridge.h"
+
+#if 0 // Disabled for Japanese ROM (RMHJ08)
 #include "fatal.h"
 #include "guest_flat_memory.h"
 #include "language_pack.h"
@@ -338,42 +343,5 @@ extern "C" void MH3_FontGlyphIndex(CpuContext* ctx) {
     if (PortCheck::RunPurePrecise("FontGlyphIndex", ctx->gpr[1], PortCheck::Returns::Gpr3, func_8005BF84, GlyphIndexPort)) [[unlikely]]
         return;
 #endif
-    ctx->gpr[3] = GlyphIndex(GlyphMap(), ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8005BF84, MH3_FontGlyphIndex, "FontGlyphIndex");
-
-extern "C" void MH3_FontTextColumns(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPurePrecise("FontTextColumns", ctx->gpr[1], PortCheck::Returns::Gpr3, func_8005B83C, TextColumnsPort)) [[unlikely]]
-        return;
-#endif
-    ctx->gpr[3] = TextColumns(ctx->gpr[3]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8005B83C, MH3_FontTextColumns, "FontTextColumns");
-
-extern "C" void MH3_FlKnjMsgNumPtr(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPurePrecise("flKnjMsgNumPtr", ctx->gpr[1], PortCheck::Returns::Gpr3, func_8005B8DC, TextAfterColumnsPort)) [[unlikely]]
-        return;
-#endif
-    ctx->gpr[3] = TextAfterColumns(ctx->gpr[3], int32_t(ctx->gpr[4]));
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8005B8DC, MH3_FlKnjMsgNumPtr, "flKnjMsgNumPtr");
-
-extern "C" void MH3_FontGlyphColumns(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPurePrecise("FontGlyphColumns", ctx->gpr[1], PortCheck::Returns::Gpr3, func_8005BFCC, GlyphColumnsPort)) [[unlikely]]
-        return;
-#endif
-    ctx->gpr[3] = GlyphColumns(ctx->gpr[3]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8005BFCC, MH3_FontGlyphColumns, "FontGlyphColumns");
-
-extern "C" void MH3_FontPutsText(CpuContext* ctx) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("FontPutsText", ctx->gpr[1], func_8005C040, PutsTextPort)) [[unlikely]]
-        return;
-#endif
-    PutsText(ctx->gpr[3], ctx->gpr[29]);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8005C040, MH3_FontPutsText, "FontPutsText");
+#endif // Disabled for Japanese ROM (RMHJ08)

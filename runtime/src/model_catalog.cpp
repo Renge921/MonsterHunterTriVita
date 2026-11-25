@@ -10,10 +10,12 @@
 #include "runtime/native/adapters/model_catalog_bridge.h"
 #include "runtime/native/adapters/model_pose_bridge.h"
 #include "runtime/native/adapters/model_scope_bridge.h"
+#include "runtime/native/mh3_model_runtime.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -32,6 +34,8 @@
 #ifdef __vita__
 #include <psp2/kernel/threadmgr.h>
 #endif
+
+const mh3_res_memory& MH3NativeResourceMemory();
 
 namespace {
 constexpr size_t capacity = 8192;
@@ -588,14 +592,14 @@ void QuiesceDraw(Tracked&& tracked) {
 #endif
 }
 
-// The pose versions and vertex caches the draw thread uses while the next
-// logic step copies and retires guest memory: the game thread's retirements
-// of them wait for the next handoff (ApplyDeferredDrawCacheRetirements), when
-// the draw is done. The draw drew the step before, which the old entries show.
+// The pose versions and vertex caches the draw thread uses while non-draw
+// threads copy and retire guest memory: their retirements of them wait for the
+// next handoff (ApplyDeferredDrawCacheRetirements), when the draw is done.
+// The draw drew the step before, which the old entries show.
 std::vector<std::pair<uint32_t, uint32_t>> deferredRetirements;
 
 void RetireDrawCaches(uint32_t address, uint32_t bytes) {
-    if (PpcThread::CurrentThread() == PpcThread::Game && DrawThread::Thread().Pending()) {
+    if (PpcThread::CurrentThread() != PpcThread::Draw && DrawThread::Thread().Pending()) {
         deferredRetirements.emplace_back(address, bytes);
         return;
     }
@@ -991,10 +995,15 @@ Status TryResolveOwner(uint32_t model_address, NativeModelOwner& owner) {
     }
 
     mh3_source_identity identity{};
+    Status ensure;
     const auto source_status = mh3_source_resolve(&C().tracker, model_address, 16, &identity);
 
+    // A failed admission is not final: the model may still certify against an
+    // already resident pack (the same bytes converted from another file, as
+    // character creation's heap copies are), and the header fallback below may
+    // identify it. Its reason is reported only if nothing else resolves it.
     if (source_status == MH3_RES_OK)
-        MH3_RETURN_IF_ERROR(TryEnsureNativeModelAssets(identity.partition_offset, 16));
+        ensure = TryEnsureNativeModelAssets(identity.partition_offset, 16);
     else if (source_status != MH3_RES_ABSENT)
         return CheckedStatus(source_status);
 
@@ -1060,6 +1069,242 @@ Status TryResolveOwner(uint32_t model_address, NativeModelOwner& owner) {
         return {};
     }
 
+    // Direct MDL0 header fallback for models allocated or copied outside strict
+    // tracker ranges (character creation copies a model into its own heap, and
+    // the copy is not a tracked disc read). Size and revision alone often match
+    // several catalog entries (f_arm000, f_hair000 and m_face000 share theirs),
+    // so two guest facts pick between them: the parent word at +12 must
+    // canonicalize to the container the catalog's model offset implies, and the
+    // shape dictionary's entries must sit where the catalog's shapes say they do
+    // (the same acceptance TryResolveResource applies to each reference).
+    uint32_t magic = 0, model_bytes = 0, revision = 0;
+    if (ReadGuest32(model_address, magic).ok() && magic == 0x4D444C30 &&
+        ReadGuest32(model_address + 4, model_bytes).ok() &&
+        ReadGuest32(model_address + 8, revision).ok()) {
+        uint32_t parent_word = 0, guest_parent = 0;
+        const bool have_parent = ReadGuest32(model_address + 12, parent_word).ok() && CanonicalAddress(model_address + parent_word, 1, guest_parent).ok();
+        uint32_t bres_magic = 0, guest_file_bytes = 0;
+        const bool have_file_bytes = have_parent && ReadGuest32(guest_parent, bres_magic).ok() && bres_magic == 0x62726573u && ReadGuest32(guest_parent + 8, guest_file_bytes).ok();
+
+        // Each guest shape's offset from the model address, model name,
+        // material names, and single-shape bounds; empty when the model's
+        // own dictionaries cannot be read.
+        std::vector<uint32_t> shape_offsets;
+        std::string guest_model_name;
+        std::vector<std::string> material_names;
+        bool have_shape0_bounds = false;
+        float shape0_bounds[6]{};
+        {
+            mh3_res_memory_view view{};
+            mh3_res_model guest{};
+            size_t dictionary = 0;
+            uint32_t count = 0;
+
+            if (mh3_res_runtime_map(&MH3NativeResourceMemory(), model_address, 16, &view) == MH3_RES_OK && mh3_res_model_open(view.span, view.offset, &guest) == MH3_RES_OK) {
+                const size_t name_field = guest.version == 11 ? 0x48u : 0x3Cu;
+                size_t name_at = 0;
+
+                if (mh3_res_relative(view.span, guest.offset, guest.offset + name_field, 1, &name_at) == MH3_RES_OK) {
+                    const auto* s = reinterpret_cast<const char*>(view.span.data + name_at);
+                    const size_t avail = std::min<size_t>(256, view.span.size - name_at);
+
+                    if (const void* nul = std::memchr(s, 0, avail))
+                        guest_model_name.assign(s, static_cast<const char*>(nul) - s);
+                }
+
+                if (mh3_res_model_dictionary(&guest, MH3_RES_SHAPES, &dictionary, &count) == MH3_RES_OK && count && count <= 4096) {
+                    shape_offsets.reserve(count);
+
+                    for (uint32_t i = 0; i < count; ++i) {
+                        mh3_res_entry entry{};
+
+                        if (mh3_res_model_entry(&guest, MH3_RES_SHAPES, i, &entry) != MH3_RES_OK) {
+                            shape_offsets.clear();
+                            break;
+                        }
+
+                        shape_offsets.push_back(view.guest_base + uint32_t(entry.offset) - model_address);
+                    }
+                }
+
+                size_t mat_dic = 0;
+                uint32_t mat_count = 0;
+
+                if (mh3_res_model_dictionary(&guest, MH3_RES_MATERIALS, &mat_dic, &mat_count) == MH3_RES_OK && mat_count && mat_count <= 4096) {
+                    material_names.reserve(mat_count);
+
+                    for (uint32_t i = 0; i < mat_count; ++i) {
+                        mh3_res_entry entry{};
+
+                        if (mh3_res_model_entry(&guest, MH3_RES_MATERIALS, i, &entry) != MH3_RES_OK) {
+                            material_names.clear();
+                            break;
+                        }
+
+                        material_names.emplace_back(entry.name ? entry.name : "");
+                    }
+                }
+
+                if (shape_offsets.size() == 1) {
+                    mh3_res_shape shp0{};
+                    mh3_res_entry pos_arr{};
+
+                    if (mh3_res_shape_open(&guest, 0, &shp0) == MH3_RES_OK && mh3_res_shape_array(&guest, &shp0, 0, &pos_arr) == MH3_RES_OK && pos_arr.offset + 56 <= view.span.size) {
+                        const auto be_f32 = [](const uint8_t* bytes) {
+                            const uint32_t bits = (uint32_t(bytes[0]) << 24) | (uint32_t(bytes[1]) << 16) | (uint32_t(bytes[2]) << 8) | bytes[3];
+                            float value;
+                            std::memcpy(&value, &bits, 4);
+                            return value;
+                        };
+                        bool valid = true;
+
+                        for (unsigned k = 0; k < 6; ++k) {
+                            shape0_bounds[k] = be_f32(view.span.data + pos_arr.offset + 32 + k * 4);
+                            valid = valid && std::isfinite(shape0_bounds[k]);
+                        }
+
+                        have_shape0_bounds = valid;
+                    }
+                }
+            }
+        }
+
+        const Pack* best_pack = nullptr;
+        mh3_catalog_model best_model{};
+        const char* best_name = "";
+        uint32_t best_index = 0, best_container = 0;
+        int best_score = INT32_MIN;
+
+        for (const auto& p : Packs()) {
+            for (uint32_t j = 0; j < p.catalog->model_count; j++) {
+                mh3_catalog_model model{};
+                mh3_model_catalog_model(p.catalog, j, &model);
+
+                if (model.model_bytes != model_bytes || model.revision != revision)
+                    continue;
+
+                const uint32_t container_address = model_address - model.model_offset;
+                mh3_pack_model pm{};
+                const bool have_pm = mh3_mesh_pack_model(p.pack, model.pack_index, &pm) == MH3_PACK_OK;
+                int score = 0;
+
+                if (source_status == MH3_RES_OK && identity.partition_offset == model.partition_offset + model.model_offset)
+                    score += 4096;
+
+                if (!guest_model_name.empty() && have_pm && pm.name)
+                    score += guest_model_name == pm.name ? 1024 : -1024;
+
+                if (have_file_bytes)
+                    score += guest_file_bytes == model.file_bytes ? 256 : -128;
+
+                if (have_parent) {
+                    uint32_t candidate_container = 0;
+
+                    if (CanonicalAddress(container_address, 1, candidate_container).ok() && candidate_container == guest_parent)
+                        score += 64;
+                }
+
+                if (!shape_offsets.empty()) {
+                    uint32_t matched = 0;
+
+                    for (uint32_t i = 0; i < model.shape_count; i++) {
+                        mh3_catalog_resource resource{};
+
+                        if (mh3_model_catalog_resource(p.catalog, 0, model.shape_first + i, &resource) != MH3_PACK_OK)
+                            continue;
+
+                        const uint32_t expected = resource.source_offset - model.model_offset;
+
+                        for (uint32_t offset : shape_offsets) {
+                            if (offset != expected)
+                                continue;
+
+                            matched++;
+                            break;
+                        }
+                    }
+
+                    if (model.shape_count == shape_offsets.size() && model.shape_count && matched == model.shape_count)
+                        score += 32;
+                    else if (matched)
+                        score += int(matched) * 4 - 8;
+                    else
+                        score -= 8;
+                }
+
+                if (have_shape0_bounds && model.shape_count == 1) {
+                    mh3_catalog_resource r0{};
+                    mh3_pack_mesh m0{};
+
+                    if (mh3_model_catalog_resource(p.catalog, 0, model.shape_first, &r0) == MH3_PACK_OK && r0.pack_index != UINT32_MAX &&
+                        mh3_mesh_pack_mesh(p.pack, r0.pack_index, &m0) == MH3_PACK_OK) {
+                        bool bounds_match = true;
+
+                        for (unsigned k = 0; k < 3; ++k) {
+                            if (std::fabs(shape0_bounds[k] - m0.bounds_min[k]) > 0.05f || std::fabs(shape0_bounds[3 + k] - m0.bounds_max[k]) > 0.05f) {
+                                bounds_match = false;
+                                break;
+                            }
+                        }
+
+                        score += bounds_match ? 256 : -256;
+                    }
+                }
+
+                if (!material_names.empty()) {
+                    score += model.material_count == material_names.size() ? 32 : -32;
+
+                    if (model.material_count == material_names.size()) {
+                        const uint32_t check_count = std::min<uint32_t>(uint32_t(material_names.size()), 8u);
+                        bool all_match = true;
+
+                        for (uint32_t i = 0; i < check_count; ++i) {
+                            mh3_catalog_resource mr{};
+                            mh3_pack_material pmat{};
+
+                            if (mh3_model_catalog_find_resource(p.catalog, j, 1, i, &mr) != MH3_PACK_OK || mh3_mesh_pack_material(p.pack, mr.pack_index, &pmat) != MH3_PACK_OK || !pmat.name ||
+                                material_names[i] != pmat.name) {
+                                all_match = false;
+                                break;
+                            }
+                        }
+
+                        score += all_match ? 128 : -64;
+                    }
+                }
+
+                if (score <= best_score)
+                    continue;
+
+                best_score = score;
+                best_pack = &p;
+                best_model = model;
+                best_name = have_pm && pm.name ? pm.name : "";
+                best_index = j;
+                best_container = container_address;
+            }
+        }
+
+        if (best_pack) {
+#ifdef MH3_DEVELOPMENT
+            static std::atomic<uint32_t> notes{0};
+
+            if (notes.fetch_add(1, std::memory_order_relaxed) < 16)
+                std::fprintf(stderr, "MH3 diag: owner fallback model=%08x name=%s guest=%s model_index=%u container=%08x score=%d shapes=%u\n", model_address, best_name,
+                             guest_model_name.c_str(), best_index, best_container, best_score, uint32_t(shape_offsets.size()));
+#endif
+
+            owner = {best_pack->pack, best_pack->catalog, best_index, best_container, model_address, best_pack->handle, best_pack->generation, 1};
+            CachedOwner cert{owner, {best_container, model_address, best_index, best_model.file_bytes, 1}, nullptr};
+            std::vector<CachedOwner> siblings{cert};
+            Certify(siblings);
+            return {};
+        }
+    }
+
+    if (!ensure.ok())
+        return Status::Error("Model has no complete native loader provenance or external converted pack: " + ensure.message());
+
     return Status::Error("Model has no complete native loader provenance or external converted pack");
 }
 } // namespace
@@ -1109,13 +1354,20 @@ Status TryResolveResource(const NativeModelOwner& owner, uint32_t resource, bool
         return {};
     }
 
-    if (resource < owner.container_address)
-        return Status::Error("Native model resource precedes its container");
+    mh3_catalog_model model{};
+    mh3_model_catalog_model(owner.catalog, owner.catalog_model_index, &model);
 
-    uint32_t id = 0, word = 0;
+    if (resource < owner.model_address || (model.model_bytes && resource >= owner.model_address + model.model_bytes))
+        return Status::Error("Native model resource is out of model bounds");
+
+    uint32_t id = 0, word = 0, parent = 0;
     MH3_RETURN_IF_ERROR(ReadGuest32(resource + (material ? 12 : 60), id));
     mh3_catalog_resource r{};
-    bool differs = mh3_model_catalog_find_resource(owner.catalog, owner.catalog_model_index, material, id, &r) != MH3_PACK_OK || resource - owner.container_address != r.source_offset;
+    bool differs = mh3_model_catalog_find_resource(owner.catalog, owner.catalog_model_index, material, id, &r) != MH3_PACK_OK;
+    const uint32_t expected_offset = r.source_offset - model.model_offset;
+    const uint32_t actual_offset = resource - owner.model_address;
+    if (!differs)
+        differs = (actual_offset != expected_offset && resource - owner.container_address != r.source_offset);
 
     if (!differs) {
         MH3_RETURN_IF_ERROR(ReadGuest32(resource, word));
@@ -1123,14 +1375,24 @@ Status TryResolveResource(const NativeModelOwner& owner, uint32_t resource, bool
     }
 
     if (!differs) {
-        uint32_t parent = 0;
         MH3_RETURN_IF_ERROR(ReadGuest32(resource + 4, word));
         MH3_RETURN_IF_ERROR(CanonicalAddress(resource + word, 1, parent));
-        differs = parent != owner.model_address;
+        differs = (parent != owner.model_address && parent != owner.container_address && actual_offset != expected_offset);
     }
 
-    if (differs)
+    if (differs) {
+        // stderr, throttled: the Vita redirects stderr to mh3.log in every
+        // build, while stdout has nowhere to go once the console is gone.
+        static std::atomic<uint32_t> notes{0};
+
+        if (notes.fetch_add(1, std::memory_order_relaxed) < 16)
+            std::fprintf(stderr,
+                         "MH3 diag: subresource identity material=%d id=%u resource=%08x model=%08x actual_off=%08x expected_off=%08x container=%08x offset=%08x word=%08x bytes=%08x "
+                         "parent=%08x\n",
+                         material, id, resource, owner.model_address, actual_offset, expected_offset, owner.container_address, r.source_offset, word, r.source_bytes, parent);
+
         return Status::Error("Native model subresource identity differs from registered source");
+    }
 
     C().resources.insert_or_assign(key, CachedResource{C().source_epoch, owner.source_generation, r});
     result = r;
@@ -1255,10 +1517,17 @@ size_t CertifyLoadedNativeModels() {
                 mh3_catalog_model model{};
                 mh3_model_catalog_model(p.catalog, j, &model);
 
-                if (model.partition_offset != candidate.file || uint64_t(candidate.container) + model.model_offset > UINT32_MAX)
+                if (model.partition_offset < candidate.file || model.partition_offset - candidate.file >= candidate.bytes ||
+                    model.file_bytes > candidate.bytes - (model.partition_offset - candidate.file))
                     continue;
 
-                const uint32_t address = candidate.container + model.model_offset;
+                const uint64_t sub_offset = model.partition_offset - candidate.file;
+                const uint64_t model_addr64 = uint64_t(candidate.container) + sub_offset + model.model_offset;
+
+                if (model_addr64 > UINT32_MAX)
+                    continue;
+
+                const uint32_t address = uint32_t(model_addr64);
                 mh3_source_owner certificate{};
 
                 if (!C().owners.contains(address) && mh3_source_owner_certify(&c.tracker, p.catalog, address, &certificate) == MH3_RES_OK)
@@ -1733,8 +2002,10 @@ void CopyNativeLiveMaterialBlock(uint32_t destination, uint32_t source, mh3_mode
 extern "C" void MH3_ModelMemcpy(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80004000, MH3_ModelMemcpy, "NativeResourceMemcpy");
+// JPN (RMHJ08): memcpy is at 0x80004338 (PAL was 0x80004000)
+REGISTER_NATIVE_FUNCTION(0x80004338, MH3_ModelMemcpy);
 extern "C" void MH3_ModelMemmove(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8045BC18, MH3_ModelMemmove, "NativeResourceMemmove");
+// JPN (RMHJ08): memmove is at 0x80458CFC (PAL was 0x8045BC18)
+REGISTER_NATIVE_FUNCTION(0x80458CFC, MH3_ModelMemmove);

@@ -63,14 +63,14 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
 
     if (S8(R32(0x809d3568) + 0x10fd) != '\0') {
         C(0x80984e10, 0x8099d990, R32(0x8099faf0 + (R8(0x8099d990)) * 4) + S16(0x8099d998) * 8, R32(0x8099d994), (int)sVar24, 0);
-        sVar6 = C(0x8005b738);
-        sVar7 = C(0x8005b75c);
+        sVar6 = C(0x80295228);
+        sVar7 = C(0x8029524c);
         puVar13 = R32(0x809a7980 + (R8(0x8065aa69)) * 4);
-        C(0x8005b714, 0x14, 0x14);
-        C(0x8005b780, (int)(short)(sVar24 + 0xaa), 0xbe);
-        C(0x8005b7ec, 0x202020ff);
-        C(0x8005ba04, R32(puVar13));
-        C(0x8005b714, (int)sVar6, (int)sVar7);
+        C(0x80295204, 0x14, 0x14);
+        C(0x80295270, (int)(short)(sVar24 + 0xaa), 0xbe);
+        C(0x802952dc, 0x202020ff);
+        C(0x80295348, R32(puVar13));
+        C(0x80295204, (int)sVar6, (int)sVar7);
     }
 
     if (((S8(R32(0x809d3568) + 0x10fb) != '\x01') || (R8(R32(0x809d3568) + 0x10fa) == 2)) || (0xb < R8(R32(0x809d3568) + 0x10fa))) {
@@ -128,75 +128,75 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                     sVar6 = sVar6 + sVar24;
                     sVar5 = C(0x80456c40, (pbVar12 + 3));
                     sVar19 = sVar6 + 0x52 + (short)((sVar5 * -10 + 0x86) >> 1);
-                    C(0x8005b714, 0x14, 0x14);
-                    C(0x8005b780, sVar19 + 2, (short)(sVar7 + 0xb) + 2);
-                    C(0x8005b7ec, 0xff);
-                    C(0x8005bab4, pbVar12 + 3);
-                    C(0x8005b780, (int)sVar19, (int)(short)(sVar7 + 0xb));
-                    C(0x8005b7ec, R32(0x8099eda0));
-                    C(0x8005bab4, pbVar12 + 3);
-                    C(0x8005b714, 0x12, 0x12);
+                    C(0x80295204, 0x14, 0x14);
+                    C(0x80295270, sVar19 + 2, (short)(sVar7 + 0xb) + 2);
+                    C(0x802952dc, 0xff);
+                    C(0x802953f8, pbVar12 + 3);
+                    C(0x80295270, (int)sVar19, (int)(short)(sVar7 + 0xb));
+                    C(0x802952dc, R32(0x8099eda0));
+                    C(0x802953f8, pbVar12 + 3);
+                    C(0x80295204, 0x12, 0x12);
                     sVar21 = S16(0x8099ed88);
                     sVar19 = S16(0x8099ed86);
                     iVar23 = (int)S16(0x8099ed8a);
                     puVar11 = R32(0x809a7b00 + (R8(0x8065aa69)) * 4);
                     iVar20 = C(0x8005b8d8, R32(puVar11 + (uint32_t)R8(pbVar12) * 4));
                     sVar19 = sVar19 + (short)((iVar23 + iVar20 * -9) / 2) + sVar6;
-                    C(0x8005b780, sVar19 + 2, (short)(sVar21 + sVar7) + 2);
-                    C(0x8005b7ec, 0xff);
-                    C(0x8005ba04, R32(puVar11 + (uint32_t)R8(pbVar12) * 4));
-                    C(0x8005b780, (int)sVar19, (int)(short)(sVar21 + sVar7));
-                    C(0x8005b7ec, R32(0x8099eda4 + (uint32_t)R8(pbVar12) * 4));
-                    C(0x8005ba04, R32(puVar11 + (uint32_t)R8(pbVar12) * 4));
+                    C(0x80295270, sVar19 + 2, (short)(sVar21 + sVar7) + 2);
+                    C(0x802952dc, 0xff);
+                    C(0x80295348, R32(puVar11 + (uint32_t)R8(pbVar12) * 4));
+                    C(0x80295270, (int)sVar19, (int)(short)(sVar21 + sVar7));
+                    C(0x802952dc, R32(0x8099eda4 + (uint32_t)R8(pbVar12) * 4));
+                    C(0x80295348, R32(puVar11 + (uint32_t)R8(pbVar12) * 4));
                     iVar20 = S32(pbVar12 + 0x1c);
                     iVar23 = iVar20 / 0xe10 + (iVar20 >> 0x1f);
                     iVar23 = iVar23 - (iVar23 >> 0x1f);
                     iVar20 = iVar20 + iVar23 * -0xe10;
                     iVar20 = iVar20 / 0x3c + (iVar20 >> 0x1f);
-                    C(0x8045e54c, (scratch + 0x20), R32(0x8099edd8), iVar23, iVar20 - (iVar20 >> 0x1f));
+                    C(0x8045b5a4, (scratch + 0x20), R32(0x8099edd8), iVar23, iVar20 - (iVar20 >> 0x1f));
                     sVar19 = S16(0x8099ed8c) + sVar6;
                     sVar21 = S16(0x8099ed8e) + sVar7;
-                    C(0x8005b780, sVar19 + 2, sVar21 + 2);
-                    C(0x8005b7ec, 0xff);
-                    C(0x8005ba04, (scratch + 0x20));
-                    C(0x8005b780, (int)sVar19, (int)sVar21);
-                    C(0x8005b7ec, R32(0x8099eda0));
-                    C(0x8005ba04, (scratch + 0x20));
-                    C(0x8045e54c, (scratch + 0x20), R32(0x8099eddc), R32(pbVar12 + 0x18));
+                    C(0x80295270, sVar19 + 2, sVar21 + 2);
+                    C(0x802952dc, 0xff);
+                    C(0x80295348, (scratch + 0x20));
+                    C(0x80295270, (int)sVar19, (int)sVar21);
+                    C(0x802952dc, R32(0x8099eda0));
+                    C(0x80295348, (scratch + 0x20));
+                    C(0x8045b5a4, (scratch + 0x20), R32(0x8099eddc), R32(pbVar12 + 0x18));
                     sVar19 = S16(0x8099ed92) + sVar6;
                     sVar21 = S16(0x8099ed94) + sVar7;
-                    C(0x8005b780, sVar19 + 2, sVar21 + 2);
-                    C(0x8005b7ec, 0xff);
-                    C(0x8005ba04, (scratch + 0x20));
-                    C(0x8005b780, (int)sVar19, (int)sVar21);
-                    C(0x8005b7ec, R32(0x8099eda0));
-                    C(0x8005ba04, (scratch + 0x20));
+                    C(0x80295270, sVar19 + 2, sVar21 + 2);
+                    C(0x802952dc, 0xff);
+                    C(0x80295348, (scratch + 0x20));
+                    C(0x80295270, (int)sVar19, (int)sVar21);
+                    C(0x802952dc, R32(0x8099eda0));
+                    C(0x80295348, (scratch + 0x20));
 
                     if (S16(pbVar12 + 0x3de4) != 0) {
-                        C(0x8045e54c, (scratch + 0x20), 0x8099fe90);
+                        C(0x8045b5a4, (scratch + 0x20), 0x8099fe90);
                         sVar6 = S16(0x8099ed98) + sVar6;
                         sVar7 = S16(0x8099ed9a) + sVar7;
-                        C(0x8005b780, sVar6 + 2, sVar7 + 2);
-                        C(0x8005b7ec, 0xff);
-                        C(0x8005ba04, (scratch + 0x20));
-                        C(0x8005b780, (int)sVar6, (int)sVar7);
-                        C(0x8005b7ec, R32(0x8099edac));
-                        C(0x8005ba04, (scratch + 0x20));
+                        C(0x80295270, sVar6 + 2, sVar7 + 2);
+                        C(0x802952dc, 0xff);
+                        C(0x80295348, (scratch + 0x20));
+                        C(0x80295270, (int)sVar6, (int)sVar7);
+                        C(0x802952dc, R32(0x8099edac));
+                        C(0x80295348, (scratch + 0x20));
                     }
                 } else {
                     puVar13 = R32(0x809a7ae8 + (R8(0x8065aa69)) * 4);
-                    C(0x8005b714, 0x16, 0x16);
+                    C(0x80295204, 0x16, 0x16);
 
                     if (S8(R32(0x809d3568) + iVar22 + 0x10d4) == -1) {
                         iVar20 = C(0x8005b8d8, R32(puVar13));
-                        C(0x8005b780, (int)sVar6 + (int)sVar24 + (iVar20 * -0xb + 0x9a) / 2 + 0x48, sVar7 + 0x28);
-                        C(0x8005b7ec, 0x5a1400ff);
-                        C(0x8005ba04, R32(puVar13));
+                        C(0x80295270, (int)sVar6 + (int)sVar24 + (iVar20 * -0xb + 0x9a) / 2 + 0x48, sVar7 + 0x28);
+                        C(0x802952dc, 0x5a1400ff);
+                        C(0x80295348, R32(puVar13));
                     } else {
                         iVar20 = C(0x8005b8d8, R32(puVar13 + (1) * 4));
-                        C(0x8005b780, (int)sVar6 + (int)sVar24 + (iVar20 * -0xb + 0x9a) / 2 + 0x48, sVar7 + 0x28);
-                        C(0x8005b7ec, 0xa0a0aff);
-                        C(0x8005ba04, R32(puVar13 + (1) * 4));
+                        C(0x80295270, (int)sVar6 + (int)sVar24 + (iVar20 * -0xb + 0x9a) / 2 + 0x48, sVar7 + 0x28);
+                        C(0x802952dc, 0xa0a0aff);
+                        C(0x80295348, R32(puVar13 + (1) * 4));
                     }
                 }
 
@@ -205,13 +205,13 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                 iVar22 = iVar22 + 1;
             } while (iVar22 < 3);
             puVar11 = R32(0x809a7968 + (R8(0x8065aa69)) * 4);
-            C(0x8005b714, 0x12, 0x12);
-            C(0x8005b780, (short)(sVar24 + 0x5e) + 2, 0x186);
-            C(0x8005b7ec, 0x202020ff);
-            C(0x8005ba04, R32(puVar11 + (uint32_t)R8(R32(0x809d3568) + 2) * 4));
-            C(0x8005b780, (int)(short)(sVar24 + 0x5e), 0x184);
-            C(0x8005b7ec, 0xffffffff);
-            C(0x8005ba04, R32(puVar11 + (uint32_t)R8(R32(0x809d3568) + 2) * 4));
+            C(0x80295204, 0x12, 0x12);
+            C(0x80295270, (short)(sVar24 + 0x5e) + 2, 0x186);
+            C(0x802952dc, 0x202020ff);
+            C(0x80295348, R32(puVar11 + (uint32_t)R8(R32(0x809d3568) + 2) * 4));
+            C(0x80295270, (int)(short)(sVar24 + 0x5e), 0x184);
+            C(0x802952dc, 0xffffffff);
+            C(0x80295348, R32(puVar11 + (uint32_t)R8(R32(0x809d3568) + 2) * 4));
 
             if (S8(R32(0x809d3568) + 2) == '\x01') {
                 C(0x80987c8c, R8(R32(0x809d3568) + 0x105a), (int)sVar24);
@@ -391,12 +391,12 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                 cVar8 = S8(R32(0x809d3568) + 0x10fb);
 
                 if ((cVar8 == '\x01') && (uVar9 == 2)) {
-                    C(0x8005b780, sVar6 + 2, 0x186);
-                    C(0x8005b7ec, 0x202020ff);
-                    C(0x8005ba04, R32(puVar11 + 4));
-                    C(0x8005b780, (int)sVar6, 0x184);
-                    C(0x8005b7ec, 0xffffffff);
-                    C(0x8005ba04, R32(puVar11 + 4));
+                    C(0x80295270, sVar6 + 2, 0x186);
+                    C(0x802952dc, 0x202020ff);
+                    C(0x80295348, R32(puVar11 + 4));
+                    C(0x80295270, (int)sVar6, 0x184);
+                    C(0x802952dc, 0xffffffff);
+                    C(0x80295348, R32(puVar11 + 4));
                     C(0x809878b0, 0);
                 } else {
                     if (cVar8 == '\x02') {
@@ -404,24 +404,24 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                     } else {
                         if (cVar8 == '\x03') {
                             puVar11 = R32(0x809a7aa0 + (uVar3) * 4);
-                            C(0x8005b780, sVar6 + 2, 0x186);
-                            C(0x8005b7ec, 0x202020ff);
-                            C(0x8005ba04, R32(puVar11 + 0xc));
-                            C(0x8005b780, (int)sVar6, 0x184);
-                            C(0x8005b7ec, 0xffffffff);
-                            C(0x8005ba04, R32(puVar11 + 0xc));
+                            C(0x80295270, sVar6 + 2, 0x186);
+                            C(0x802952dc, 0x202020ff);
+                            C(0x80295348, R32(puVar11 + 0xc));
+                            C(0x80295270, (int)sVar6, 0x184);
+                            C(0x802952dc, 0xffffffff);
+                            C(0x80295348, R32(puVar11 + 0xc));
                             goto code_r0x80989cac;
                         }
 
                         if (cVar8 != '\x04') {
                             puVar11 = R32(0x809a7a70 + (uVar3) * 4);
-                            C(0x8005b780, sVar6 + 2, 0x186);
-                            C(0x8005b7ec, 0x202020ff);
+                            C(0x80295270, sVar6 + 2, 0x186);
+                            C(0x802952dc, 0x202020ff);
                             iVar14 = (uVar9 - 1) * 4;
-                            C(0x8005ba04, R32(puVar11 + iVar14));
-                            C(0x8005b780, (int)sVar6, 0x184);
-                            C(0x8005b7ec, 0xffffffff);
-                            C(0x8005ba04, R32(puVar11 + iVar14));
+                            C(0x80295348, R32(puVar11 + iVar14));
+                            C(0x80295270, (int)sVar6, 0x184);
+                            C(0x802952dc, 0xffffffff);
+                            C(0x80295348, R32(puVar11 + iVar14));
                             C(0x809878b0, 0);
                             goto code_r0x80989cac;
                         }
@@ -430,12 +430,12 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                     }
 
                     puVar11 = R32(0x809a7aa0 + (uVar3) * 4);
-                    C(0x8005b780, sVar6 + 2, 0x186);
-                    C(0x8005b7ec, 0x202020ff);
-                    C(0x8005ba04, R32(puVar11 + iVar14 * 4));
-                    C(0x8005b780, (int)sVar6, 0x184);
-                    C(0x8005b7ec, 0xffffffff);
-                    C(0x8005ba04, R32(puVar11 + iVar14 * 4));
+                    C(0x80295270, sVar6 + 2, 0x186);
+                    C(0x802952dc, 0x202020ff);
+                    C(0x80295348, R32(puVar11 + iVar14 * 4));
+                    C(0x80295270, (int)sVar6, 0x184);
+                    C(0x802952dc, 0xffffffff);
+                    C(0x80295348, R32(puVar11 + iVar14 * 4));
                     C(0x80987c8c, R8(R32(0x809d3568) + 0x10fc), (int)sVar24);
                 }
             }
@@ -477,14 +477,14 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
                 C(0x802e0fc0, (int)(short)(sVar24 + 0x1e0), 0x118, 0x20, 0xffffffff, 2, 0);
             }
 
-            sVar6 = C(0x8005b738);
-            sVar7 = C(0x8005b75c);
+            sVar6 = C(0x80295228);
+            sVar7 = C(0x8029524c);
             puVar13 = R32(0x809a7980 + (R8(0x8065aa69)) * 4);
-            C(0x8005b714, 0x14, 0x14);
-            C(0x8005b780, sVar24 + 100, 200);
-            C(0x8005b7ec, 0xff);
-            C(0x8005ba04, R32(puVar13));
-            C(0x8005b714, (int)sVar6, (int)sVar7);
+            C(0x80295204, 0x14, 0x14);
+            C(0x80295270, sVar24 + 100, 200);
+            C(0x802952dc, 0xff);
+            C(0x80295348, R32(puVar13));
+            C(0x80295204, (int)sVar6, (int)sVar7);
         }
     } else if ((uVar3 == 4) || (uVar3 == 0xb))
         goto code_r0x80988a90;
@@ -671,7 +671,7 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
     uVar9 = uVar3 - 7 & -(uint32_t)(7 < uVar3) - ((int)uVar3 >> 0x1f);
     iVar10 = uVar3 - uVar9;
     W32((scratch + 0x98), uVar9);
-    C(0x8005b714, 0x12, 0x12);
+    C(0x80295204, 0x12, 0x12);
     iVar22 = 0;
     psVar16 = 0x8099ead8;
 
@@ -706,30 +706,30 @@ int mh3_scene_demo_character_menu(const mh3_scene_cpu_ops *o, uint32_t scratch) 
 
         do {
             if (iVar20 == 0) {
-                C(0x8005b780, sVar6 + 0x20, sVar7 + 4);
-                C(0x8005b7ec, 0x202020ff);
+                C(0x80295270, sVar6 + 0x20, sVar7 + 4);
+                C(0x802952dc, 0x202020ff);
             } else {
-                C(0x8005b780, sVar6 + 0x1e, sVar7 + 2);
+                C(0x80295270, sVar6 + 0x1e, sVar7 + 2);
 
                 if (iVar22 == iVar10) {
-                    C(0x8005b7ec, 0xf0f0f0ff);
+                    C(0x802952dc, 0xf0f0f0ff);
                 } else {
-                    C(0x8005b7ec, 0xd0d0d0ff);
+                    C(0x802952dc, 0xd0d0d0ff);
                 }
             }
 
             if (S8(R32(0x809d3568) + 0x10fa) == '\b') {
                 if (uVar9 == 0) {
-                    C(0x8005ba04, R32(puVar13 + (1) * 4));
+                    C(0x80295348, R32(puVar13 + (1) * 4));
                 } else {
-                    C(0x8005ba04, R32(puVar13));
-                    C(0x8045e54c, (scratch + 0x20), 0x8099fe94, uVar9);
-                    C(0x8005ba04, (scratch + 0x20));
+                    C(0x80295348, R32(puVar13));
+                    C(0x8045b5a4, (scratch + 0x20), 0x8099fe94, uVar9);
+                    C(0x80295348, (scratch + 0x20));
                 }
             } else {
-                C(0x8005ba04, R32(puVar13));
-                C(0x8045e54c, (scratch + 0x20), 0x8099fe94, uVar9 + 1);
-                C(0x8005ba04, (scratch + 0x20));
+                C(0x80295348, R32(puVar13));
+                C(0x8045b5a4, (scratch + 0x20), 0x8099fe94, uVar9 + 1);
+                C(0x80295348, (scratch + 0x20));
             }
 
             iVar20 = iVar20 + 1;
@@ -760,13 +760,13 @@ code_r0x80989584:
     bVar1 = R8(R32(0x809d3568) + 0x10fa);
 
     if (bVar1 != 0) {
-        C(0x8005b780, (short)(sVar24 + 0x5e) + 2, 0x186);
-        C(0x8005b7ec, 0x202020ff);
+        C(0x80295270, (short)(sVar24 + 0x5e) + 2, 0x186);
+        C(0x802952dc, 0x202020ff);
         iVar14 = (bVar1 - 1) * 4;
-        C(0x8005ba04, R32(puVar11 + iVar14));
-        C(0x8005b780, (int)(short)(sVar24 + 0x5e), 0x184);
-        C(0x8005b7ec, 0xffffffff);
-        C(0x8005ba04, R32(puVar11 + iVar14));
+        C(0x80295348, R32(puVar11 + iVar14));
+        C(0x80295270, (int)(short)(sVar24 + 0x5e), 0x184);
+        C(0x802952dc, 0xffffffff);
+        C(0x80295348, R32(puVar11 + iVar14));
     }
 code_r0x80989cac:
     return 1;

@@ -14,10 +14,10 @@
 #include <algorithm>
 
 namespace {
-constexpr uint32_t kSystem = 0x8065AA60;    // system_w
+constexpr uint32_t kSystem = 0x80768AA8;    // system_w (RMHJ08)
 constexpr uint32_t kRumbleSteps = 0x33;     // s8[4]
 constexpr uint32_t kRumbleOn = 0x37;        // u8[4]: 1 = motor running
-constexpr uint32_t RumbleStop = 0x80044A94; // (channel): clears both, stops the motor
+constexpr uint32_t RumbleStop = 0x8047EC98; // WPADControlMotor(channel, 0) in RMHJ08
 } // namespace
 
 static void TickSystemTimersPort(CpuContext* ctx) {
@@ -31,15 +31,18 @@ static void TickSystemTimersPort(CpuContext* ctx) {
         if (steps > 0)
             Memory::Write8(kSystem + kRumbleSteps + i, uint8_t(steps - int8_t(std::min<uint32_t>(ticks, steps))));
 
-        if (Memory::Read8(kSystem + kRumbleOn + i) == 1 && int8_t(Memory::Read8(kSystem + kRumbleSteps + i)) < 1)
-            game.Call<RumbleStop>({i});
+        if (Memory::Read8(kSystem + kRumbleOn + i) == 1 && int8_t(Memory::Read8(kSystem + kRumbleSteps + i)) < 1) {
+            Memory::Write8(kSystem + kRumbleSteps + i, 0);
+            Memory::Write8(kSystem + kRumbleOn + i, 0);
+            game.Call<RumbleStop>({i, 0});
+        }
     }
 
     *ctx = saved;
 }
 
-extern "C" void func_80044AF4(CpuContext* ctx);
+extern "C" void func_8029B4A4(CpuContext* ctx);
 extern "C" void MH3_TickSystemTimers(CpuContext* ctx) {
-    PortCheck::Call(ctx, "TickSystemTimers", func_80044AF4, TickSystemTimersPort);
+    PortCheck::Call(ctx, "TickSystemTimers", func_8029B4A4, TickSystemTimersPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80044AF4, MH3_TickSystemTimers, "TickSystemTimers");
+REGISTER_NATIVE_FUNCTION_AS(0x8029B4A4, MH3_TickSystemTimers, "TickSystemTimers");

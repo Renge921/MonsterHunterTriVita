@@ -1,6 +1,5 @@
 #include "net/adhoc.h"
 #include "language_import.h"
-#include "language_pack.h"
 #include "abi_bridge.h"
 #include "fatal.h"
 #include <aurora/fatal.hpp>
@@ -643,8 +642,8 @@ int main(int argc, char** argv) {
         else if (argc != 1)
             MH3_THROW(std::runtime_error(kUsage));
 
-        RecompMod::RegisterExecutableRange(0x80004000, 0x800066E0, ".init");
-        RecompMod::RegisterExecutableRange(0x8003F260, 0x8056FAA0, ".text");
+        RecompMod::RegisterExecutableRange(0x80004000, 0x800064E0, ".init");
+        RecompMod::RegisterExecutableRange(0x80031C80, 0x8062C800, ".text");
 
         // The apploader normally installs the FST in reserved high MEM1.
         // The SDK's DVDOpen walks this guest table, independently of the host
@@ -676,12 +675,12 @@ int main(int argc, char** argv) {
         DrawThread::Thread().ReserveGuestStack(gameArenaHi, DrawThread::kGuestStackBytes);
 
         // Standard Wii boot information, with MH3's own arena boundary.
-        Memory::Write32(0x80000000, 0x524D4850); // RMHP
+        Memory::Write32(0x80000000, 0x524D484A); // RMHP
         Memory::Write16(0x80000004, 0x3038);     // 08
         Memory::Write32(0x80000020, 0x0D15EA5E);
         Memory::Write32(0x80000028, 24 * 1024 * 1024);
         Memory::Write32(0x8000002C, 0x23);
-        Memory::Write32(0x80000030, 0x807B1CC0); // __ArenaLo, from OSInit
+        Memory::Write32(0x80000030, 0x808BB280); // __ArenaLo, from OSInit
         Memory::Write32(0x80000034, gameArenaHi);
 
         // TV mode EuRGB60 (PAL console set to 60 Hz). MH3's logic assumes 60 Hz
@@ -699,9 +698,9 @@ int main(int argc, char** argv) {
         Memory::Write32(0x80003100, 0x01800000);
         Memory::Write32(0x80003104, 0x01800000);
         Memory::Write32(0x80003108, 0x81800000);
-        Memory::Write32(0x8000310C, 0x807B1CC0);
+        Memory::Write32(0x8000310C, 0x808BB280);
         Memory::Write32(0x80003110, gameArenaHi);
-        Memory::Write32(0x80003118, 0x04000000);
+        Memory::Write32(0x80003118, 0x08000000); // 128MB (NDEV/MEM2 size) so __DVDCheckDevice bypasses physical drive check
         Memory::Write32(0x8000311C, 0x04000000);
         Memory::Write32(0x80003120, 0x93600000);
         Memory::Write32(0x80003124, 0x90000800);
@@ -721,10 +720,6 @@ int main(int argc, char** argv) {
         const uint32_t mem2ArenaHi = cameraRow - QuestPlacement::kBytes;
         QuestPlacement::Apply(mem2ArenaHi);
 
-        // An imported language's strings and font.
-        LanguagePack::Place();
-        LanguagePack::PatchFst(arenaHi, fstSize);
-        LanguagePack::PatchExecutable();
         Memory::Write32(0x80003128, mem2ArenaHi);
         Memory::Write32(0x80003130, 0x935E0000);
         Memory::Write32(0x80003134, 0x93600000);
@@ -734,14 +729,14 @@ int main(int argc, char** argv) {
         Memory::Write32(0x80003144, 0x00030110);
         Memory::Write32(0x80003148, 0x93600000);
         Memory::Write32(0x8000314C, 0x93620000);
-        Memory::Write32(0x80003180, 0x524D4850);
+        Memory::Write32(0x80003180, 0x524D484A);
         Memory::Write32(0x80003188, 0x0037161F);
-        Memory::Write32(0x80003194, 0x524D4850);
-        cpu.gpr[1] = 0x807AFCB8;
+        Memory::Write32(0x80003194, 0x524D484A);
+        cpu.gpr[1] = 0x808B9278;
         cpu.msr = 0x8000;
         TranslatedFunctionRegistry::Finalize();
-        std::cout << "Starting statically recompiled MH3 at 0x80006310\n";
-        InvokeIndirectCpu(0x80006310, &cpu);
+        std::cout << "Starting statically recompiled MH3 at 0x8000403C\n";
+        InvokeIndirectCpu(0x8000403C, &cpu);
         std::cout << "MH3 entry returned\n";
         return 0;
     }

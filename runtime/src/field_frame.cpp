@@ -108,7 +108,7 @@ extern "C" void func_8028CCE0(CpuContext* cpu);
 extern "C" void MH3_FieldFrameUpdate(CpuContext* cpu) {
     PortCheck::Call(cpu, "FieldFrameUpdate", func_8028CCE0, FieldFrameUpdate);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028CCE0, MH3_FieldFrameUpdate, "FieldFrameUpdate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8028CCE0, MH3_FieldFrameUpdate, "FieldFrameUpdate");
 
 #ifdef MH3_DEVELOPMENT
 void MH3PrintFieldSplit(unsigned frames) {

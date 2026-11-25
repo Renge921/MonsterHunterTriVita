@@ -44,21 +44,21 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    RoarVoice = 0x801293A0,   // (work, channel, voice, length)
-    RoarVoice0 = 0x801296CC,  // (work, channel, voice): RoarVoice with length 0
-    SetMotionEx = 0x8012F568, // (work, motion, blend, flags, 1)
-    SetMotionSpeed = 0x8012F92C, // (work; f1)
-    Adjust8A0 = 0x80130D40,   // (work, s16 delta): 0x80130BD0 against +0x8A0
-    SetUpCarried = 0x801302AC, // (work) -> f1, then SetScale takes that f1
-    SetScale = 0x80130628,    // (work; f1)
-    SetUpPart = 0x80130724,   // (work, n)
-    Em001Step = 0x80154D08,   // (work): kinds 1/2's per-step helper
-    QuakeMark = 0x802B440C,   // (VEC3* at, u8 area, u16 random)
-    ActionDone = 0x80127FAC,  // (work): back to the AI
-    ActionDone94 = 0x80128094, // variants of it with other set-ups
-    ActionDone110 = 0x80128110,
-    ActionDone1A0 = 0x801281A0,
-    ActionDone1F8 = 0x801281F8,
+    RoarVoice = 0x8016177C,   // (work, channel, voice, length)
+    RoarVoice0 = 0x80161A54,  // (work, channel, voice): RoarVoice with length 0
+    SetMotionEx = 0x80168E80, // (work, motion, blend, flags, 1)
+    SetMotionSpeed = 0x80169A70, // (work; f1)
+    Adjust8A0 = 0x8016B06C,   // (work, s16 delta): 0x80130BD0 against +0x8A0
+    SetUpCarried = 0x8016A47C, // (work) -> f1, then SetScale takes that f1
+    SetScale = 0x8016A878,    // (work; f1)
+    SetUpPart = 0x8016A968,   // (work, n)
+    Em001Step = 0x800858F8,   // (work): kinds 1/2's per-step helper
+    QuakeMark = 0x80383788,   // (VEC3* at, u8 area, u16 random)
+    ActionDone = 0x8015FDDC,  // (work): back to the AI
+    ActionDone94 = 0x8015FEC0, // variants of it with other set-ups
+    ActionDone110 = 0x8015FF38,
+    ActionDone1A0 = 0x8015FFC8,
+    ActionDone1F8 = 0x80160020,
 };
 
 struct Action {
@@ -424,68 +424,68 @@ void Em020RoarPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8014858C(CpuContext* ctx);
+extern "C" void func_80078C68(CpuContext* ctx);
 extern "C" void MH3_Em004Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Roar", func_8014858C, Em001RoarPort);
+    PortCheck::Call(ctx, "Em001Roar", func_80078C68, Em001RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014858C, MH3_Em004Roar, "Em001Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x80078C68, MH3_Em004Roar, "Em001Roar");
 
-extern "C" void func_8014B3DC(CpuContext* ctx);
+extern "C" void func_8007B898(CpuContext* ctx);
 extern "C" void MH3_Em004Roar2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Roar2", func_8014B3DC, Em001Roar2Port);
+    PortCheck::Call(ctx, "Em001Roar2", func_8007B898, Em001Roar2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014B3DC, MH3_Em004Roar2, "Em001Roar2");
+REGISTER_NATIVE_FUNCTION_AS(0x8007B898, MH3_Em004Roar2, "Em001Roar2");
 
-extern "C" void func_8017766C(CpuContext* ctx);
+extern "C" void func_800D50D0(CpuContext* ctx);
 extern "C" void MH3_Em015Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Roar", func_8017766C, Em015RoarPort);
+    PortCheck::Call(ctx, "Em015Roar", func_800D50D0, Em015RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017766C, MH3_Em015Roar, "Em015Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x800D50D0, MH3_Em015Roar, "Em015Roar");
 
-extern "C" void func_80178EBC(CpuContext* ctx);
+extern "C" void func_800D6744(CpuContext* ctx);
 extern "C" void MH3_Em015Roar2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Roar2", func_80178EBC, Em015Roar2Port);
+    PortCheck::Call(ctx, "Em015Roar2", func_800D6744, Em015Roar2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80178EBC, MH3_Em015Roar2, "Em015Roar2");
+REGISTER_NATIVE_FUNCTION_AS(0x800D6744, MH3_Em015Roar2, "Em015Roar2");
 
-extern "C" void func_801BE084(CpuContext* ctx);
+extern "C" void func_800A5190(CpuContext* ctx);
 extern "C" void MH3_Em008Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Roar", func_801BE084, Em006RoarPort);
+    PortCheck::Call(ctx, "Em006Roar", func_800A5190, Em006RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BE084, MH3_Em008Roar, "Em006Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x800A5190, MH3_Em008Roar, "Em006Roar");
 
-extern "C" void func_801C344C(CpuContext* ctx);
+extern "C" void func_8008EEA4(CpuContext* ctx);
 extern "C" void MH3_Em006Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Roar", func_801C344C, Em004RoarPort);
+    PortCheck::Call(ctx, "Em004Roar", func_8008EEA4, Em004RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C344C, MH3_Em006Roar, "Em004Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x8008EEA4, MH3_Em006Roar, "Em004Roar");
 
-extern "C" void func_801C4AD0(CpuContext* ctx);
+extern "C" void func_80090028(CpuContext* ctx);
 extern "C" void MH3_Em006Roar2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Roar2", func_801C4AD0, Em004Roar2Port);
+    PortCheck::Call(ctx, "Em004Roar2", func_80090028, Em004Roar2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C4AD0, MH3_Em006Roar2, "Em004Roar2");
+REGISTER_NATIVE_FUNCTION_AS(0x80090028, MH3_Em006Roar2, "Em004Roar2");
 
-extern "C" void func_801C5DEC(CpuContext* ctx);
+extern "C" void func_80090DE0(CpuContext* ctx);
 extern "C" void MH3_Em006Roar3(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Roar3", func_801C5DEC, Em004Roar3Port);
+    PortCheck::Call(ctx, "Em004Roar3", func_80090DE0, Em004Roar3Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C5DEC, MH3_Em006Roar3, "Em004Roar3");
+REGISTER_NATIVE_FUNCTION_AS(0x80090DE0, MH3_Em006Roar3, "Em004Roar3");
 
-extern "C" void func_801CB3B4(CpuContext* ctx);
+extern "C" void func_80096760(CpuContext* ctx);
 extern "C" void MH3_Em007Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Roar", func_801CB3B4, Em005RoarPort);
+    PortCheck::Call(ctx, "Em005Roar", func_80096760, Em005RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801CB3B4, MH3_Em007Roar, "Em005Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x80096760, MH3_Em007Roar, "Em005Roar");
 
-extern "C" void func_8036F238(CpuContext* ctx);
+extern "C" void func_80107120(CpuContext* ctx);
 extern "C" void MH3_Em020Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em020Roar", func_8036F238, Em020RoarPort);
+    PortCheck::Call(ctx, "Em020Roar", func_80107120, Em020RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8036F238, MH3_Em020Roar, "Em020Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x80107120, MH3_Em020Roar, "Em020Roar");
 
-extern "C" void func_803798A0(CpuContext* ctx);
+extern "C" void func_800FC7C4(CpuContext* ctx);
 extern "C" void MH3_Em019Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Roar", func_803798A0, Em019RoarPort);
+    PortCheck::Call(ctx, "Em019Roar", func_800FC7C4, Em019RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803798A0, MH3_Em019Roar, "Em019Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x800FC7C4, MH3_Em019Roar, "Em019Roar");

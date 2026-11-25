@@ -811,7 +811,7 @@ static void BootInitPort(CpuContext* ctx) {
 extern "C" void MH3_BootInit(CpuContext* ctx) {
     PortCheck::Call(ctx, "BootInit", func_80046CE4, BootInitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80046CE4, MH3_BootInit, "BootInit");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80046CE4, MH3_BootInit, "BootInit");
 
 // 0x80059648 BootTask(task).
 extern "C" void func_80059648(CpuContext* ctx);
@@ -822,4 +822,4 @@ static void BootTaskPort(CpuContext* ctx) {
 extern "C" void MH3_BootTask(CpuContext* ctx) {
     PortCheck::Call(ctx, "BootTask", func_80059648, BootTaskPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80059648, MH3_BootTask, "BootTask");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80059648, MH3_BootTask, "BootTask");

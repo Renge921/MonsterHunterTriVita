@@ -28,19 +28,16 @@
 namespace {
 
 enum : uint32_t {
-    MasterCheck = 0x8026FE38,  // Pl_master_ck(PLW) -> nonzero for the local player
-    MotionNo = 0x8026A36C,     // Get_motion_no(PLW) -> u16
-    CommandTest = 0x8026A758,  // PlCommandTest(PLW, bit) -> 1 when +0xDC has it
-    CommandBit = 0x8026A708,   // PlCommandBit(PLW, bit): +0xF0 bit array
-    CommandBitE0 = 0x8026A6A8, // PlCommandBitE0(PLW, bit): +0xE0 bit array
-    TurnLocked = 0x8027A3A4,   // (PLW) -> nonzero
-    AimReady = 0x802872A8,     // (PLW, 0) -> 1
-    OptionConfig = 0x803BED04, // get_option_cfg (player, option) -> u8
-    AimStickScale = 0x802B97A4, // (PLW, u8* out, u8* out, f32* scale)
-    AimPitch64F = 0x8027A064,  // (PLW, s8 amount): +0x64F within -100..100
-    AimPitch5E8 = 0x8027A0A8,  // (PLW, s16 amount): +0x5E8 within -0x2000..0x2000
-    AimPitch583 = 0x8027A0F0,  // (PLW, s8 amount): +0x583, and +0x5E8 from it
-    AimMotion = 0x80279F20,    // (PLW, motion, motion)
+    MasterCheck = 0x8033DBA4,  // Pl_master_ck(PLW) -> nonzero for the local player
+    MotionNo = 0x803385C8,     // Get_motion_no(PLW) -> u16
+    CommandTest = 0x8033895C,  // PlCommandTest(PLW, bit) -> 1 when +0xDC has it
+    CommandBit = 0x80338928,   // PlCommandBit(PLW, bit): +0xF0 bit array
+    CommandBitE0 = 0x803388C8, // PlCommandBitE0(PLW, bit): +0xE0 bit array
+    TurnLocked = 0x8034A61C,   // (PLW) -> nonzero
+    AimReady = 0x80359664,     // (PLW, 0) -> 1
+    OptionConfig = 0x802CAC4C, // get_option_cfg (player, option) -> u8
+    AimStickScale = 0x8037165C, // (PLW, u8* out, u8* out, f32* scale)
+    AimMotion = 0x8034A31C,    // (PLW, motion, motion)
 };
 
 enum : uint32_t {
@@ -55,9 +52,43 @@ enum : uint32_t {
     kScoped = 0x5E6,      // u8
 };
 
-constexpr uint32_t kStickTable = 0x805C68D8;    // {s32 tilt, pitch lo, pitch hi, yaw lo, yaw hi}[], ends at tilt -1
-constexpr uint32_t kStickScale = 0x8079C540;    // f32
-constexpr uint32_t kDiagonalScale = 0x8079C5B0; // f32
+constexpr uint32_t kStickTable = 0x806D40B8;    // {s32 tilt, pitch lo, pitch hi, yaw lo, yaw hi}[], ends at tilt -1
+constexpr uint32_t kStickScale = 0x808A72E8;    // f32
+constexpr uint32_t kDiagonalScale = 0x808A7358; // f32
+
+inline void AimPitch64FHost(uint32_t plw, int32_t amount) {
+    // 0x8027A064 in PAL (inlined in RMHJ08): +0x64F within -100..100
+    int32_t v = int8_t(int8_t(Memory::Read8(plw + 0x64F)) + amount);
+    if (v >= 100)
+        v = 100;
+    else if (v <= -100)
+        v = -100;
+    Memory::Write8(plw + 0x64F, uint8_t(int8_t(v)));
+}
+
+inline void AimPitch5E8Host(uint32_t plw, int16_t amount) {
+    // 0x8027A0A8 in PAL (inlined in RMHJ08): +0x5E8 within -0x2000..0x2000
+    const int32_t v = int16_t(int16_t(Memory::Read16(plw + 0x5E8)) + amount);
+    if (amount >= 0)
+        Memory::Write16(plw + 0x5E8, uint16_t(v >= 0x2000 ? 0x2000 : v));
+    else
+        Memory::Write16(plw + 0x5E8, uint16_t(v <= -0x2000 ? -0x2000 : v));
+}
+
+inline void AimPitch583Host(uint32_t plw, int8_t amount) {
+    // 0x8027A0F0 in PAL (inlined in RMHJ08): +0x583 within -100..100, and +0x5E8 scaled (+45/-35 deg)
+    int32_t pct = int8_t(int8_t(Memory::Read8(plw + 0x583)) + amount);
+    if (pct > 100)
+        pct = 100;
+    else if (pct < -100)
+        pct = -100;
+    Memory::Write8(plw + 0x583, uint8_t(int8_t(pct)));
+    const float ratio = float(pct) / 100.0f;
+    const float limit = pct >= 0 ? 45.0f : 35.0f;
+    const float deg = limit * ratio;
+    const float units = (65536.0f * deg) / 360.0f;
+    Memory::Write16(plw + 0x5E8, uint16_t(int16_t(int32_t(0.5f + units))));
+}
 
 } // namespace
 
@@ -208,7 +239,7 @@ static void PlAimInputPort(CpuContext* ctx) {
     switch (mode) {
     case 0:
         Memory::Write32(plw + kWantedYaw, yaw);
-        game.Call<AimPitch64F>({plw, uint32_t(pitch)});
+        AimPitch64FHost(plw, pitch);
 
         if (motion == 1001)
             game.Call<AimMotion>({plw, 1030, 1031});
@@ -218,7 +249,7 @@ static void PlAimInputPort(CpuContext* ctx) {
         break;
     case 1:
         Memory::Write32(plw + kWantedYaw, yaw);
-        game.Call<AimPitch5E8>({plw, uint32_t(int32_t(int16_t(uint16_t(uint32_t(pitch) << 6))))});
+        AimPitch5E8Host(plw, int16_t(uint16_t(uint32_t(pitch) << 6)));
         break;
     case 2: {
         Memory::Write32(plw + kWantedYaw, yaw);
@@ -230,7 +261,7 @@ static void PlAimInputPort(CpuContext* ctx) {
         else if (offset - 0x8000 <= 0x3FFF)
             Memory::Write32(plw + kWantedYaw, base - 0x4000);
 
-        game.Call<AimPitch583>({plw, uint32_t(int32_t(int8_t(uint8_t(pitch))))});
+        AimPitch583Host(plw, int8_t(uint8_t(pitch)));
         break;
     }
     default:
@@ -238,8 +269,8 @@ static void PlAimInputPort(CpuContext* ctx) {
     }
 }
 
-extern "C" void func_8027A5E0(CpuContext* ctx);
+extern "C" void func_8034A874(CpuContext* ctx);
 extern "C" void MH3_PlAimInput(CpuContext* ctx) {
-    PortCheck::Call(ctx, "PlAimInput", func_8027A5E0, PlAimInputPort);
+    PortCheck::Call(ctx, "PlAimInput", func_8034A874, PlAimInputPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027A5E0, MH3_PlAimInput, "PlAimInput");
+REGISTER_NATIVE_FUNCTION_AS(0x8034A874, MH3_PlAimInput, "PlAimInput");

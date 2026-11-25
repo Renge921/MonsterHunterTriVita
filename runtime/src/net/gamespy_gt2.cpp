@@ -2553,424 +2553,424 @@ extern "C" void func_80512B10(CpuContext*);
 extern "C" void MH3_Gti2GetChallenge(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2GetChallenge", func_8050CFD0, GetChallengePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050CFD0, MH3_Gti2GetChallenge, "gti2GetChallenge");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050CFD0, MH3_Gti2GetChallenge, "gti2GetChallenge");
 
 extern "C" void MH3_Gti2GetResponse(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2GetResponse", func_8050D0E0, GetResponsePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D0E0, MH3_Gti2GetResponse, "gti2GetResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D0E0, MH3_Gti2GetResponse, "gti2GetResponse");
 
 extern "C" void MH3_Gti2CheckResponse(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2CheckResponse", func_8050D2D0, CheckResponsePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D2D0, MH3_Gti2CheckResponse, "gti2CheckResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D2D0, MH3_Gti2CheckResponse, "gti2CheckResponse");
 
 extern "C" void MH3_Gti2AllocateBuffer(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2AllocateBuffer", func_8050D3A0, AllocateBufferPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D3A0, MH3_Gti2AllocateBuffer, "gti2AllocateBuffer");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D3A0, MH3_Gti2AllocateBuffer, "gti2AllocateBuffer");
 
 extern "C" void MH3_Gti2GetBufferFreeSpace(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2GetBufferFreeSpace", func_8050D400, BufferFreeSpacePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D400, MH3_Gti2GetBufferFreeSpace, "gti2GetBufferFreeSpace");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D400, MH3_Gti2GetBufferFreeSpace, "gti2GetBufferFreeSpace");
 
 extern "C" void MH3_Gti2BufferWriteByte(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2BufferWriteByte", func_8050D410, BufferWriteBytePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D410, MH3_Gti2BufferWriteByte, "gti2BufferWriteByte");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D410, MH3_Gti2BufferWriteByte, "gti2BufferWriteByte");
 
 extern "C" void MH3_Gti2BufferWriteUShort(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2BufferWriteUShort", func_8050D430, BufferWriteUShortPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D430, MH3_Gti2BufferWriteUShort, "gti2BufferWriteUShort");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D430, MH3_Gti2BufferWriteUShort, "gti2BufferWriteUShort");
 
 extern "C" void MH3_Gti2BufferWriteData(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2BufferWriteData", func_8050D460, BufferWriteDataPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D460, MH3_Gti2BufferWriteData, "gti2BufferWriteData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D460, MH3_Gti2BufferWriteData, "gti2BufferWriteData");
 
 extern "C" void MH3_Gti2BufferShorten(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2BufferShorten", func_8050D4F0, BufferShortenPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D4F0, MH3_Gti2BufferShorten, "gti2BufferShorten");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D4F0, MH3_Gti2BufferShorten, "gti2BufferShorten");
 
 extern "C" void MH3_Gti2SocketErrorCallback(CpuContext* cpu) {
     SocketErrorCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D560, MH3_Gti2SocketErrorCallback, "gti2SocketErrorCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D560, MH3_Gti2SocketErrorCallback, "gti2SocketErrorCallback");
 
 extern "C" void MH3_Gti2ConnectAttemptCallback(CpuContext* cpu) {
     ConnectAttemptCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D600, MH3_Gti2ConnectAttemptCallback, "gti2ConnectAttemptCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D600, MH3_Gti2ConnectAttemptCallback, "gti2ConnectAttemptCallback");
 
 extern "C" void MH3_Gti2ConnectedCallback(CpuContext* cpu) {
     ConnectedCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D6F0, MH3_Gti2ConnectedCallback, "gti2ConnectedCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D6F0, MH3_Gti2ConnectedCallback, "gti2ConnectedCallback");
 
 extern "C" void MH3_Gti2ReceivedCallback(CpuContext* cpu) {
     ReceivedCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D7D0, MH3_Gti2ReceivedCallback, "gti2ReceivedCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D7D0, MH3_Gti2ReceivedCallback, "gti2ReceivedCallback");
 
 extern "C" void MH3_Gti2ClosedCallback(CpuContext* cpu) {
     ClosedCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D8B0, MH3_Gti2ClosedCallback, "gti2ClosedCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D8B0, MH3_Gti2ClosedCallback, "gti2ClosedCallback");
 
 extern "C" void MH3_Gti2PingCallback(CpuContext* cpu) {
     PingCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050D970, MH3_Gti2PingCallback, "gti2PingCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050D970, MH3_Gti2PingCallback, "gti2PingCallback");
 
 extern "C" void MH3_Gti2SendFilterCallback(CpuContext* cpu) {
     SendFilterCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DA30, MH3_Gti2SendFilterCallback, "gti2SendFilterCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DA30, MH3_Gti2SendFilterCallback, "gti2SendFilterCallback");
 
 extern "C" void MH3_Gti2ReceiveFilterCallback(CpuContext* cpu) {
     ReceiveFilterCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DB40, MH3_Gti2ReceiveFilterCallback, "gti2ReceiveFilterCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DB40, MH3_Gti2ReceiveFilterCallback, "gti2ReceiveFilterCallback");
 
 extern "C" void MH3_Gti2DumpCallback(CpuContext* cpu) {
     DumpCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DC50, MH3_Gti2DumpCallback, "gti2DumpCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DC50, MH3_Gti2DumpCallback, "gti2DumpCallback");
 
 extern "C" void MH3_Gti2UnrecognizedMessageCallback(CpuContext* cpu) {
     UnrecognizedMessageCallbackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DD50, MH3_Gti2UnrecognizedMessageCallback, "gti2UnrecognizedMessageCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DD50, MH3_Gti2UnrecognizedMessageCallback, "gti2UnrecognizedMessageCallback");
 
 extern "C" void MH3_Gti2NewOutgoingConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2NewOutgoingConnection", func_8050DE20, NewOutgoingConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DE20, MH3_Gti2NewOutgoingConnection, "gti2NewOutgoingConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DE20, MH3_Gti2NewOutgoingConnection, "gti2NewOutgoingConnection");
 
 extern "C" void MH3_Gti2NewIncomingConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2NewIncomingConnection", func_8050DE80, NewIncomingConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DE80, MH3_Gti2NewIncomingConnection, "gti2NewIncomingConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DE80, MH3_Gti2NewIncomingConnection, "gti2NewIncomingConnection");
 
 extern "C" void MH3_Gti2StartConnectionAttempt(CpuContext* cpu) {
     StartConnectionAttemptPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DEE0, MH3_Gti2StartConnectionAttempt, "gti2StartConnectionAttempt");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DEE0, MH3_Gti2StartConnectionAttempt, "gti2StartConnectionAttempt");
 
 extern "C" void MH3_Gti2AcceptConnection(CpuContext* cpu) {
     AcceptConnectionPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050DFC0, MH3_Gti2AcceptConnection, "gti2AcceptConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050DFC0, MH3_Gti2AcceptConnection, "gti2AcceptConnection");
 
 extern "C" void MH3_Gti2RejectConnection(CpuContext* cpu) {
     RejectConnectionPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E070, MH3_Gti2RejectConnection, "gti2RejectConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E070, MH3_Gti2RejectConnection, "gti2RejectConnection");
 
 extern "C" void MH3_Gti2ConnectionSendData(CpuContext* cpu) {
     RawSendPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E0E0, MH3_Gti2ConnectionSendData, "gti2ConnectionSendData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E0E0, MH3_Gti2ConnectionSendData, "gti2ConnectionSendData");
 
 extern "C" void MH3_Gti2CheckTimeout(CpuContext* cpu) {
     CheckTimeoutPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E140, MH3_Gti2CheckTimeout, "gti2CheckTimeout");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E140, MH3_Gti2CheckTimeout, "gti2CheckTimeout");
 
 extern "C" void MH3_Gti2ConnectionThink(CpuContext* cpu) {
     ConnectionThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E240, MH3_Gti2ConnectionThink, "gti2ConnectionThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E240, MH3_Gti2ConnectionThink, "gti2ConnectionThink");
 
 extern "C" void MH3_Gt2CloseConnection(CpuContext* cpu) {
     CloseConnectionPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E390, MH3_Gt2CloseConnection, "gt2CloseConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E390, MH3_Gt2CloseConnection, "gt2CloseConnection");
 
 extern "C" void MH3_Gti2ConnectionClosed(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2ConnectionClosed", func_8050E430, ConnectionClosedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E430, MH3_Gti2ConnectionClosed, "gti2ConnectionClosed");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E430, MH3_Gti2ConnectionClosed, "gti2ConnectionClosed");
 
 extern "C" void MH3_Gti2FreeConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2FreeConnection", func_8050E490, FreeConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E490, MH3_Gti2FreeConnection, "gti2FreeConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E490, MH3_Gti2FreeConnection, "gti2FreeConnection");
 
 extern "C" void MH3_Gt2CreateSocket(CpuContext* cpu) {
     CreateSocketPublicPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E540, MH3_Gt2CreateSocket, "gt2CreateSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E540, MH3_Gt2CreateSocket, "gt2CreateSocket");
 
 extern "C" void MH3_Gt2CloseSocket(CpuContext* cpu) {
     CloseSocketPublicPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E550, MH3_Gt2CloseSocket, "gt2CloseSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E550, MH3_Gt2CloseSocket, "gt2CloseSocket");
 
 extern "C" void MH3_Gt2Think(CpuContext* cpu) {
     ThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E5A0, MH3_Gt2Think, "gt2Think");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E5A0, MH3_Gt2Think, "gt2Think");
 
 extern "C" void MH3_Gt2Listen(CpuContext* cpu) {
     PortCheck::Call(cpu, "gt2Listen", func_8050E5F0, ListenPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E5F0, MH3_Gt2Listen, "gt2Listen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E5F0, MH3_Gt2Listen, "gt2Listen");
 
 extern "C" void MH3_Gt2Accept(CpuContext* cpu) {
     AcceptConnectionPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E600, MH3_Gt2Accept, "gt2Accept");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E600, MH3_Gt2Accept, "gt2Accept");
 
 extern "C" void MH3_Gt2Reject(CpuContext* cpu) {
     RejectConnectionPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E610, MH3_Gt2Reject, "gt2Reject");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E610, MH3_Gt2Reject, "gt2Reject");
 
 extern "C" void MH3_Gt2Connect(CpuContext* cpu) {
     ConnectPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E620, MH3_Gt2Connect, "gt2Connect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E620, MH3_Gt2Connect, "gt2Connect");
 
 extern "C" void MH3_Gt2Send(CpuContext* cpu) {
     SendPublicPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E7D0, MH3_Gt2Send, "gt2Send");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E7D0, MH3_Gt2Send, "gt2Send");
 
 extern "C" void MH3_Gt2CloseConnectionHard(CpuContext* cpu) {
     CloseConnectionHardPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E8D0, MH3_Gt2CloseConnectionHard, "gt2CloseConnectionHard");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E8D0, MH3_Gt2CloseConnectionHard, "gt2CloseConnectionHard");
 
 extern "C" void MH3_Gti2CloseConnectionHardMap(CpuContext* cpu) {
     CloseConnectionHardMapPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E8E0, MH3_Gti2CloseConnectionHardMap, "gti2CloseConnectionHardMap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E8E0, MH3_Gti2CloseConnectionHardMap, "gti2CloseConnectionHardMap");
 
 extern "C" void MH3_Gt2CloseAllConnectionsHard(CpuContext* cpu) {
     CloseAllConnectionsHardPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E8F0, MH3_Gt2CloseAllConnectionsHard, "gt2CloseAllConnectionsHard");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E8F0, MH3_Gt2CloseAllConnectionsHard, "gt2CloseAllConnectionsHard");
 
 extern "C" void MH3_Gt2GetSocketSOCKET(CpuContext* cpu) {
     PortCheck::Call(cpu, "gt2GetSocketSOCKET", func_8050E910, GetSocketSocketPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E910, MH3_Gt2GetSocketSOCKET, "gt2GetSocketSOCKET");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E910, MH3_Gt2GetSocketSOCKET, "gt2GetSocketSOCKET");
 
 extern "C" void MH3_Gt2SetUnrecognizedMessageCallback(CpuContext* cpu) {
     PortCheck::Call(cpu, "gt2SetUnrecognizedMessageCallback", func_8050E920, SetUnrecognizedMessageCallbackPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E920, MH3_Gt2SetUnrecognizedMessageCallback, "gt2SetUnrecognizedMessageCallback");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E920, MH3_Gt2SetUnrecognizedMessageCallback, "gt2SetUnrecognizedMessageCallback");
 
 extern "C" void MH3_Gti2ProcessAck(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2ProcessAck", func_8050E930, ProcessAckPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050E930, MH3_Gti2ProcessAck, "gti2ProcessAck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050E930, MH3_Gti2ProcessAck, "gti2ProcessAck");
 
 extern "C" void MH3_Gti2ReceivedServerChallenge(CpuContext* cpu) {
     ReceivedServerChallengePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050EA60, MH3_Gti2ReceivedServerChallenge, "gti2ReceivedServerChallenge");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050EA60, MH3_Gti2ReceivedServerChallenge, "gti2ReceivedServerChallenge");
 
 extern "C" void MH3_Gti2ReceivedClientResponse(CpuContext* cpu) {
     ReceivedClientResponsePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050EDA0, MH3_Gti2ReceivedClientResponse, "gti2ReceivedClientResponse");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050EDA0, MH3_Gti2ReceivedClientResponse, "gti2ReceivedClientResponse");
 
 extern "C" void MH3_Gti2HandleReliableMessage(CpuContext* cpu) {
     HandleReliableMessagePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050F0B0, MH3_Gti2HandleReliableMessage, "gti2HandleReliableMessage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050F0B0, MH3_Gti2HandleReliableMessage, "gti2HandleReliableMessage");
 
 extern "C" void MH3_Gti2IncomingBufferMessageCompare(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2IncomingBufferMessageCompare", func_8050F870, CompareIncomingPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050F870, MH3_Gti2IncomingBufferMessageCompare, "gti2IncomingBufferMessageCompare");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050F870, MH3_Gti2IncomingBufferMessageCompare, "gti2IncomingBufferMessageCompare");
 
 extern "C" void MH3_Gti2BufferIncomingMessage(CpuContext* cpu) {
     BufferIncomingPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050F890, MH3_Gti2BufferIncomingMessage, "gti2BufferIncomingMessage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050F890, MH3_Gti2BufferIncomingMessage, "gti2BufferIncomingMessage");
 
 extern "C" void MH3_Gti2HandleReliable(CpuContext* cpu) {
     HandleReliablePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050FA40, MH3_Gti2HandleReliable, "gti2HandleReliable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050FA40, MH3_Gti2HandleReliable, "gti2HandleReliable");
 
 extern "C" void MH3_Gti2HandleNack(CpuContext* cpu) {
     HandleNackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8050FE90, MH3_Gti2HandleNack, "gti2HandleNack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8050FE90, MH3_Gti2HandleNack, "gti2HandleNack");
 
 extern "C" void MH3_Gti2HandleUnreliable(CpuContext* cpu) {
     HandleUnreliablePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80510080, MH3_Gti2HandleUnreliable, "gti2HandleUnreliable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80510080, MH3_Gti2HandleUnreliable, "gti2HandleUnreliable");
 
 extern "C" void MH3_Gti2HandleMessage(CpuContext* cpu) {
     HandleMessagePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80510350, MH3_Gti2HandleMessage, "gti2HandleMessage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80510350, MH3_Gti2HandleMessage, "gti2HandleMessage");
 
 extern "C" void MH3_Gti2HandleConnectionReset(CpuContext* cpu) {
     HandleConnectionResetPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805107E0, MH3_Gti2HandleConnectionReset, "gti2HandleConnectionReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805107E0, MH3_Gti2HandleConnectionReset, "gti2HandleConnectionReset");
 
 extern "C" void MH3_Gti2HandleHostUnreachable(CpuContext* cpu) {
     HandleHostUnreachablePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80510A00, MH3_Gti2HandleHostUnreachable, "gti2HandleHostUnreachable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80510A00, MH3_Gti2HandleHostUnreachable, "gti2HandleHostUnreachable");
 
 extern "C" void MH3_Gti2ReceiveMessages(CpuContext* cpu) {
     ReceiveMessagesPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80510B30, MH3_Gti2ReceiveMessages, "gti2ReceiveMessages");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80510B30, MH3_Gti2ReceiveMessages, "gti2ReceiveMessages");
 
 extern "C" void MH3_Gti2BeginReliableMessage(CpuContext* cpu) {
     BeginReliableMessagePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80510F30, MH3_Gti2BeginReliableMessage, "gti2BeginReliableMessage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80510F30, MH3_Gti2BeginReliableMessage, "gti2BeginReliableMessage");
 
 extern "C" void MH3_Gti2SendClientChallenge(CpuContext* cpu) {
     SendClientChallengePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805112D0, MH3_Gti2SendClientChallenge, "gti2SendClientChallenge");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805112D0, MH3_Gti2SendClientChallenge, "gti2SendClientChallenge");
 
 extern "C" void MH3_Gti2SendAccept(CpuContext* cpu) {
     SendAcceptPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805113C0, MH3_Gti2SendAccept, "gti2SendAccept");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805113C0, MH3_Gti2SendAccept, "gti2SendAccept");
 
 extern "C" void MH3_Gti2SendReject(CpuContext* cpu) {
     SendRejectPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511490, MH3_Gti2SendReject, "gti2SendReject");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511490, MH3_Gti2SendReject, "gti2SendReject");
 
 extern "C" void MH3_Gti2SendClose(CpuContext* cpu) {
     SendClosePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511590, MH3_Gti2SendClose, "gti2SendClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511590, MH3_Gti2SendClose, "gti2SendClose");
 
 extern "C" void MH3_Gti2SendKeepAlive(CpuContext* cpu) {
     SendKeepAlivePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511660, MH3_Gti2SendKeepAlive, "gti2SendKeepAlive");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511660, MH3_Gti2SendKeepAlive, "gti2SendKeepAlive");
 
 extern "C" void MH3_Gti2SendUnreliable(CpuContext* cpu) {
     SendUnreliablePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511730, MH3_Gti2SendUnreliable, "gti2SendUnreliable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511730, MH3_Gti2SendUnreliable, "gti2SendUnreliable");
 
 extern "C" void MH3_Gti2SendAck(CpuContext* cpu) {
     SendAckPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511860, MH3_Gti2SendAck, "gti2SendAck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511860, MH3_Gti2SendAck, "gti2SendAck");
 
 extern "C" void MH3_Gti2SendNack(CpuContext* cpu) {
     SendNackPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511930, MH3_Gti2SendNack, "gti2SendNack");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511930, MH3_Gti2SendNack, "gti2SendNack");
 
 extern "C" void MH3_Gti2SendClosed(CpuContext* cpu) {
     SendClosedPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511A30, MH3_Gti2SendClosed, "gti2SendClosed");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511A30, MH3_Gti2SendClosed, "gti2SendClosed");
 
 extern "C" void MH3_Gti2ResendMessage(CpuContext* cpu) {
     ResendMessagePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511AF0, MH3_Gti2ResendMessage, "gti2ResendMessage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511AF0, MH3_Gti2ResendMessage, "gti2ResendMessage");
 
 extern "C" void MH3_Gti2Send(CpuContext* cpu) {
     SendPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511BB0, MH3_Gti2Send, "gti2Send");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511BB0, MH3_Gti2Send, "gti2Send");
 
 extern "C" void MH3_Gti2ConnectionHash(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2ConnectionHash", func_80511CA0, ConnectionHashPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511CA0, MH3_Gti2ConnectionHash, "gti2ConnectionHash");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511CA0, MH3_Gti2ConnectionHash, "gti2ConnectionHash");
 
 extern "C" void MH3_Gti2ConnectionCompare(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2ConnectionCompare", func_80511CC0, ConnectionComparePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511CC0, MH3_Gti2ConnectionCompare, "gti2ConnectionCompare");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511CC0, MH3_Gti2ConnectionCompare, "gti2ConnectionCompare");
 
 extern "C" void MH3_Gti2ClosedConnectionFree(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2ClosedConnectionFree", func_80511D00, ClosedConnectionFreePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511D00, MH3_Gti2ClosedConnectionFree, "gti2ClosedConnectionFree");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511D00, MH3_Gti2ClosedConnectionFree, "gti2ClosedConnectionFree");
 
 extern "C" void MH3_Gti2SocketFindConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2SocketFindConnection", func_80511D10, FindConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511D10, MH3_Gti2SocketFindConnection, "gti2SocketFindConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511D10, MH3_Gti2SocketFindConnection, "gti2SocketFindConnection");
 
 extern "C" void MH3_Gti2CreateSocket(CpuContext* cpu) {
     CreateSocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511D60, MH3_Gti2CreateSocket, "gti2CreateSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511D60, MH3_Gti2CreateSocket, "gti2CreateSocket");
 
 extern "C" void MH3_Gti2CloseSocket(CpuContext* cpu) {
     CloseSocketPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80511FA0, MH3_Gti2CloseSocket, "gti2CloseSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80511FA0, MH3_Gti2CloseSocket, "gti2CloseSocket");
 
 extern "C" void MH3_Gti2NewSocketConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2NewSocketConnection", func_80512020, NewSocketConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512020, MH3_Gti2NewSocketConnection, "gti2NewSocketConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512020, MH3_Gti2NewSocketConnection, "gti2NewSocketConnection");
 
 extern "C" void MH3_Gti2FreeSocketConnection(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2FreeSocketConnection", func_805122A0, FreeSocketConnectionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805122A0, MH3_Gti2FreeSocketConnection, "gti2FreeSocketConnection");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805122A0, MH3_Gti2FreeSocketConnection, "gti2FreeSocketConnection");
 
 extern "C" void MH3_Gti2SocketSend(CpuContext* cpu) {
     SocketSendPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512370, MH3_Gti2SocketSend, "gti2SocketSend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512370, MH3_Gti2SocketSend, "gti2SocketSend");
 
 extern "C" void MH3_Gti2ConnectionThinkMap(CpuContext* cpu) {
     ConnectionThinkMapPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512590, MH3_Gti2ConnectionThinkMap, "gti2ConnectionThinkMap");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512590, MH3_Gti2ConnectionThinkMap, "gti2ConnectionThinkMap");
 
 extern "C" void MH3_Gti2SocketConnectionsThink(CpuContext* cpu) {
     SocketConnectionsThinkPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805126B0, MH3_Gti2SocketConnectionsThink, "gti2SocketConnectionsThink");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805126B0, MH3_Gti2SocketConnectionsThink, "gti2SocketConnectionsThink");
 
 extern "C" void MH3_Gti2FreeClosedConnections(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2FreeClosedConnections", func_80512700, FreeClosedConnectionsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512700, MH3_Gti2FreeClosedConnections, "gti2FreeClosedConnections");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512700, MH3_Gti2FreeClosedConnections, "gti2FreeClosedConnections");
 
 extern "C" void MH3_Gti2SocketError(CpuContext* cpu) {
     SocketErrorPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805127F0, MH3_Gti2SocketError, "gti2SocketError");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x805127F0, MH3_Gti2SocketError, "gti2SocketError");
 
 extern "C" void MH3_Gt2NetworkToHostShort(CpuContext* cpu) {
     PortCheck::Call(cpu, "gt2NetworkToHostShort", func_80512880, NetworkToHostShortPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512880, MH3_Gt2NetworkToHostShort, "gt2NetworkToHostShort");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512880, MH3_Gt2NetworkToHostShort, "gt2NetworkToHostShort");
 
 extern "C" void MH3_Gt2AddressToString(CpuContext* cpu) {
     PortCheck::Call(cpu, "gt2AddressToString", func_80512890, AddressToStringPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512890, MH3_Gt2AddressToString, "gt2AddressToString");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512890, MH3_Gt2AddressToString, "gt2AddressToString");
 
 extern "C" void MH3_Gt2StringToAddress(CpuContext* cpu) {
     StringToAddressPort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512980, MH3_Gt2StringToAddress, "gt2StringToAddress");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512980, MH3_Gt2StringToAddress, "gt2StringToAddress");
 
 extern "C" void MH3_Gti2MessageCheck(CpuContext* cpu) {
     PortCheck::Call(cpu, "gti2MessageCheck", func_80512B10, MessageCheckPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80512B10, MH3_Gti2MessageCheck, "gti2MessageCheck");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80512B10, MH3_Gti2MessageCheck, "gti2MessageCheck");

@@ -36,6 +36,23 @@
 
 namespace {
 
+// RMHJ08 data the ports read. The PAL addresses (0x807963C8, r13 - 0x4F18,
+// 0x805744A0, 0x8079D6F0) all fall in the Japanese build's .bss or code, so
+// reading them gave garbage: with the {0, 1} pair read as {0, 0}, every
+// PSMTXConcat dropped the left matrix's translation (a child node's world
+// matrix lost its parent's position, folding the hunter's skeleton onto the
+// origin).
+//   kConcatUnit: PSMTXConcat (JPN 0x8042F408) loads it from 0x808A0000 - 4928.
+//   kConcatArrayUnitR13Offset: PSMTXConcatArray (JPN 0x8042F4D4) from
+//     r13 - 23488 (r13 = 0x808A4880, the same pair).
+//   kSinCosTable: nw4r::math's {sin, cos, dsin, dcos} table (JPN 0x8065AC80,
+//     byte-identical to PAL 0x805744A0).
+//   kInverseEpsilon: MTX34Inv's singular-determinant epsilon (1e-36f).
+constexpr uint32_t kConcatUnit = 0x8089ECC0u;
+constexpr uint32_t kConcatArrayUnitR13Offset = 0x5BC0u;
+constexpr uint32_t kSinCosTable = 0x8065AC80u;
+constexpr float kInverseEpsilon = 1.0e-36f;
+
 float LoadFloat(uint32_t address) {
     const uint32_t bits = MemoryInline::FlatRead32(address);
     float f;
@@ -97,7 +114,7 @@ struct Matrix {
 
 // PSMTXConcat's product of host matrices.
 Matrix ConcatMatrices(const Matrix& m, const Matrix& n) {
-    const PpcPairVec unit = LoadPair(0x807963C8u);
+    const PpcPairVec unit = LoadPair(kConcatUnit);
     Matrix ab;
 
     for (unsigned r = 0; r < 3; ++r) {
@@ -148,7 +165,7 @@ void Concat(uint32_t a, uint32_t b, uint32_t ab) {
     {
         const float32x4_t m[3]{LoadRow(a), LoadRow(a + 16), LoadRow(a + 32)};
         const float32x4_t n[3]{LoadRow(b), LoadRow(b + 16), LoadRow(b + 32)};
-        const float32x2_t unit = LoadUnit(0x807963C8u);
+        const float32x2_t unit = LoadUnit(kConcatUnit);
 
         for (unsigned r = 0; r < 3; ++r)
             StoreRow(ab + 16 * r, ConcatRow<false>(m[r], n, unit));
@@ -157,7 +174,7 @@ void Concat(uint32_t a, uint32_t b, uint32_t ab) {
     }
 #endif
     const Matrix m(a), n(b);
-    const PpcPairVec unit = LoadPair(0x807963C8u);
+    const PpcPairVec unit = LoadPair(kConcatUnit);
 
     for (unsigned r = 0; r < 3; ++r) {
         const PpcPairVec x = m.p[2 * r], y = m.p[2 * r + 1];
@@ -172,7 +189,7 @@ void ConcatArray(uint32_t a, uint32_t srcBase, uint32_t dstBase, uint32_t count,
 #ifdef MH3_MTX_NEON
     {
         const float32x4_t m[3]{LoadRow(a), LoadRow(a + 16), LoadRow(a + 32)};
-        const float32x2_t unit = LoadUnit(r13 - 0x4F18);
+        const float32x2_t unit = LoadUnit(r13 - kConcatArrayUnitR13Offset);
 
         for (uint32_t i = 0, n = count ? count : 1; i < n; ++i) {
             const uint32_t src = srcBase + 0x30 * i, dst = dstBase + 0x30 * i;
@@ -186,7 +203,7 @@ void ConcatArray(uint32_t a, uint32_t srcBase, uint32_t dstBase, uint32_t count,
     }
 #endif
     const Matrix m(a);
-    const PpcPairVec unit = LoadPair(r13 - 0x4F18);
+    const PpcPairVec unit = LoadPair(r13 - kConcatArrayUnitR13Offset);
 
     // The loop counts count - 1 in CTR after the first product: 0 would run
     // it 2^32 times; do one instead.
@@ -329,11 +346,11 @@ uint32_t Inverse(uint32_t src, uint32_t inv) {
 
 } // namespace
 
-extern "C" void func_804C62C0(CpuContext* ctx);
-extern "C" void func_804C6300(CpuContext* ctx);
-extern "C" void func_804C63D0(CpuContext* ctx);
-extern "C" void func_804C6560(CpuContext* ctx);
-extern "C" void func_804C6F20(CpuContext* ctx);
+extern "C" void func_8042F3D4(CpuContext* ctx);
+extern "C" void func_8042F408(CpuContext* ctx);
+extern "C" void func_8042F4D4(CpuContext* ctx);
+extern "C" void func_8042F66C(CpuContext* ctx);
+extern "C" void func_8042FFC0(CpuContext* ctx);
 
 // With MH3_PORT_CHECK naming the port, each call runs the original too and
 // compares the output matrices (registers from the current context).
@@ -355,56 +372,56 @@ static void CopyPort(CpuContext* p) {
 }
 
 static void CopyChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
-    MH3_MTX_CHECK("PSMTXCopy", func_804C62C0, CopyPort, r4, 0x30, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4);
+    MH3_MTX_CHECK("PSMTXCopy", func_8042F3D4, CopyPort, r4, 0x30, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4);
     Copy(r3, r4);
 }
 
 extern "C" void MH3_PSMTXCopy(CpuContext* ctx) {
     CopyChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C62C0, MH3_PSMTXCopy, "PSMTXCopy");
+REGISTER_NATIVE_FUNCTION_AS(0x8042F3D4, MH3_PSMTXCopy, "PSMTXCopy");
 
 static void ConcatPort(CpuContext* p) {
     Concat(p->gpr[3], p->gpr[4], p->gpr[5]);
 }
 
 static void ConcatChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) {
-    MH3_MTX_CHECK("PSMTXConcat", func_804C6300, ConcatPort, r5, 0x30, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5);
+    MH3_MTX_CHECK("PSMTXConcat", func_8042F408, ConcatPort, r5, 0x30, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5);
     Concat(r3, r4, r5);
 }
 
 extern "C" void MH3_PSMTXConcat(CpuContext* ctx) {
     ConcatChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C6300, MH3_PSMTXConcat, "PSMTXConcat");
+REGISTER_NATIVE_FUNCTION_AS(0x8042F408, MH3_PSMTXConcat, "PSMTXConcat");
 
 static void ConcatArrayPort(CpuContext* p) {
     ConcatArray(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[13]);
 }
 
 static void ConcatArrayChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5, uint32_t r6, uint32_t r13) {
-    MH3_MTX_CHECK("PSMTXConcatArray", func_804C63D0, ConcatArrayPort, r5, 0x30 * (r6 ? r6 : 1), c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5, c->gpr[6] = r6, c->gpr[13] = r13);
+    MH3_MTX_CHECK("PSMTXConcatArray", func_8042F4D4, ConcatArrayPort, r5, 0x30 * (r6 ? r6 : 1), c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5, c->gpr[6] = r6, c->gpr[13] = r13);
     ConcatArray(r3, r4, r5, r6, r13);
 }
 
 extern "C" void MH3_PSMTXConcatArray(CpuContext* ctx) {
     ConcatArrayChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[13]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C63D0, MH3_PSMTXConcatArray, "PSMTXConcatArray");
+REGISTER_NATIVE_FUNCTION_AS(0x8042F4D4, MH3_PSMTXConcatArray, "PSMTXConcatArray");
 
 static void MultVecPort(CpuContext* p) {
     MultVec(p->gpr[3], p->gpr[4], p->gpr[5]);
 }
 
 static void MultVecChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t r5) {
-    MH3_MTX_CHECK("PSMTXMultVec", func_804C6F20, MultVecPort, r5, 12, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5);
+    MH3_MTX_CHECK("PSMTXMultVec", func_8042FFC0, MultVecPort, r5, 12, c->gpr[1] = r1, c->gpr[3] = r3, c->gpr[4] = r4, c->gpr[5] = r5);
     MultVec(r3, r4, r5);
 }
 
 extern "C" void MH3_PSMTXMultVec(CpuContext* ctx) {
     MultVecChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C6F20, MH3_PSMTXMultVec, "PSMTXMultVec");
+REGISTER_NATIVE_FUNCTION_AS(0x8042FFC0, MH3_PSMTXMultVec, "PSMTXMultVec");
 
 static void InversePort(CpuContext* p) {
     p->gpr[3] = Inverse(p->gpr[3], p->gpr[4]);
@@ -419,7 +436,7 @@ static uint32_t InverseChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
         c->gpr[1] = r1;
         c->gpr[3] = r3;
         c->gpr[4] = r4;
-        PortCheck::RunOutput(c, "PSMTXInverse", func_804C6560, InversePort, {{r4, 0x30}});
+        PortCheck::RunOutput(c, "PSMTXInverse", func_8042F66C, InversePort, {{r4, 0x30}});
         return c->gpr[3];
     }
 #else
@@ -431,7 +448,7 @@ static uint32_t InverseChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_PSMTXInverse(CpuContext* ctx) {
     ctx->gpr[3] = InverseChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C6560, MH3_PSMTXInverse, "PSMTXInverse");
+REGISTER_NATIVE_FUNCTION_AS(0x8042F66C, MH3_PSMTXInverse, "PSMTXInverse");
 
 // 0x80501AB4 (MTX34RotXYZFIdx, nw4r::math): m = Rz * Ry * Rx from three
 // angles in FIdx units (a turn is the float at r2 - 0x5C8, 256). Each |angle|
@@ -454,7 +471,7 @@ SinCos SinCosFIdx(float angle, float turn) {
 
     const float whole = float(uint16_t(a)); // psq_st u16 (truncating), psq_l back
     const float fraction = a - whole;
-    const uint32_t entry = 0x805744A0u + ((uint32_t(uint16_t(a)) & 0xFF) << 4);
+    const uint32_t entry = kSinCosTable + ((uint32_t(uint16_t(a)) & 0xFF) << 4);
     SinCos r{PpcFmaFloatInline(LoadFloat(entry + 8), fraction, LoadFloat(entry)), PpcFmaFloatInline(LoadFloat(entry + 12), fraction, LoadFloat(entry + 4))};
 
     if (angle < 0.0f)
@@ -464,7 +481,8 @@ SinCos SinCosFIdx(float angle, float turn) {
 }
 
 void RotXYZFIdx(uint32_t m, float x, float y, float z, uint32_t r2) {
-    const float turn = LoadFloat(r2 - 0x5C8);
+    (void)r2;
+    const float turn = 65536.0f; // PAL r2 - 0x5C8; the JPN .sdata2 layout differs
     const SinCos rx = SinCosFIdx(x, turn), ry = SinCosFIdx(y, turn), rz = SinCosFIdx(z, turn);
     const float sx = rx.s, cx = rx.c, sy = ry.s, cy = ry.c, sz = rz.s, cz = rz.c;
     StoreFloat(m + 0x2C, sx - sx); // ps_sub f7,f0,f0: the translation's 0
@@ -488,20 +506,20 @@ void G3dNative::MtxRotXYZFIdx(uint32_t m, float x, float y, float z, uint32_t r2
     RotXYZFIdx(m, x, y, z, r2);
 }
 
-extern "C" void func_80501AB4(CpuContext* ctx);
+extern "C" void func_8053D9D8(CpuContext* ctx);
 static void RotXYZFIdxPort(CpuContext* p) {
     RotXYZFIdx(p->gpr[3], float(p->fpr[1].d), float(p->fpr[2].d), float(p->fpr[3].d), p->gpr[2]);
 }
 
 static void RotXYZFIdxChecked(uint32_t r1, uint32_t r2, uint32_t m, double x, double y, double z) {
-    MH3_MTX_CHECK("MTX34RotXYZFIdx", func_80501AB4, RotXYZFIdxPort, m, 0x30, c->gpr[1] = r1, c->gpr[2] = r2, c->gpr[3] = m, c->fpr[1].d = x, c->fpr[2].d = y, c->fpr[3].d = z);
+    MH3_MTX_CHECK("MTX34RotXYZFIdx", func_8053D9D8, RotXYZFIdxPort, m, 0x30, c->gpr[1] = r1, c->gpr[2] = r2, c->gpr[3] = m, c->fpr[1].d = x, c->fpr[2].d = y, c->fpr[3].d = z);
     RotXYZFIdx(m, float(x), float(y), float(z), r2);
 }
 
 extern "C" void MH3_MTX34RotXYZFIdx(CpuContext* ctx) {
     RotXYZFIdxChecked(ctx->gpr[1], ctx->gpr[2], ctx->gpr[3], ctx->fpr[1].d, ctx->fpr[2].d, ctx->fpr[3].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80501AB4, MH3_MTX34RotXYZFIdx, "MTX34RotXYZFIdx");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D9D8, MH3_MTX34RotXYZFIdx, "MTX34RotXYZFIdx");
 
 // 0x80501A10 (MTX34MultTrans, nw4r::math): out = m * Trans(v): m's rotation,
 // and per row the translation m[r][0..2] . v + m[r][3], summed as the paired
@@ -520,16 +538,17 @@ Matrix MultTrans(const Matrix& m, float vx, float vy, float vz) {
     return out;
 }
 
-// 0x800D7814 (WorldMtxNodeStepMayaScale): a node's world matrix and scale from
-// its parent's with Maya segment-scale compensation. node: u32 flags, VEC3
-// scale at +4, the local Mtx34 at +0x1C. flags (r7) carry the calc state; bit
-// 31 says the accumulated scale is 1. Node flag 2 or 4: world = parent;
-// 0x20: translation only (world = parent * Trans(t), t scaled unless bit 31);
-// else world = parent * local (its translation scaled unless bit 31).
-// Then the world scale: node flag 8 keeps the parent's (bit 30 set), else
-// parent scale * node scale (bit 30 cleared with 31); node flag 0x10 sets bit
-// 28, else bits 28-31 are cleared. Returns the flags.
-uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
+// 0x800D7814 (WorldMtxNodeStep, JPN 0x80533FE4): a node's world matrix and
+// scale from its parent's, for models whose scaling rule is 0 (no Maya
+// segment-scale compensation). node: u32 flags, VEC3 scale at +4, the local
+// Mtx34 at +0x1C. flags (r7) carry the calc state; bit 31 says the accumulated
+// scale is 1. Node flag 2 or 4: world = parent; 0x20: translation only
+// (world = parent * Trans(t), t scaled unless bit 31); else world = parent *
+// local (its translation scaled unless bit 31). Then the world scale: node
+// flag 8 keeps the parent's (bit 30 set), else parent scale * node scale (bit
+// 30 cleared with 31); node flag 0x10 sets bit 28, else bits 28-31 are cleared.
+// Returns the flags.
+uint32_t WorldMtxNodeStep(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
     const uint32_t nodeFlags = MemoryInline::FlatRead32(node);
     const bool unitScale = (flags & 0x80000000u) != 0;
     const float sx = LoadFloat(scale), sy = LoadFloat(scale + 4), sz = LoadFloat(scale + 8);
@@ -559,7 +578,7 @@ uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t
             n[2] = vsetq_lane_f32(vgetq_lane_f32(n[2], 3) * sz, n[2], 3);
         }
 
-        const float32x2_t unit = LoadUnit(0x807963C8u);
+        const float32x2_t unit = LoadUnit(kConcatUnit);
 
         for (unsigned r = 0; r < 3; ++r)
             StoreRow(world + 16 * r, ConcatRow<false>(LoadRow(parent + 16 * r), n, unit));
@@ -599,31 +618,92 @@ uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t
     return (nodeFlags & 0x10) != 0 ? flags | 0x10000000u : flags & 0x0FFFFFFFu;
 }
 
+// Defined with the other nw4r matrix ports further down (0x805019BC).
+void ApplyScale(uint32_t out, uint32_t m, uint32_t s);
+
+// 0x800D7D88 (WorldMtxNodeStepMayaScale, JPN 0x80533470): the same step for a
+// model whose scaling rule is 1 (Maya), where a node does not inherit its
+// parent's accumulated scale. Instead of scaling the node's translation by the
+// parent's scale (the rule-0 step), the parent matrix itself is scaled before
+// the node's local matrix is concatenated, so the scale ends up on the parent's
+// side of the node's rotation. flags bit 30 (not 31) says the accumulated scale
+// is 1; node flag 8 then keeps it at 1 rather than at the parent's, and node
+// flag 8's else branch stores the node's own scale (not parent * node).
+uint32_t WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
+    const uint32_t nodeFlags = MemoryInline::FlatRead32(node);
+    const bool unitScale = (flags & 0x40000000u) != 0;
+    const float sx = LoadFloat(scale), sy = LoadFloat(scale + 4), sz = LoadFloat(scale + 8);
+
+    if ((nodeFlags & 6) != 0) {
+        if (unitScale)
+            Copy(parent, world);
+        else
+            ApplyScale(world, parent, scale);
+    } else if ((nodeFlags & 0x20) != 0) {
+        if (unitScale) {
+            // MultTrans, the node's own translation unscaled.
+            MultTrans(Matrix(parent), LoadFloat(node + 0x28), LoadFloat(node + 0x38), LoadFloat(node + 0x48)).Store(world);
+        } else {
+            // The local matrix with each row scaled by the parent's accumulated
+            // scale, then concatenated: 0x8042FB2C pre-multiplies the scale.
+            Matrix local(node + 0x1C);
+
+            for (unsigned r = 0; r < 3; ++r) {
+                const float s = r == 0 ? sx : (r == 1 ? sy : sz);
+
+                for (unsigned c = 0; c < 4; ++c)
+                    local.Set(r, c, local.Get(r, c) * s);
+            }
+
+            ConcatMatrices(Matrix(parent), local).Store(world);
+        }
+    } else if (unitScale) {
+        Concat(parent, node + 0x1C, world);
+    } else {
+        ApplyScale(world, parent, scale);
+        Concat(world, node + 0x1C, world);
+    }
+
+    if ((nodeFlags & 8) != 0) {
+        flags |= 0x40000000u;
+        StoreFloat(worldScale, 1.0f);
+        StoreFloat(worldScale + 4, 1.0f);
+        StoreFloat(worldScale + 8, 1.0f);
+    } else {
+        flags &= 0x3FFFFFFFu;
+        StoreFloat(worldScale, LoadFloat(node + 4));
+        StoreFloat(worldScale + 4, LoadFloat(node + 8));
+        StoreFloat(worldScale + 8, LoadFloat(node + 0xC));
+    }
+
+    return (nodeFlags & 0x10) != 0 ? flags | 0x10000000u : flags & 0x0FFFFFFFu;
+}
+
 } // namespace
 
-extern "C" void func_80501A10(CpuContext* ctx);
+extern "C" void func_8053D934(CpuContext* ctx);
 static void MultTransPort(CpuContext* p) {
     MultTrans(Matrix(p->gpr[4]), LoadFloat(p->gpr[5]), LoadFloat(p->gpr[5] + 4), LoadFloat(p->gpr[5] + 8)).Store(p->gpr[3]);
 }
 
 static void MultTransChecked(uint32_t r1, uint32_t out, uint32_t m, uint32_t v) {
-    MH3_MTX_CHECK("MTX34MultTrans", func_80501A10, MultTransPort, out, 0x30, c->gpr[1] = r1, c->gpr[3] = out, c->gpr[4] = m, c->gpr[5] = v);
+    MH3_MTX_CHECK("MTX34MultTrans", func_8053D934, MultTransPort, out, 0x30, c->gpr[1] = r1, c->gpr[3] = out, c->gpr[4] = m, c->gpr[5] = v);
     MultTrans(Matrix(m), LoadFloat(v), LoadFloat(v + 4), LoadFloat(v + 8)).Store(out);
 }
 
 extern "C" void MH3_MTX34MultTrans(CpuContext* ctx) {
     MultTransChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80501A10, MH3_MTX34MultTrans, "MTX34MultTrans");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D934, MH3_MTX34MultTrans, "MTX34MultTrans");
 
-extern "C" void func_800D7814(CpuContext* ctx);
+extern "C" void func_80533FE4(CpuContext* ctx);
 static void WorldStepPort(CpuContext* p) {
-    p->gpr[3] = WorldMtxNodeStepMayaScale(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[7], p->gpr[8]);
+    p->gpr[3] = WorldMtxNodeStep(p->gpr[3], p->gpr[4], p->gpr[5], p->gpr[6], p->gpr[7], p->gpr[8]);
 }
 
 static uint32_t WorldStepChecked(uint32_t r1, uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
 #ifdef MH3_DEVELOPMENT
-    const bool check = PortCheck::Enabled("WorldMtxNodeStepMayaScale");
+    const bool check = PortCheck::Enabled("WorldMtxNodeStep");
 
     if (check) [[unlikely]] {
         CpuContext* c = TryGetCpuContext();
@@ -634,19 +714,19 @@ static uint32_t WorldStepChecked(uint32_t r1, uint32_t world, uint32_t worldScal
         c->gpr[6] = scale;
         c->gpr[7] = flags;
         c->gpr[8] = node;
-        PortCheck::RunOutput(c, "WorldMtxNodeStepMayaScale", func_800D7814, WorldStepPort, {{world, 0x30}, {worldScale, 12}});
+        PortCheck::RunOutput(c, "WorldMtxNodeStep", func_80533FE4, WorldStepPort, {{world, 0x30}, {worldScale, 12}});
         return c->gpr[3];
     }
 #else
     (void)r1;
 #endif
-    return WorldMtxNodeStepMayaScale(world, worldScale, parent, scale, flags, node);
+    return WorldMtxNodeStep(world, worldScale, parent, scale, flags, node);
 }
 
-extern "C" void MH3_WorldMtxNodeStepMayaScale(CpuContext* ctx) {
+extern "C" void MH3_WorldMtxNodeStep(CpuContext* ctx) {
     ctx->gpr[3] = WorldStepChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6], ctx->gpr[7], ctx->gpr[8]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800D7814, MH3_WorldMtxNodeStepMayaScale, "WorldMtxNodeStepMayaScale");
+REGISTER_NATIVE_FUNCTION_AS(0x80533FE4, MH3_WorldMtxNodeStep, "WorldMtxNodeStep");
 
 // 0x805019BC (MTX34Scale, nw4r::math): out = m * Scale(s), each row's
 // (x, y) pair by (sx, sy) and its (z, t) pair by (sz, 1).
@@ -664,20 +744,20 @@ void ApplyScale(uint32_t out, uint32_t m, uint32_t s) {
 
 } // namespace
 
-extern "C" void func_805019BC(CpuContext* ctx);
+extern "C" void func_8053D8E0(CpuContext* ctx);
 static void ApplyScalePort(CpuContext* p) {
     ApplyScale(p->gpr[3], p->gpr[4], p->gpr[5]);
 }
 
 static void ApplyScaleChecked(uint32_t r1, uint32_t out, uint32_t m, uint32_t s) {
-    MH3_MTX_CHECK("MTX34Scale", func_805019BC, ApplyScalePort, out, 0x30, c->gpr[1] = r1, c->gpr[3] = out, c->gpr[4] = m, c->gpr[5] = s);
+    MH3_MTX_CHECK("MTX34Scale", func_8053D8E0, ApplyScalePort, out, 0x30, c->gpr[1] = r1, c->gpr[3] = out, c->gpr[4] = m, c->gpr[5] = s);
     ApplyScale(out, m, s);
 }
 
 extern "C" void MH3_MTX34Scale(CpuContext* ctx) {
     ApplyScaleChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x805019BC, MH3_MTX34Scale, "MTX34Scale");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D8E0, MH3_MTX34Scale, "MTX34Scale");
 
 void G3dNative::MtxCopy(uint32_t src, uint32_t dst) {
     Copy(src, dst);
@@ -695,12 +775,19 @@ void G3dNative::MtxApplyScale(uint32_t out, uint32_t m, uint32_t s) {
     ApplyScale(out, m, s);
 }
 
-uint32_t G3dNative::WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
+uint32_t G3dNative::WorldMtxNodeStep(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
 #ifdef MH3_DEVELOPMENT
     // G3dCalcWorld's calls, checked too.
-    if (PortCheck::Enabled("WorldMtxNodeStepMayaScale")) [[unlikely]]
+    if (PortCheck::Enabled("WorldMtxNodeStep")) [[unlikely]]
         return WorldStepChecked(TryGetCpuContext()->gpr[1], world, worldScale, parent, scale, flags, node);
 #endif
+    return ::WorldMtxNodeStep(world, worldScale, parent, scale, flags, node);
+}
+
+// The Maya step exists only in the Japanese build (JPN 0x80533470); the PAL
+// function named "WorldMtxNodeStepMayaScale" (0x800D7814) is the rule-0 step
+// above, so there is no PAL body to check this one against.
+uint32_t G3dNative::WorldMtxNodeStepMayaScale(uint32_t world, uint32_t worldScale, uint32_t parent, uint32_t scale, uint32_t flags, uint32_t node) {
     return ::WorldMtxNodeStepMayaScale(world, worldScale, parent, scale, flags, node);
 }
 
@@ -736,7 +823,7 @@ Cofactors LoadCofactors(uint32_t src) {
     c.f7 = PPC_PsMulInline(c.f0, c.f13);
     c.f10 = PPC_PsMulInline(c.f3, c.f4);
     c.f7 = PPC_PsMaddInline(c.f2, c.f12, c.f7);
-    c.f6 = LoadPacked1(0x8079D6F0u);
+    c.f6 = PpcPackPairedInline(kInverseEpsilon, 1.0f);
     c.f9 = PPC_PsMulInline(c.f0, c.f5);
     c.f7 = PPC_PsMaddInline(c.f4, c.f11, c.f7);
     c.f10 = PPC_PsMsubInline(c.f2, c.f5, c.f10);
@@ -851,10 +938,10 @@ void To33(uint32_t dst, uint32_t src) {
 
 } // namespace
 
-extern "C" void func_80331064(CpuContext* ctx);
-extern "C" void func_80330E78(CpuContext* ctx);
-extern "C" void func_80330F5C(CpuContext* ctx);
-extern "C" void func_80501968(CpuContext* ctx);
+extern "C" void func_80523428(CpuContext* ctx);
+extern "C" void func_8052323C(CpuContext* ctx);
+extern "C" void func_80523320(CpuContext* ctx);
+extern "C" void func_8053D88C(CpuContext* ctx);
 
 #ifdef MH3_DEVELOPMENT
 #define MH3_MTX_RESULT_CHECK(name, original, port, out, bytes)                                                                                                                                         \
@@ -872,40 +959,40 @@ static void Inv34Port(CpuContext* p) {
 }
 
 extern "C" void MH3_MTX34Inv(CpuContext* ctx) {
-    MH3_MTX_RESULT_CHECK("MTX34Inv", func_80331064, Inv34Port, ctx->gpr[3], 0x30);
+    MH3_MTX_RESULT_CHECK("MTX34Inv", func_80523428, Inv34Port, ctx->gpr[3], 0x30);
     Inv34Port(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80331064, MH3_MTX34Inv, "MTX34Inv");
+REGISTER_NATIVE_FUNCTION_AS(0x80523428, MH3_MTX34Inv, "MTX34Inv");
 
 static void InvTranspose33Port(CpuContext* p) {
     p->gpr[3] = InvTranspose33(p->gpr[3], p->gpr[4]);
 }
 
 extern "C" void MH3_MTX34InvTransposeTo33(CpuContext* ctx) {
-    MH3_MTX_RESULT_CHECK("MTX34InvTransposeTo33", func_80330E78, InvTranspose33Port, ctx->gpr[3], 0x24);
+    MH3_MTX_RESULT_CHECK("MTX34InvTransposeTo33", func_8052323C, InvTranspose33Port, ctx->gpr[3], 0x24);
     InvTranspose33Port(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80330E78, MH3_MTX34InvTransposeTo33, "MTX34InvTransposeTo33");
+REGISTER_NATIVE_FUNCTION_AS(0x8052323C, MH3_MTX34InvTransposeTo33, "MTX34InvTransposeTo33");
 
 static void InvTranspose34Port(CpuContext* p) {
     p->gpr[3] = InvTranspose34(p->gpr[3], p->gpr[4]);
 }
 
 extern "C" void MH3_MTX34InvTranspose(CpuContext* ctx) {
-    MH3_MTX_RESULT_CHECK("MTX34InvTranspose", func_80330F5C, InvTranspose34Port, ctx->gpr[3], 0x30);
+    MH3_MTX_RESULT_CHECK("MTX34InvTranspose", func_80523320, InvTranspose34Port, ctx->gpr[3], 0x30);
     InvTranspose34Port(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80330F5C, MH3_MTX34InvTranspose, "MTX34InvTranspose");
+REGISTER_NATIVE_FUNCTION_AS(0x80523320, MH3_MTX34InvTranspose, "MTX34InvTranspose");
 
 static void To33Port(CpuContext* p) {
     To33(p->gpr[3], p->gpr[4]);
 }
 
 extern "C" void MH3_MTX34ToMTX33(CpuContext* ctx) {
-    MH3_MTX_RESULT_CHECK("MTX34ToMTX33", func_80501968, To33Port, ctx->gpr[3], 0x24);
+    MH3_MTX_RESULT_CHECK("MTX34ToMTX33", func_8053D88C, To33Port, ctx->gpr[3], 0x24);
     To33Port(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80501968, MH3_MTX34ToMTX33, "MTX34ToMTX33");
+REGISTER_NATIVE_FUNCTION_AS(0x8053D88C, MH3_MTX34ToMTX33, "MTX34ToMTX33");
 
 uint32_t G3dNative::MtxInv34(uint32_t dst, uint32_t src) {
     return Inv34(dst, src);
@@ -960,7 +1047,7 @@ static uint32_t InverseWrapperChecked(uint32_t r1, uint32_t out, uint32_t in) {
 extern "C" void MH3_MtxInverseWrapper(CpuContext* ctx) {
     ctx->gpr[3] = InverseWrapperChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80088428, MH3_MtxInverseWrapper, "MtxInverseWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80088428, MH3_MtxInverseWrapper, "MtxInverseWrapper");
 
 static void ConcatWrapperPort(CpuContext* p) {
     Concat(p->gpr[4], p->gpr[5], p->gpr[3]);
@@ -985,7 +1072,7 @@ static void ConcatWrapperChecked(uint32_t r1, uint32_t out, uint32_t a, uint32_t
 extern "C" void MH3_MtxConcatWrapper(CpuContext* ctx) {
     ConcatWrapperChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80071120, MH3_MtxConcatWrapper, "MtxConcatWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80071120, MH3_MtxConcatWrapper, "MtxConcatWrapper");
 
 static void MultVecWrapperPort(CpuContext* p) {
     MultVec(p->gpr[4], p->gpr[5], p->gpr[3]);
@@ -1010,7 +1097,7 @@ static void MultVecWrapperChecked(uint32_t r1, uint32_t out, uint32_t m, uint32_
 extern "C" void MH3_MtxMultVecWrapper(CpuContext* ctx) {
     MultVecWrapperChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80051560, MH3_MtxMultVecWrapper, "MtxMultVecWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80051560, MH3_MtxMultVecWrapper, "MtxMultVecWrapper");
 
 // More of the game's matrix and vector wrappers (Ghidra decompilation):
 //   0x80053340 MtxCopyWrapper(dst, src): the 12 words of a Mtx copied as
@@ -1097,19 +1184,19 @@ void AddChecked(uint32_t r1, uint32_t out, uint32_t a, uint32_t b) {
 extern "C" void MH3_MtxCopyWrapper(CpuContext* ctx) {
     CopyWrapperChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80053340, MH3_MtxCopyWrapper, "MtxCopyWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80053340, MH3_MtxCopyWrapper, "MtxCopyWrapper");
 extern "C" void MH3_MtxIdentityWrapper(CpuContext* ctx) {
     IdentityWrapperChecked(ctx->gpr[1], ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80050538, MH3_MtxIdentityWrapper, "MtxIdentityWrapper");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80050538, MH3_MtxIdentityWrapper, "MtxIdentityWrapper");
 extern "C" void MH3_VecScaleInPlace(CpuContext* ctx) {
     ScaleInPlaceChecked(ctx->gpr[1], ctx->gpr[3], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80051454, MH3_VecScaleInPlace, "VecScaleInPlace");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80051454, MH3_VecScaleInPlace, "VecScaleInPlace");
 extern "C" void MH3_VecAdd(CpuContext* ctx) {
     AddChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800513DC, MH3_VecAdd, "VecAdd");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800513DC, MH3_VecAdd, "VecAdd");
 
 // 0x804C6D90 C_MTXLightPerspective(m, fovY, aspect, scaleS, scaleT, transS,
 // transT) (Revolution SDK, Ghidra decompilation): a projected texture's
@@ -1122,12 +1209,12 @@ REGISTER_NATIVE_FUNCTION_AS(0x800513DC, MH3_VecAdd, "VecAdd");
 // and -1 from .sdata2). tan is the host's double tan where the original calls
 // fdlibm's (0x8046856C); both are within an ulp, and the result is rounded to
 // single as the original does.
-extern "C" void func_804C6D90(CpuContext* ctx);
+extern "C" void func_8042FE40(CpuContext* ctx);
 namespace {
 void LightPerspective(uint32_t m, double fovY, double aspect, double scaleS, double scaleT, double transS, double transT) {
-    const double angle = PpcFmulsInline(LoadFloat(0x8079F750), PpcFmulsInline(LoadFloat(0x8079F740), fovY));
-    const float cot = LoadFloat(0x8079F738) / float(std::tan(angle));
-    const float zero = LoadFloat(0x8079F73C);
+    const double angle = PpcFmulsInline(0.017453292f, PpcFmulsInline(0.5f, fovY));
+    const float cot = 1.0f / float(std::tan(angle));
+    const float zero = 0.0f;
     StoreFloat(m + 0x00, float(PpcFmulsInline(scaleS, double(float(double(cot) / aspect)))));
     StoreFloat(m + 0x04, zero);
     StoreFloat(m + 0x08, float(-transS));
@@ -1138,7 +1225,7 @@ void LightPerspective(uint32_t m, double fovY, double aspect, double scaleS, dou
     StoreFloat(m + 0x1C, zero);
     StoreFloat(m + 0x20, zero);
     StoreFloat(m + 0x24, zero);
-    StoreFloat(m + 0x28, LoadFloat(0x8079F74C));
+    StoreFloat(m + 0x28, -1.0f);
     StoreFloat(m + 0x2C, zero);
 }
 
@@ -1147,7 +1234,7 @@ void LightPerspectivePort(CpuContext* p) {
 }
 
 void LightPerspectiveChecked(uint32_t r1, uint32_t m, double fovY, double aspect, double scaleS, double scaleT, double transS, double transT) {
-    MH3_MTX_CHECK("C_MTXLightPerspective", func_804C6D90, LightPerspectivePort, m, 0x30, c->gpr[1] = r1, c->gpr[3] = m, c->fpr[1].d = fovY, c->fpr[2].d = aspect, c->fpr[3].d = scaleS,
+    MH3_MTX_CHECK("C_MTXLightPerspective", func_8042FE40, LightPerspectivePort, m, 0x30, c->gpr[1] = r1, c->gpr[3] = m, c->fpr[1].d = fovY, c->fpr[2].d = aspect, c->fpr[3].d = scaleS,
                   c->fpr[4].d = scaleT, c->fpr[5].d = transS, c->fpr[6].d = transT);
     LightPerspective(m, fovY, aspect, scaleS, scaleT, transS, transT);
 }
@@ -1156,4 +1243,4 @@ void LightPerspectiveChecked(uint32_t r1, uint32_t m, double fovY, double aspect
 extern "C" void MH3_C_MTXLightPerspective(CpuContext* ctx) {
     LightPerspectiveChecked(ctx->gpr[1], ctx->gpr[3], ctx->fpr[1].d, ctx->fpr[2].d, ctx->fpr[3].d, ctx->fpr[4].d, ctx->fpr[5].d, ctx->fpr[6].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x804C6D90, MH3_C_MTXLightPerspective, "C_MTXLightPerspective");
+REGISTER_NATIVE_FUNCTION_AS(0x8042FE40, MH3_C_MTXLightPerspective, "C_MTXLightPerspective");

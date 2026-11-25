@@ -52,29 +52,25 @@
 namespace {
 
 enum : uint32_t {
-    GetResMat = 0x8007BF10,         // (out, model, material index)
-    ResMatTexCoordGen = 0x8007BC10, // (resmat, 0) -> handle data
-    HandleCopy = 0x8006F368,        // (out, in): *out = *in
-    TexCoordGenData = 0x800878D4,   // null check + data (panics on null)
-    TexCoordGenData2 = 0x8006E310,  // the same from SetEffectMtx
-    SinIdx = 0x800502B0,            // (u16 index) -> f1
-    GetTevColor = 0x800E2D38,       // (mdl, material, register, out)
-    SetTevColor = 0x800E2DC4,       // (mdl, material, register, color)
-    GetTevKColor = 0x800E2B58,      // (mdl, material, register, out) -> 1 if present
-    SetTevKColor = 0x800E2950,      // (mdl, material, register, color, 0)
-    CreateModel = 0x800F8EC0,       // res_eft_model_create (MHchar, 67, 268) -> 0 when it failed
-    EndPass = 0x8031F364,           // (this)
-    FinishPass = 0x8031F050,        // (this)
-    CopyPosition = 0x80041EA4,      // (dst, src)
-    RotateZXY = 0x80051278,         // rotVecZXY (v, CP_VECTOR angles)
-    VecScaleBy = 0x80051454,        // (v, f1)
-    VecAngles = 0x80050D7C,         // calcVecAngXY (v, out x, out y)
+    GetResMat = 0x805390D4,         // (out, model, material index)
+    ResMatTexCoordGen = 0x80538F24, // (resmat, 0) -> handle data
+    HandleCopy = 0x8000446C,        // (out, in): *out = *in
+    SinFIdx = 0x8053D3D8,           // (f1 fidx) -> f1
+    GetTevColor = 0x802A4EE4,       // (mdl, material, register, out)
+    SetTevColor = 0x802A4F64,       // (mdl, material, register, color)
+    GetTevKColor = 0x802A4D18,      // (mdl, material, register, out) -> 1 if present
+    SetTevKColor = 0x802A4AB4,      // (mdl, material, register, color, 0)
+    CreateModel = 0x80037504,       // res_eft_model_create (MHchar, 67, 268) -> 0 when it failed
+    EndPass = 0x8006D68C,           // (this)
+    FinishPass = 0x8006D354,        // (this)
+    RotateZXY = 0x8028BFD0,         // rotVecZXY (v, CP_VECTOR angles)
+    VecAngles = 0x8028B944,         // calcVecAngXY (v, out x, out y)
 };
 
-constexpr uint32_t r2 = 0x8079FF60;           // the sda2 base
-constexpr uint32_t kTickCounter = 0x8065AA6C; // system_w+0xC (ticks, step_counter.cpp)
-constexpr uint32_t kRandSeed = 0x8065AA78;    // system_w+0x18: RNG 0 (s16)
-constexpr uint32_t kKindMap = 0x805CF500;     // u8[256], 255: unmapped
+constexpr uint32_t r2 = 0x808A93C0;           // the sda2 base
+constexpr uint32_t kTickCounter = 0x80768AB4; // system_w+0xC (ticks, step_counter.cpp)
+constexpr uint32_t kRandSeed = 0x80768AC0;    // system_w+0x18: RNG 0 (s16)
+constexpr uint32_t kKindMap = 0x806E4520;     // u8[256], 255: unmapped
 constexpr uint32_t kEntrySize = 52, kEntryFlags = 171, kEntryMtx = 172;
 
 float F(uint32_t a) {
@@ -94,30 +90,19 @@ void CopyMtx(uint32_t src, uint32_t dst) {
         Memory::Write32(dst + i, Memory::Read32(src + i));
 }
 
-// The handle's data: its null check panics as the original's does.
-uint32_t Data(CpuContext* ctx, uint32_t handle, uint32_t check) {
-    const uint32_t data = Memory::Read32(handle);
-
-    if (data) [[likely]]
-        return data;
-    GuestCall game{ctx};
-    game(check, {handle});
-    return Memory::Read32(handle);
-}
-
-uint32_t GetEffectMtx(CpuContext* ctx, uint32_t handle, uint32_t index, uint32_t out) {
+uint32_t GetEffectMtx([[maybe_unused]] CpuContext* ctx, uint32_t handle, uint32_t index, uint32_t out) {
     if (!out || index >= 8)
         return 0;
 
-    CopyMtx(Data(ctx, handle, TexCoordGenData) + index * kEntrySize + kEntryMtx, out);
+    CopyMtx(Memory::Read32(handle) + index * kEntrySize + kEntryMtx, out);
     return 1;
 }
 
-uint32_t SetEffectMtx(CpuContext* ctx, uint32_t handle, uint32_t index, uint32_t mtx) {
+uint32_t SetEffectMtx([[maybe_unused]] CpuContext* ctx, uint32_t handle, uint32_t index, uint32_t mtx) {
     if (index >= 8)
         return 0;
 
-    const uint32_t entry = Data(ctx, handle, TexCoordGenData2) + index * kEntrySize;
+    const uint32_t entry = Memory::Read32(handle) + index * kEntrySize;
 
     if (mtx) {
         CopyMtx(mtx, entry + kEntryMtx);
@@ -174,12 +159,13 @@ void SeaSurfacePort(CpuContext* ctx) {
         // part of a tick past it), so it moves every step instead of holding
         // between ticks.
         const double ticks = double(Memory::Read32(kTickCounter)) + GameStep::Fraction();
-        game.Call<SinIdx>({uint32_t(std::fmod(ticks * 128.0, 65536.0))});
-        F(mtx + 12, F(r2 - 8660) * game.F1());
-        float v = F(mtx + 28) + F(r2 - 7740) * Step();
+        const double fidx = std::fmod(ticks * 128.0, 65536.0) * double(F(r2 - 19168));
+        game.Call<SinFIdx>({}, {fidx});
+        F(mtx + 12, F(r2 - 19780) * game.F1());
+        float v = F(mtx + 28) + F(r2 - 18860) * Step();
 
-        if (v > F(r2 - 8792))
-            v -= F(r2 - 8792);
+        if (v > F(r2 - 19912))
+            v -= F(r2 - 19912);
 
         F(mtx + 28, v);
         SetEffectMtx(ctx, frame[20], 1, mtx);
@@ -218,17 +204,17 @@ void Mat6ScrollPort(CpuContext* ctx) {
 
         if (MaterialTexCoords(game, mat, frame[16], frame[20])) {
             GetEffectMtx(ctx, frame[20], 0, mtx);
-            float u = F(mtx + 12) - F(r2 - 21892) * Step();
+            float u = F(mtx + 12) - F(r2 - 17444) * Step();
 
-            if (u < F(r2 - 21864))
-                u += F(r2 - 21880);
+            if (u < F(r2 - 17416))
+                u += F(r2 - 17432);
 
             F(mtx + 12, u);
             SetEffectMtx(ctx, frame[20], 0, mtx);
         }
 
         if (game.Call<GetTevKColor>({mdl, 6, 4, color}) == 1) {
-            const float alpha = F(r2 - 20920) * F(self + 468);
+            const float alpha = F(r2 - 16472) * F(self + 468);
             Memory::Write8(color + 3, uint8_t(int32_t(std::clamp(alpha, -2147483648.0f, 2147483520.0f))));
             Memory::Write32(frame[12], Memory::Read32(color));
             game.Call<SetTevKColor>({mdl, 6, 4, frame[12], 0});
@@ -259,8 +245,8 @@ void ObjectListPort(CpuContext* ctx) {
 
     Memory::Write8(self + 5, uint8_t(Memory::Read8(self + 5) + ticks));
     Memory::Write16(list + 22, 0);
-    const float wide = F(r2 - 11248), one = F(r2 - 11244), low = F(r2 - 11240), spread = F(r2 - 11236);
-    const float scaleStep = F(r2 - 11228), scaleBase = F(r2 - 11232), speed = F(r2 - 11224);
+    const float wide = F(r2 - 30216), one = F(r2 - 30212), low = F(r2 - 30208), spread = F(r2 - 30204);
+    const float scaleStep = F(r2 - 30196), scaleBase = F(r2 - 30200), speed = F(r2 - 30192);
 
     for (int32_t i = 0; int32_t(int16_t(i)) < int32_t(Memory::Read32(list)); ++i) {
         const uint32_t obj = Memory::Read32(list + 4 + 4 * uint32_t(i));
@@ -270,7 +256,8 @@ void ObjectListPort(CpuContext* ctx) {
             return;
         }
 
-        game.Call<CopyPosition>({obj + 4, self + 24});
+        for (uint32_t k = 0; k < 12; k += 4)
+            Memory::Write32(obj + 4 + k, Memory::Read32(self + 24 + k));
 
         if ((int16_t(Memory::Read16(list + 22)) & 1) == 0) {
             for (uint32_t k = 0; k < 12; k += 4)
@@ -279,7 +266,8 @@ void ObjectListPort(CpuContext* ctx) {
             const uint32_t v = frame[16];
             F(v, low), F(v + 4, low), F(v + 8, one);
             game.Call<RotateZXY>({v, self + 36});
-            game.Call<VecScaleBy>({v}, {spread});
+            for (uint32_t k = 0; k < 12; k += 4)
+                F(v + k, F(v + k) * spread);
             game.Call<VecAngles>({v, obj + 40, obj + 44});
             Memory::Write32(obj + 48, 0);
         }
@@ -304,7 +292,8 @@ void ObjectListPort(CpuContext* ctx) {
         }
 
         F(obj + 28, wide), F(obj + 32, wide), F(obj + 36, one);
-        game.Call<VecScaleBy>({obj + 28}, {roll.scale});
+        for (uint32_t k = 0; k < 12; k += 4)
+            F(obj + 28 + k, F(obj + 28 + k) * roll.scale);
         Memory::Write32(obj + 48, roll.random);
         Memory::Write32(obj + 56, 1);
         Memory::Write8(obj + 53, 1);
@@ -342,96 +331,76 @@ void SetEffectMtxPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_80095434(CpuContext* ctx);
+extern "C" void func_8051D7C0(CpuContext* ctx);
 extern "C" void MH3_TexCoordGetEffectMtx(CpuContext* ctx) {
-    PortCheck::Call(ctx, "TexCoordGetEffectMtx", func_80095434, GetEffectMtxPort);
+    PortCheck::Call(ctx, "TexCoordGetEffectMtx", func_8051D7C0, GetEffectMtxPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80095434, MH3_TexCoordGetEffectMtx, "TexCoordGetEffectMtx");
+REGISTER_NATIVE_FUNCTION_AS(0x8051D7C0, MH3_TexCoordGetEffectMtx, "TexCoordGetEffectMtx");
 
-extern "C" void func_800953A8(CpuContext* ctx);
+extern "C" void func_8051D744(CpuContext* ctx);
 extern "C" void MH3_TexCoordSetEffectMtx(CpuContext* ctx) {
-    PortCheck::Call(ctx, "TexCoordSetEffectMtx", func_800953A8, SetEffectMtxPort);
+    PortCheck::Call(ctx, "TexCoordSetEffectMtx", func_8051D744, SetEffectMtxPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800953A8, MH3_TexCoordSetEffectMtx, "TexCoordSetEffectMtx");
+REGISTER_NATIVE_FUNCTION_AS(0x8051D744, MH3_TexCoordSetEffectMtx, "TexCoordSetEffectMtx");
 
-extern "C" void func_803750E8(CpuContext* ctx);
+extern "C" void func_8010D524(CpuContext* ctx);
 extern "C" void MH3_SeaSurfaceUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "SeaSurfaceUpdate", func_803750E8, SeaSurfacePort);
+    PortCheck::Call(ctx, "SeaSurfaceUpdate", func_8010D524, SeaSurfacePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803750E8, MH3_SeaSurfaceUpdate, "SeaSurfaceUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8010D524, MH3_SeaSurfaceUpdate, "SeaSurfaceUpdate");
 
-extern "C" void func_801A9274(CpuContext* ctx);
+extern "C" void func_8012C884(CpuContext* ctx);
 extern "C" void MH3_Mat6ScrollUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Mat6ScrollUpdate", func_801A9274, Mat6ScrollPort);
+    PortCheck::Call(ctx, "Mat6ScrollUpdate", func_8012C884, Mat6ScrollPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801A9274, MH3_Mat6ScrollUpdate, "Mat6ScrollUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8012C884, MH3_Mat6ScrollUpdate, "Mat6ScrollUpdate");
 
-extern "C" void func_8031ED54(CpuContext* ctx);
+extern "C" void func_8006D050(CpuContext* ctx);
 extern "C" void MH3_ObjectListScrollUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ObjectListScrollUpdate", func_8031ED54, ObjectListPort);
+    PortCheck::Call(ctx, "ObjectListScrollUpdate", func_8006D050, ObjectListPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8031ED54, MH3_ObjectListScrollUpdate, "ObjectListScrollUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x8006D050, MH3_ObjectListScrollUpdate, "ObjectListScrollUpdate");
 
 // The texture-SRT animation objects' (AnmObjTexSrtRes) SetFrame and
 // UpdateFrame, called through: the build's generated dispatch profile names
 // these natives, and a build without them stops at the first quest ("omits
 // translated winner 0x8006d668").
-extern "C" void func_8006D0E8(CpuContext* ctx);
+extern "C" void func_805249A0(CpuContext* ctx);
 extern "C" void MH3_AnmTexSrtSetFrame(CpuContext* ctx) {
-    func_8006D0E8(ctx);
+    func_805249A0(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006D0E8, MH3_AnmTexSrtSetFrame, "AnmTexSrtSetFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x805249A0, MH3_AnmTexSrtSetFrame, "AnmTexSrtSetFrame");
 
-extern "C" void func_8006D668(CpuContext* ctx);
+extern "C" void func_80524B24(CpuContext* ctx);
 extern "C" void MH3_AnmTexSrtUpdateFrame(CpuContext* ctx) {
-    func_8006D668(ctx);
+    func_80524B24(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006D668, MH3_AnmTexSrtUpdateFrame, "AnmTexSrtUpdateFrame");
+REGISTER_NATIVE_FUNCTION_AS(0x80524B24, MH3_AnmTexSrtUpdateFrame, "AnmTexSrtUpdateFrame");
 
 // The texture-SRT animation objects' GetResult (vtable +0x38) and Bind,
 // C reconstructions from the disassembly (g3d_anmtexsrt.cpp, the debug
 // build's pointer and bounds assertions dropped):
 //
-//   0x8006DAAC AnmObjTexSrtRes::GetResult(this, result, mat) -> result: +0x14
+//   0x80524CFC AnmObjTexSrtRes::GetResult(this, result, mat) -> result: +0x14
 //              u16 per model material, the animation's material (0x4000 or
 //              0x8000: none, the result's first word 0); +0x30 a cache of
 //              0xE8-byte results, else the evaluation at the FrameCtrl's
-//              frame (+0x18, rate +0x1C; 0x80062088) by ResAnmTexSrt (+0x2C)
-//              GetAnmResult (0x80091760). Here the FrameCtrl's rate and the
+//              frame (+0x18, rate +0x1C) by ResAnmTexSrt (+0x2C)
+//              GetAnmResult (0x8051FD58). Here the FrameCtrl's rate and the
 //              frame on its grid are the key hold (res_anm_keys.h) while it
 //              evaluates.
-//   0x8006C6CC AnmObjTexSrtOverride::GetResult(this, result, mat) -> the
-//              last of its children (+0x1C, count +0x18) that animates the
-//              material and gives a result, else result with its first word 0
-//   0x8006D7AC AnmObjTexSrtRes::Bind(this, resMdl) -> 1 when any of the
-//              animation's materials (count 0x8006CDFC, each 0x8006DA08) is
-//              the model's: looked up by name (0x80098798), the model
-//              material's +0x14 entry is then the animation material's
-//              index; then the bound flag (0x800649EC(this, 4, 1))
+//   AnmObjTexSrtOverride::GetResult and AnmObjTexSrtRes::Bind remain unported on RMHJ08.
 namespace {
 
 enum : uint32_t {
-    FrameCtrlGetFrame = 0x80062088,     // (FrameCtrl) -> f1
-    TexSrtAnmResult = 0x80091760,       // ResAnmTexSrt::GetAnmResult(res, result, index, f1 frame)
-    TexSrtMatAnimated = 0x80069D58,     // (anm, mat) -> 1
-    TexSrtMatCount = 0x8006CDFC,        // (res) -> the animation's materials
-    TexSrtMatData = 0x8006DA08,         // (res, index) -> its data
-    ResOffsetPointer = 0x8006D9D4,      // (base, offset) -> base + offset (0: null)
-    ResNameInit = 0x800626F0,           // (ResName*, pointer)
-    MdlMaterialByName = 0x80098798,     // (resMdl, ResName*) -> ResMat
-    ResMatCopy = 0x80064150,            // (ResMat*, ResMat*)
-    ResMatValid = 0x8005AA94,           // (ResMat*) -> 1
-    ResMatIndex = 0x800640C0,           // (ResMat*) -> its index
-    AnmObjSetFlag = 0x800649EC,         // (anm, flag, on)
+    TexSrtAnmResult = 0x8051FD58,       // ResAnmTexSrt::GetAnmResult(res, result, index, f1 frame)
 };
 
 enum : uint32_t {
     kAnmMatFlags = 0x14, // u16 per model material
-    kFrameCtrl = 0x18, // FrameCtrl: +0 frame, +4 rate, +8 start
+    kFrameCtrl = 0x18,   // FrameCtrl: +0 frame, +4 rate, +8 start
     kRate = 0x1C,
     kStart = 0x8,
-    kChildCount = 0x18, // the override's
-    kChildren = 0x1C,
     kRes = 0x2C,
     kResultCache = 0x30,
     kResultBytes = 0xE8,
@@ -448,8 +417,7 @@ uint32_t TexSrtResult(GuestCall& game, uint32_t self, uint32_t result, uint32_t 
     if (const uint32_t cache = Memory::Read32(self + kResultCache))
         return cache + index * kResultBytes;
 
-    game.Call<FrameCtrlGetFrame>({self + kFrameCtrl});
-    const double frame = game.cpu->fpr[1].d;
+    const double frame = Memory::ReadFloat32(self + kFrameCtrl);
     const float rate = Memory::ReadFloat32(self + kRate);
     float atTick = float(frame);
 
@@ -466,50 +434,6 @@ uint32_t TexSrtResult(GuestCall& game, uint32_t self, uint32_t result, uint32_t 
     return result;
 }
 
-uint32_t TexSrtOverrideResult(GuestCall& game, uint32_t self, uint32_t result, uint32_t material) {
-    static const RawDispatchRecord* memo = nullptr;
-    const uint32_t children = Memory::Read32(self + kChildren);
-
-    for (int32_t i = int32_t(Memory::Read32(self + kChildCount)) - 1; i >= 0; --i) {
-        const uint32_t child = Memory::Read32(children + 4 * uint32_t(i));
-
-        if (!child || !game.Call<TexSrtMatAnimated>({child, material}))
-            continue;
-
-        const uint32_t got = game.VirtualAt(memo, child, 0x38, {result, material});
-
-        if (Memory::Read32(got))
-            return got;
-    }
-
-    Memory::Write32(result, 0);
-    return result;
-}
-
-uint32_t TexSrtBind(CpuContext* cpu, uint32_t self, uint32_t model) {
-    GuestFrame frame(cpu, 0x30);
-    GuestCall game{cpu};
-    const uint32_t name = frame[0x8], material = frame[0xC], handle = frame[0x10], resName = frame[0x14];
-    const int32_t count = int32_t(game.Call<TexSrtMatCount>({self + kRes}));
-    uint32_t bound = 0;
-
-    for (uint32_t i = 0; int32_t(i & 0xFFFF) < count; ++i) {
-        const uint32_t data = game.Call<TexSrtMatData>({self + kRes, i & 0xFFFF});
-        game.Call<ResNameInit>({resName, game.Call<ResOffsetPointer>({data, Memory::Read32(data) - 4})});
-        Memory::Write32(name, Memory::Read32(resName));
-        Memory::Write32(material, game.Call<MdlMaterialByName>({model, name}));
-        game.Call<ResMatCopy>({handle, material});
-
-        if (game.Call<ResMatValid>({handle})) {
-            Memory::Write16(Memory::Read32(self + kAnmMatFlags) + game.Call<ResMatIndex>({handle}) * 2, uint16_t(i));
-            bound = 1;
-        }
-    }
-
-    game.Call<AnmObjSetFlag>({self, 4, 1});
-    return bound;
-}
-
 // The frame restores r3: the result goes in after it.
 void TexSrtResultPort(CpuContext* ctx) {
     uint32_t result;
@@ -522,39 +446,13 @@ void TexSrtResultPort(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-void TexSrtOverrideResultPort(CpuContext* ctx) {
-    uint32_t result;
-    {
-        GuestFrame frame(ctx, 0x20);
-        GuestCall game{ctx};
-        result = TexSrtOverrideResult(game, frame.Arg(3), frame.Arg(4), frame.Arg(5));
-    }
-
-    ctx->gpr[3] = result;
-}
-
-void TexSrtBindPort(CpuContext* ctx) {
-    const uint32_t self = ctx->gpr[3], model = ctx->gpr[4];
-    const uint32_t bound = TexSrtBind(ctx, self, model);
-    ctx->gpr[3] = bound;
-}
-
 } // namespace
 
-extern "C" void func_8006DAAC(CpuContext* ctx);
+extern "C" void func_80524CFC(CpuContext* ctx);
 extern "C" void MH3_AnmTexSrtResGetResult(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AnmTexSrtResGetResult", func_8006DAAC, TexSrtResultPort);
+    PortCheck::Call(ctx, "AnmTexSrtResGetResult", func_80524CFC, TexSrtResultPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8006DAAC, MH3_AnmTexSrtResGetResult, "AnmTexSrtResGetResult");
+REGISTER_NATIVE_FUNCTION_AS(0x80524CFC, MH3_AnmTexSrtResGetResult, "AnmTexSrtResGetResult");
 
-extern "C" void func_8006C6CC(CpuContext* ctx);
-extern "C" void MH3_AnmTexSrtOverrideGetResult(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AnmTexSrtOverrideGetResult", func_8006C6CC, TexSrtOverrideResultPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8006C6CC, MH3_AnmTexSrtOverrideGetResult, "AnmTexSrtOverrideGetResult");
-
-extern "C" void func_8006D7AC(CpuContext* ctx);
-extern "C" void MH3_AnmTexSrtResBind(CpuContext* ctx) {
-    PortCheck::Call(ctx, "AnmTexSrtResBind", func_8006D7AC, TexSrtBindPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8006D7AC, MH3_AnmTexSrtResBind, "AnmTexSrtResBind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8006C6CC, MH3_AnmTexSrtOverrideGetResult, "AnmTexSrtOverrideGetResult");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8006D7AC, MH3_AnmTexSrtResBind, "AnmTexSrtResBind");

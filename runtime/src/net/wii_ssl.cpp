@@ -356,66 +356,66 @@ uint32_t Arg(CpuContext* cpu, int n) {
 extern "C" void MH3_SSLNew(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(New(cpu, Arg(cpu, 3), Arg(cpu, 4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BE7C, MH3_SSLNew, "SSLNew");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BE7C, MH3_SSLNew, "SSLNew");
 
 extern "C" void MH3_SSLConnect(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WordCall(cpu, kConnect, 1, 2, {Arg(cpu, 3), Arg(cpu, 4)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051BFD4, MH3_SSLConnect, "SSLConnect");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051BFD4, MH3_SSLConnect, "SSLConnect");
 
 extern "C" void MH3_SSLDoHandshake(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WordCall(cpu, kHandshake, 1, 1, {Arg(cpu, 3)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C09C, MH3_SSLDoHandshake, "SSLDoHandshake");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C09C, MH3_SSLDoHandshake, "SSLDoHandshake");
 
 extern "C" void MH3_SSLRead(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Read(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C148, MH3_SSLRead, "SSLRead");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C148, MH3_SSLRead, "SSLRead");
 
 extern "C" void MH3_SSLWrite(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Write(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C418, MH3_SSLWrite, "SSLWrite");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C418, MH3_SSLWrite, "SSLWrite");
 
 extern "C" void MH3_SSLShutdown(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WordCall(cpu, kShutdown, 1, 1, {Arg(cpu, 3)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C6D8, MH3_SSLShutdown, "SSLShutdown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C6D8, MH3_SSLShutdown, "SSLShutdown");
 
 extern "C" void MH3_SSLSetClientCert(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetClientCert(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5), Arg(cpu, 6), Arg(cpu, 7)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C784, MH3_SSLSetClientCert, "SSLSetClientCert");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C784, MH3_SSLSetClientCert, "SSLSetClientCert");
 
 extern "C" void MH3_SSLSetRootCA(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetRootCa(cpu, Arg(cpu, 3), Arg(cpu, 4), Arg(cpu, 5)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051C8F0, MH3_SSLSetRootCA, "SSLSetRootCA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051C8F0, MH3_SSLSetRootCA, "SSLSetRootCA");
 
 extern "C" void MH3_SSLSetBuiltinRootCA(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WordCall(cpu, kSetBuiltinRootCa, 1, 2, {Arg(cpu, 3), Arg(cpu, 4)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CA38, MH3_SSLSetBuiltinRootCA, "SSLSetBuiltinRootCA");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CA38, MH3_SSLSetBuiltinRootCA, "SSLSetBuiltinRootCA");
 
 extern "C" void MH3_SSLSetBuiltinClientCert(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(WordCall(cpu, kSetBuiltinClientCert, 1, 2, {Arg(cpu, 3), Arg(cpu, 4)}));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CB00, MH3_SSLSetBuiltinClientCert, "SSLSetBuiltinClientCert");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CB00, MH3_SSLSetBuiltinClientCert, "SSLSetBuiltinClientCert");
 
 // The library's mutex thunks (branches to OSInitMutex, OSLockMutex,
 // OSUnlockMutex).
 extern "C" void MH3_SSLInitMutex(CpuContext* cpu) {
     InvokeIndirectCpu(OSInitMutex, cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CBC8, MH3_SSLInitMutex, "SSLiInitMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CBC8, MH3_SSLInitMutex, "SSLiInitMutex");
 
 extern "C" void MH3_SSLLockMutex(CpuContext* cpu) {
     InvokeIndirectCpu(OSLockMutex, cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CBCC, MH3_SSLLockMutex, "SSLiLockMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CBCC, MH3_SSLLockMutex, "SSLiLockMutex");
 
 extern "C" void MH3_SSLUnlockMutex(CpuContext* cpu) {
     InvokeIndirectCpu(OSUnlockMutex, cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051CBD0, MH3_SSLUnlockMutex, "SSLiUnlockMutex");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051CBD0, MH3_SSLUnlockMutex, "SSLiUnlockMutex");

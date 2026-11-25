@@ -64,7 +64,7 @@ extern "C" void MH3_RanSuu(CpuContext* ctx) {
 #endif
     ctx->gpr[3] = RanSuu(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800CEF20, MH3_RanSuu, "ran_suu");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800CEF20, MH3_RanSuu, "ran_suu");
 
 extern "C" void func_800CEF7C(CpuContext* ctx);
 extern "C" void MH3_RanSuuNext(CpuContext* ctx) {
@@ -74,7 +74,7 @@ extern "C" void MH3_RanSuuNext(CpuContext* ctx) {
 #endif
     ctx->gpr[3] = RanSuuNext(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800CEF7C, MH3_RanSuuNext, "RanSuuNext");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800CEF7C, MH3_RanSuuNext, "RanSuuNext");
 
 extern "C" void func_800CEF00(CpuContext* ctx);
 extern "C" void MH3_RandSeedAll(CpuContext* ctx) {
@@ -84,4 +84,4 @@ extern "C" void MH3_RandSeedAll(CpuContext* ctx) {
 #endif
     SeedAll(ctx->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800CEF00, MH3_RandSeedAll, "RandSeedAll");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800CEF00, MH3_RandSeedAll, "RandSeedAll");

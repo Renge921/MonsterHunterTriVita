@@ -27,9 +27,9 @@
 
 namespace {
 
-constexpr uint32_t kC0 = 0x80798368u; // r2 - 31736: s - c0
-constexpr uint32_t kC1 = 0x8079836Cu; // r2 - 31732: c1 s - c2
-constexpr uint32_t kC2 = 0x80798370u; // r2 - 31728
+constexpr float kC0 = 1.0f; // PAL r2 - 31736: s - c0
+constexpr float kC1 = 2.0f; // PAL r2 - 31732: c1 s - c2
+constexpr float kC2 = 3.0f; // PAL r2 - 31728
 
 // ResAnmKeys::HoldSpan (the game thread's): the frames between keys that
 // hold, and the frame the fixed step shows now (NaN: none).
@@ -42,8 +42,8 @@ float ReadFloat(uint32_t a) {
 
 float Hermite(float v0, float t0, float v1, float t1, float d, double span) {
     const float s = d * Nw4rMath::FastReciprocal(span);
-    const float f5 = s - ReadFloat(kC0);
-    const float f1 = ReadFloat(kC1) * s - ReadFloat(kC2);
+    const float f5 = s - kC0;
+    const float f1 = kC1 * s - kC2;
     const float blend = v0 + s * (s * (f1 * (v0 - v1)));
     return blend + (d * f5) * (f5 * t0 + s * t1);
 }
@@ -119,7 +119,7 @@ ResAnmKeys::HoldSpan::~HoldSpan() {
     tickFrame = previousTick_;
 }
 
-extern "C" void func_80089914(CpuContext* ctx);
+extern "C" void func_8051F81C(CpuContext* ctx);
 static void EvaluatePort(CpuContext* p) {
     p->fpr[1].d = Evaluate(float(p->fpr[1].d), p->gpr[3]);
 }
@@ -129,10 +129,10 @@ static double EvaluateChecked([[maybe_unused]] uint32_t r1, uint32_t r3, double 
     if (PortCheck::Enabled("ResAnmKeyEvalFVS")) [[unlikely]] {
         CpuContext* c = TryGetCpuContext();
         c->gpr[1] = r1;
-        c->gpr[2] = 0x8079FF60u;
+        c->gpr[2] = 0x808A93C0u;
         c->gpr[3] = r3;
         c->fpr[1].d = f1;
-        PortCheck::RunPure(c, "ResAnmKeyEvalFVS", PortCheck::Returns::Fpr1, func_80089914, EvaluatePort);
+        PortCheck::RunPure(c, "ResAnmKeyEvalFVS", PortCheck::Returns::Fpr1, func_8051F81C, EvaluatePort);
         return c->fpr[1].d;
     }
 #endif
@@ -142,33 +142,9 @@ static double EvaluateChecked([[maybe_unused]] uint32_t r1, uint32_t r3, double 
 extern "C" void MH3_ResAnmKeyEvalFVS(CpuContext* ctx) {
     ctx->fpr[1].d = EvaluateChecked(ctx->gpr[1], ctx->gpr[3], ctx->fpr[1].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80089914, MH3_ResAnmKeyEvalFVS, "ResAnmKeyEvalFVS");
-
-extern "C" void func_80089BEC(CpuContext* ctx);
-static void HermitePort(CpuContext* p) {
-    p->fpr[1].d = Hermite(float(p->fpr[1].d), float(p->fpr[2].d), float(p->fpr[3].d), float(p->fpr[4].d), float(p->fpr[5].d), p->fpr[6].d);
-}
-
-static double HermiteChecked([[maybe_unused]] uint32_t r1, double f1, double f2, double f3, double f4, double f5, double f6) {
-#ifdef MH3_DEVELOPMENT
-    if (PortCheck::Enabled("ResAnmHermite")) [[unlikely]] {
-        CpuContext* c = TryGetCpuContext();
-        c->gpr[1] = r1;
-        c->gpr[2] = 0x8079FF60u;
-        c->fpr[1].d = f1;
-        c->fpr[2].d = f2;
-        c->fpr[3].d = f3;
-        c->fpr[4].d = f4;
-        c->fpr[5].d = f5;
-        c->fpr[6].d = f6;
-        PortCheck::RunPure(c, "ResAnmHermite", PortCheck::Returns::Fpr1, func_80089BEC, HermitePort);
-        return c->fpr[1].d;
-    }
-#endif
-    return Hermite(float(f1), float(f2), float(f3), float(f4), float(f5), f6);
-}
+REGISTER_NATIVE_FUNCTION_AS(0x8051F81C, MH3_ResAnmKeyEvalFVS, "ResAnmKeyEvalFVS");
 
 extern "C" void MH3_ResAnmHermite(CpuContext* ctx) {
-    ctx->fpr[1].d = HermiteChecked(ctx->gpr[1], ctx->fpr[1].d, ctx->fpr[2].d, ctx->fpr[3].d, ctx->fpr[4].d, ctx->fpr[5].d, ctx->fpr[6].d);
+    ctx->fpr[1].d = Hermite(float(ctx->fpr[1].d), float(ctx->fpr[2].d), float(ctx->fpr[3].d), float(ctx->fpr[4].d), float(ctx->fpr[5].d), ctx->fpr[6].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80089BEC, MH3_ResAnmHermite, "ResAnmHermite");
+// JPN inlined into ResAnmKeyEvalFVS (0x8051F81C): REGISTER_NATIVE_FUNCTION_AS(0x80089BEC, MH3_ResAnmHermite, "ResAnmHermite");

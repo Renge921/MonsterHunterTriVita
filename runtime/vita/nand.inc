@@ -193,11 +193,17 @@ int InitializeNand() {
 
     if (root) return root;
     LoadNativeMetadata();
-    constexpr const char* directories[]{"/tmp", "/sys", "/shared2", "/title",
-        "/title/00010000", "/title/00010001", "/title/00010004",
-        "/title/00010000/524d4850", "/title/00010000/524d4850/data"};
+    constexpr const char* directories[]{
+        "/tmp", "/sys", "/shared2", "/shared2/title", "/title",
+        "/title/00010000", "/title/00010001", "/title/00010003", "/title/00010004",
+        "/title/00010005", "/title/00010006", "/title/00010007",
+        "/title/00010000/524d484a", "/title/00010000/524d484a/data", "/title/00010000/524d484a/data/nocopy",
+        "/title/00010000/524d4850", "/title/00010000/524d4850/data", "/title/00010000/524d4850/data/nocopy",
+        "/title/00010000/524d4845", "/title/00010000/524d4845/data", "/title/00010000/524d4845/data/nocopy"
+    };
     for (const char* path : directories) {
         const auto host = NativeNandPath(path);
+        EnsureNativeDirectory(host.parent_path());
         SceIoStat info{};
 
         if (sceIoGetstat(host.c_str(), &info) >= 0) {
@@ -221,9 +227,14 @@ int InitializeNand() {
 int CreateNandEntry(const std::string& path, bool directory, const NandMetadata& metadata) {
     if (!NativeValidPath(path)) return -101;
     const auto host = NativeNandPath(path);
+    EnsureNativeDirectory(host.parent_path());
     const int result = directory ? sceIoMkdir(host.c_str(), 0777) : ::open(host.c_str(), O_CREAT | O_EXCL | O_RDWR, 0600);
 
-    if (result < 0) return directory ? NativeIoError(result) : Error();
+    if (result < 0) {
+        std::fprintf(stderr, "MH3 CreateNandEntry failed: path=%s dir=%d err=0x%x\n", path.c_str(), directory, result);
+        return directory ? NativeIoError(result) : Error();
+    }
+    std::fprintf(stderr, "MH3 CreateNandEntry created: path=%s dir=%d\n", path.c_str(), directory);
 
     if (!directory) ::close(result);
     LoadNativeMetadata();
@@ -346,7 +357,11 @@ int OpenFile(const std::string& path, uint32_t mode) {
     if (mode < 1 || mode > 3) return -4;
     const int fd = OpenNandPath(path, mode == 1 ? O_RDONLY : mode == 2 ? O_WRONLY : O_RDWR);
 
-    if (fd < 0) return fd;
+    if (fd < 0) {
+        std::fprintf(stderr, "MH3 OpenFile failed: path=%s mode=%u res=%d\n", path.c_str(), mode, fd);
+        return fd;
+    }
+    std::fprintf(stderr, "MH3 OpenFile opened: path=%s mode=%u fd=%d\n", path.c_str(), mode, fd);
 
     if (nativeNandHandles.at(fd).directory) { CloseNandPath(fd); return -101; }
     NandMetadata metadata{};

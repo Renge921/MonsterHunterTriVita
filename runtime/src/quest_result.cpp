@@ -1475,130 +1475,130 @@ extern "C" void func_803AB420(CpuContext* ctx);
 extern "C" void MH3_RewardsCopy(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardsCopy", func_803AB420, RewardsCopyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AB420, MH3_RewardsCopy, "RewardsCopy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AB420, MH3_RewardsCopy, "RewardsCopy");
 
 extern "C" void func_80396AF4(CpuContext* ctx);
 extern "C" void MH3_SizeRecords(CpuContext* ctx) {
     PortCheck::Call(ctx, "SizeRecords", func_80396AF4, SizeRecordsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80396AF4, MH3_SizeRecords, "SizeRecords");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80396AF4, MH3_SizeRecords, "SizeRecords");
 
 extern "C" void func_80396C7C(CpuContext* ctx);
 extern "C" void MH3_ResultListKind(CpuContext* ctx) {
     PortCheck::Call(ctx, "ResultListKind", PortCheck::Returns::Gpr3, func_80396C7C, Predicate<ResultListKind>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80396C7C, MH3_ResultListKind, "ResultListKind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80396C7C, MH3_ResultListKind, "ResultListKind");
 
 extern "C" void func_80396CC0(CpuContext* ctx);
 extern "C" void MH3_SixRewardRows(CpuContext* ctx) {
     PortCheck::Call(ctx, "SixRewardRows", PortCheck::Returns::Gpr3, func_80396CC0, Predicate<SixRows>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80396CC0, MH3_SixRewardRows, "SixRewardRows");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80396CC0, MH3_SixRewardRows, "SixRewardRows");
 
 extern "C" void func_80396F38(CpuContext* ctx);
 extern "C" void MH3_ResultFailed(CpuContext* ctx) {
     PortCheck::Call(ctx, "ResultFailed", PortCheck::Returns::Gpr3, func_80396F38, Predicate<ResultIs2>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80396F38, MH3_ResultFailed, "ResultFailed");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80396F38, MH3_ResultFailed, "ResultFailed");
 
 extern "C" void func_80396F68(CpuContext* ctx);
 extern "C" void MH3_ResultOther(CpuContext* ctx) {
     PortCheck::Call(ctx, "ResultOther", PortCheck::Returns::Gpr3, func_80396F68, Predicate<ResultIs3>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80396F68, MH3_ResultOther, "ResultOther");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80396F68, MH3_ResultOther, "ResultOther");
 
 extern "C" void func_80397160(CpuContext* ctx);
 extern "C" void MH3_NextResultPage(CpuContext* ctx) {
     PortCheck::Call(ctx, "NextResultPage", PortCheck::Returns::Gpr3, func_80397160, NextPagePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80397160, MH3_NextResultPage, "NextResultPage");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80397160, MH3_NextResultPage, "NextResultPage");
 
 extern "C" void func_8039729C(CpuContext* ctx);
 extern "C" void MH3_RewardBoxReset(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardBoxReset", func_8039729C, RewardBoxResetPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039729C, MH3_RewardBoxReset, "RewardBoxReset");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8039729C, MH3_RewardBoxReset, "RewardBoxReset");
 
 extern "C" void func_803973A8(CpuContext* ctx);
 extern "C" void MH3_RewardPageStart(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardPageStart", func_803973A8, RewardPageStartPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803973A8, MH3_RewardPageStart, "RewardPageStart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803973A8, MH3_RewardPageStart, "RewardPageStart");
 
 extern "C" void func_803982B8(CpuContext* ctx);
 extern "C" void MH3_RewardsAny(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardsAny", PortCheck::Returns::Gpr3, func_803982B8, RewardsAnyPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803982B8, MH3_RewardsAny, "RewardsAny");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803982B8, MH3_RewardsAny, "RewardsAny");
 
 extern "C" void func_8039A890(CpuContext* ctx);
 extern "C" void MH3_RewardBoxTitleDraw(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardBoxTitleDraw", func_8039A890, BoxTitleDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039A890, MH3_RewardBoxTitleDraw, "RewardBoxTitleDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8039A890, MH3_RewardBoxTitleDraw, "RewardBoxTitleDraw");
 
 extern "C" void func_8039AD2C(CpuContext* ctx);
 extern "C" void MH3_RewardBoxGridDraw(CpuContext* ctx) {
     PortCheck::Call(ctx, "RewardBoxGridDraw", func_8039AD2C, BoxGridDrawPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039AD2C, MH3_RewardBoxGridDraw, "RewardBoxGridDraw");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8039AD2C, MH3_RewardBoxGridDraw, "RewardBoxGridDraw");
 
 extern "C" void func_803ABEA8(CpuContext* ctx);
 extern "C" void MH3_BreakRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "BreakRewards", func_803ABEA8, BreakRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ABEA8, MH3_BreakRewards, "BreakRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ABEA8, MH3_BreakRewards, "BreakRewards");
 
 extern "C" void func_803AC714(CpuContext* ctx);
 extern "C" void MH3_CaptureRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "CaptureRewards", func_803AC714, CaptureRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AC714, MH3_CaptureRewards, "CaptureRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AC714, MH3_CaptureRewards, "CaptureRewards");
 
 extern "C" void func_803AB978(CpuContext* ctx);
 extern "C" void MH3_MainRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "MainRewards", func_803AB978, MainRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803AB978, MH3_MainRewards, "MainRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AB978, MH3_MainRewards, "MainRewards");
 
 extern "C" void func_803ABBD8(CpuContext* ctx);
 extern "C" void MH3_MainOnlyRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "MainOnlyRewards", func_803ABBD8, MainOnlyRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ABBD8, MH3_MainOnlyRewards, "MainOnlyRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ABBD8, MH3_MainOnlyRewards, "MainOnlyRewards");
 
 extern "C" void func_803ABD40(CpuContext* ctx);
 extern "C" void MH3_MarathonRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "MarathonRewards", func_803ABD40, MarathonRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ABD40, MH3_MarathonRewards, "MarathonRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ABD40, MH3_MarathonRewards, "MarathonRewards");
 
 extern "C" void func_803ACEF4(CpuContext* ctx);
 extern "C" void MH3_ArenaRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "ArenaRewards", func_803ACEF4, ArenaRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ACEF4, MH3_ArenaRewards, "ArenaRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ACEF4, MH3_ArenaRewards, "ArenaRewards");
 
 extern "C" void func_803ACD74(CpuContext* ctx);
 extern "C" void MH3_ExtraRewards(CpuContext* ctx) {
     PortCheck::Call(ctx, "ExtraRewards", func_803ACD74, ExtraRewardsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803ACD74, MH3_ExtraRewards, "ExtraRewards");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803ACD74, MH3_ExtraRewards, "ExtraRewards");
 
 extern "C" void func_803B23B8(CpuContext* ctx);
 extern "C" void MH3_QuestResultSetup(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestResultSetup", func_803B23B8, QuestResultSetupPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803B23B8, MH3_QuestResultSetup, "QuestResultSetup");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B23B8, MH3_QuestResultSetup, "QuestResultSetup");
 
 extern "C" void func_8036C9EC(CpuContext* ctx);
 extern "C" void MH3_OnlineQuestKind(CpuContext* ctx) {
     PortCheck::Call(ctx, "OnlineQuestKind", PortCheck::Returns::Gpr3, func_8036C9EC, OnlineQuestKindPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8036C9EC, MH3_OnlineQuestKind, "OnlineQuestKind");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8036C9EC, MH3_OnlineQuestKind, "OnlineQuestKind");
 
 extern "C" void func_8036CEDC(CpuContext* ctx);
 extern "C" void MH3_OnlineGoalMet(CpuContext* ctx) {
     PortCheck::Call(ctx, "OnlineGoalMet", PortCheck::Returns::Gpr3, func_8036CEDC, OnlineGoalMetPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8036CEDC, MH3_OnlineGoalMet, "OnlineGoalMet");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8036CEDC, MH3_OnlineGoalMet, "OnlineGoalMet");

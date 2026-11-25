@@ -8,7 +8,9 @@
 #include "frame_split.h"
 #include "g3d_native.h"
 #include "native_graphics.h"
+#include "render_diag.h"
 #include "scene_cull.h"
+#include "character_creation.h"
 #include "../native/mh3_scene_queue.h"
 #include "../native/mh3_model_state.h"
 #include <algorithm>
@@ -18,7 +20,7 @@
 #include <array>
 
 namespace {
-constexpr uint32_t Root = 0x80796e34, Heads = 0x805984e0, Counts = 0x805984f8;
+constexpr uint32_t Root = 0x808a04cc, Heads = 0x806c28e0, Counts = 0x806c28f8;
 void ReadNode(void*, uint32_t address, mh3_scene_node* node) {
     *node = {};
     node->identity = address;
@@ -82,11 +84,11 @@ struct WalkAdapter {
 };
 
 uint32_t Count(void*, unsigned set) {
-    return Memory::Read32(0x80796e68 + set * 4);
+    return Memory::Read32(0x808a0498 + set * 4);
 }
 
 uint32_t Identity(void*, unsigned set, uint32_t index) {
-    return Memory::Read32(0x80796e60 + set * 4) + index * 52;
+    return Memory::Read32(0x808a0490 + set * 4) + index * 52;
 }
 
 void Phase(void*, uint32_t node, uint8_t phase) {
@@ -97,11 +99,18 @@ void Initialized(void*, uint32_t node) {
     Memory::Write8(node + 9, 1);
 }
 
+// Check whether the game is currently inside the character creation screen (charmake).
+// RMHJ08: charmake_work pointer is stored at r13 - 17664 (-0x4500). r13 = 0x808A4880 -> 0x808A0380.
+// PAL: r13 = 0x8079B2E0 -> 0x80796DE0.
+inline bool IsCharacterCreation() {
+    return MH3CharacterCreationActive();
+}
+
 // The traverse's filters, read where their getters read them. The player's
 // split-screen record (0x802BED34): the second one when the split byte
 // (0x800470BC) and MyPlayerIndex are both set.
 uint32_t PlayerRecord() {
-    return Memory::Read8(0x8065b4d6) && Memory::Read8(0x8065aa87) ? 0x806be158 : 0x806bdc60;
+    return Memory::Read8(0x80769412) && Memory::Read8(0x80768acf) ? 0x80780500 : 0x80780008;
 }
 
 int SecondFilter() {
@@ -109,13 +118,31 @@ int SecondFilter() {
 }
 
 int Query(void*, unsigned kind) {
+    if (IsCharacterCreation()) {
+        if (kind == MH3_SCENE_QUERY_PLAYER_FILTER)
+            RenderDiag::Count(RenderDiag::PlayerFiltered);
+
+        switch (kind) {
+        case MH3_SCENE_QUERY_DISABLED:
+            return 0;
+        case MH3_SCENE_QUERY_PLAYER_FILTER:
+            return 0;
+        case MH3_SCENE_QUERY_PLAYER_INDEX:
+            return 0;
+        case MH3_SCENE_QUERY_SECOND_FILTER:
+            return 0;
+        default:
+            return 0;
+        }
+    }
+
     switch (kind) {
     case MH3_SCENE_QUERY_DISABLED:
-        return int8_t(Memory::Read8(0x8065b2d7));
+        return int8_t(Memory::Read8(0x8076931f));
     case MH3_SCENE_QUERY_PLAYER_FILTER:
         return !SecondFilter() && Memory::Read8(PlayerRecord() + 0x188) == 1;
     case MH3_SCENE_QUERY_PLAYER_INDEX:
-        return int8_t(Memory::Read8(0x8065aa87));
+        return int8_t(Memory::Read8(0x80768acf));
     case MH3_SCENE_QUERY_SECOND_FILTER:
         return SecondFilter();
     default:
@@ -132,7 +159,7 @@ void Callback(void* user, uint32_t callback, uint32_t node) {
 }
 
 void Prepare(void* user, uint32_t object) {
-    static_cast<WalkAdapter*>(user)->call(0x8007F7E0, {object});
+    static_cast<WalkAdapter*>(user)->call(0x80537310, {object});
 }
 
 void ApplyView(void* user, uint32_t object, const float*) {
@@ -147,6 +174,11 @@ constexpr uint32_t kObjectWorld = 0xC, kObjectView = 0x6C, kEffectMatrix = 0x58;
 int Visibility(void*, uint32_t identity, const float view[12]) {
     mh3_scene_node node;
     ReadNode(nullptr, identity, &node);
+
+    // Never frustum-cull player character nodes during character creation
+    if (IsCharacterCreation() && (node.flags & 0xc08u))
+        return 1;
+
     float point[3]{}, view_z = 0;
 
     if (node.flags & 1)
@@ -159,6 +191,9 @@ int Visibility(void*, uint32_t identity, const float view[12]) {
             point[i] = Memory::ReadFloat32(node.object + kEffectMatrix + 12 + i * 16);
 
     const int visible = mh3_scene_visible(&node, view, point, view_z);
+
+    if (!visible)
+        RenderDiag::Count(RenderDiag::VisibilityRejected);
 
     if ((node.flags & 1) || node.type <= 2)
         Memory::WriteFloat32(identity + 4, node.depth);
@@ -181,24 +216,25 @@ float WorldY(void*, uint32_t object, uint8_t type) {
 void EnqueueWalk(void* user, uint32_t node, uint8_t category, float, float) {
     const auto context = static_cast<WalkAdapter*>(user)->context;
     Enqueue(nullptr, node, category, Memory::ReadFloat32(context + 0xb4), Memory::ReadFloat32(context + 0xb8));
+    RenderDiag::Count(RenderDiag::Enqueued);
 }
 
 void Traverse(CpuContext* cpu, uint32_t camera, uint8_t filter) {
     MH3_SPLIT_SCOPE(MH3_SPLIT_TRAVERSE);
     GuestFrame frame(cpu, 0xc0);
     WalkAdapter adapter{{cpu}, frame[0x40], 0};
-    adapter.call(0x800753F8, {camera, adapter.view_address});
-    const uint32_t context = adapter.call(0x80047298, {camera});
+    adapter.call(0x80532AF8, {camera, adapter.view_address});
+    const uint32_t context = Memory::Read32(camera);
     adapter.context = context;
-    const int height_mode = int32_t(adapter.call(0x802AFF9C));
+    const int height_mode = int32_t(Memory::Read8(0x80782E74) & 1);
     float camera_y = 0;
 
     if (height_mode == 1) {
-        adapter.call(0x80074B0C, {camera, 0, frame[0x80], 0});
+        adapter.call(0x80532484, {camera, 0, frame[0x80], 0});
         camera_y = Memory::ReadFloat32(frame[0x80]);
     }
 
-    const int category_mode = int32_t(adapter.call(0x802AFFBC));
+    const int category_mode = int32_t((Memory::Read8(0x80782E74) >> 1) & 1);
     float view[12];
 
     for (unsigned i = 0; i < 12; ++i)
@@ -232,14 +268,17 @@ void DrawBucket(GuestCall& call, unsigned category, uint8_t pass) {
             MH3_SPLIT_SCOPE(MH3_SPLIT_MODEL);
 
             // Native lateral visibility (scene_cull.h); the original tests depth only.
-            if (!SkipNativeSceneModel(node.object))
-                call(0x8004978C, {node.object, pass == 1 ? 4u : 0xffffffffu});
+            if (!SkipNativeSceneModel(node.object)) {
+                RenderDiag::Count(RenderDiag::SceneDrawn);
+                call(0x802C0564, {node.object, pass == 1 ? 4u : 0xffffffffu});
+            } else
+                RenderDiag::Count(RenderDiag::SceneSkipped);
         } else if (node.type == 2) {
             EffectStep::Join(call.cpu);
             MH3_SPLIT_SCOPE(MH3_SPLIT_EFFECT);
             const auto target = Memory::Read32(Memory::Read32(node.object + 28) + 28);
-            call(target, {node.object, Memory::Read32(Memory::Read32(0x80796e30) + 0x29084)});
-            call(0x800885F4, {0x7ff});
+            call(target, {node.object, Memory::Read32(Memory::Read32(0x808a04c8) + 0x29084)});
+            call(0x8052C0C0, {0x7ff});
         }
     }
 }
@@ -299,15 +338,18 @@ void DrawPreparedBucket(GuestCall& call, unsigned category, uint8_t pass) {
         if (node.type < 2) {
             MH3_SPLIT_SCOPE(MH3_SPLIT_MODEL);
 
-            if (!SkipNativeSceneModel(node.object))
-                call(0x8004978C, {node.object, pass == 1 ? 4u : 0xffffffffu});
+            if (!SkipNativeSceneModel(node.object)) {
+                RenderDiag::Count(RenderDiag::SceneDrawn);
+                call(0x802C0564, {node.object, pass == 1 ? 4u : 0xffffffffu});
+            } else
+                RenderDiag::Count(RenderDiag::SceneSkipped);
         } else if (node.type == 2 && node.object) {
             EffectStep::Join(call.cpu);
             MH3_SPLIT_SCOPE(MH3_SPLIT_EFFECT);
 
             if (const uint32_t target = Memory::Read32(Memory::Read32(node.object + 28) + 28)) {
-                call(target, {node.object, Memory::Read32(Memory::Read32(0x80796e30) + 0x29084)});
-                call(0x800885F4, {0x7ff});
+                call(target, {node.object, Memory::Read32(Memory::Read32(0x808a04c8) + 0x29084)});
+                call(0x8052C0C0, {0x7ff});
             }
         }
     }
@@ -334,6 +376,7 @@ void DrawAll(GuestCall& call, bool flattened = false) {
     }
 
     EffectStep::Join(call.cpu);
+    RenderDiag::Frame();
 }
 
 void ResetIndirect() {
@@ -379,14 +422,17 @@ void PrepareSingle(CpuContext* cpu) {
     if (!root)
         return;
 
+    // JPN's single draw (0x802C027C) uses root+244 as already set by the frame's
+    // camera manager (0x802AF7CC), e.g. camera 4 in the village, without
+    // overriding it from the split-screen camera table (0x80769448).
     {
         MH3_SPLIT_SCOPE(MH3_SPLIT_SCENE_SETUP);
-        Memory::Write32(frame[0x10], TimedSetup(call, 0x80082C30, {root}));
+        Memory::Write32(frame[0x10], TimedSetup(call, 0x80535B2C, {root}));
     }
 
     Traverse(cpu, frame[0x10], 0);
     MH3_SPLIT_SCOPE(MH3_SPLIT_SCENE_SETUP);
-    TimedSetup(call, 0x80082D40, {root});
+    TimedSetup(call, 0x80535BCC, {root});
 }
 
 // The rest: the effect view, the buckets, the model caches' finish, the post effects.
@@ -397,7 +443,7 @@ void DrawPreparedSingle(CpuContext* cpu, bool flattened = false) {
     GuestCall call{cpu};
     {
         MH3_SPLIT_SCOPE(MH3_SPLIT_SCENE_SETUP);
-        TimedSetup(call, 0x800D4910);
+        TimedSetup(call, 0x802AC7E0);
     }
 
     DrawAll(call, flattened);
@@ -426,28 +472,28 @@ void DrawScene(CpuContext* cpu, bool split) {
     }
 
     if (root) {
-        const uint32_t old = call(0x80049784);
+        const uint32_t old = Memory::Read8(root + 244);
 
         for (unsigned player = 0; player < 2; ++player) {
             if (player)
                 ResetAll();
 
-            call(0x800CF3F8, {player});
-            call(0x80082C6C, {root, Memory::Read8(0x8065b50c + player)});
-            call(0x802B2E90);
-            Memory::Write32(frame[0x10], TimedSetup(call, 0x80082C30, {root}));
+            Memory::Write8(0x80768ACF, uint8_t(player));
+            Memory::Write8(root + 244, Memory::Read8(0x80769448 + player));
+            call(0x80382078);
+            Memory::Write32(frame[0x10], TimedSetup(call, 0x80535B2C, {root}));
             Traverse(cpu, frame[0x10], 0);
-            call(0x80082D40, {root});
-            call(0x800D4910);
+            call(0x80535BCC, {root});
+            call(0x802AC7E0);
             DrawAll(call);
 
             // The two views submit in order. Native frame slots own their
             // uniforms/vertices until completion; no inter-view GPU wait.
         }
 
-        call(0x800CF3F8, {0});
-        call(0x80082C6C, {root, old});
-        call(0x80082D40, {root});
+        Memory::Write8(0x80768ACF, 0);
+        Memory::Write8(root + 244, uint8_t(old));
+        call(0x80535BCC, {root});
     }
 
     Finish(call, true);
@@ -456,17 +502,17 @@ void DrawScene(CpuContext* cpu, bool split) {
 void Finish(GuestCall& call, bool split) {
     {
         MH3_SPLIT_SCOPE(MH3_SPLIT_SCENE_FINISH);
-        call(0x800885F4, {4});
+        call(0x8052C0C0, {4});
         ResetIndirect();
     }
 
     MH3_SPLIT_SCOPE(MH3_SPLIT_POST);
 
     if (split) {
-        call(0x800583AC);
-        call(0x80058460);
-    } else if (!int8_t(call(0x800D0788)))
-        call(0x80059270);
+        call(0x80294C3C);
+        call(0x80294CE0);
+    } else if (!int8_t(Memory::Read8(0x8076931F)))
+        call(0x8029278C);
 }
 } // namespace
 
@@ -501,11 +547,11 @@ bool HoldsPrepared(uint32_t begin, uint32_t end) {
 extern "C" void MH3_SceneQueueReset(CpuContext*) {
     ResetAll();
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3E44, MH3_SceneQueueReset, "SceneQueueReset");
+REGISTER_NATIVE_FUNCTION(0x802A1AE4, MH3_SceneQueueReset);
 extern "C" void MH3_SceneQueueTraverse(CpuContext* cpu) {
     Traverse(cpu, cpu->gpr[3], uint8_t(cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E3E80, MH3_SceneQueueTraverse, "SceneQueueTraverse");
+REGISTER_NATIVE_FUNCTION(0x802A1BF0, MH3_SceneQueueTraverse);
 extern "C" void MH3_SceneQueueVisible(CpuContext* cpu) {
     float view[12];
 
@@ -514,25 +560,25 @@ extern "C" void MH3_SceneQueueVisible(CpuContext* cpu) {
 
     cpu->gpr[3] = Visibility(nullptr, cpu->gpr[3], view);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E41AC, MH3_SceneQueueVisible, "SceneQueueVisible");
+REGISTER_NATIVE_FUNCTION(0x802A1EDC, MH3_SceneQueueVisible);
 extern "C" void MH3_SceneQueueEnqueue(CpuContext* cpu) {
     Enqueue(nullptr, cpu->gpr[3], uint8_t(cpu->gpr[4]), cpu->fpr[1].d, cpu->fpr[2].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E42E8, MH3_SceneQueueEnqueue, "SceneQueueEnqueue");
+REGISTER_NATIVE_FUNCTION(0x802A2024, MH3_SceneQueueEnqueue);
 extern "C" void MH3_SceneQueueDraw(CpuContext* cpu) {
     GuestFrame frame(cpu, 0x10);
     GuestCall call{cpu};
     DrawBucket(call, uint8_t(frame.Arg(3)), uint8_t(frame.Arg(4)));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E44B0, MH3_SceneQueueDraw, "SceneQueueDraw");
+REGISTER_NATIVE_FUNCTION(0x802A219C, MH3_SceneQueueDraw);
 extern "C" void MH3_DrawScene(CpuContext* cpu) {
     DrawScene(cpu, false);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049498, MH3_DrawScene, "DrawScene");
+REGISTER_NATIVE_FUNCTION(0x802C027C, MH3_DrawScene);
 extern "C" void MH3_DrawSplitScene(CpuContext* cpu) {
     DrawScene(cpu, true);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80049594, MH3_DrawSplitScene, "DrawSplitScene");
+REGISTER_NATIVE_FUNCTION(0x802C0374, MH3_DrawSplitScene);
 extern "C" void MH3_SceneBlendMode(CpuContext* cpu) {
     auto raster = GetNativeDrawState().raster;
     raster.src_factor = uint8_t(cpu->gpr[3]) <= 7 ? uint8_t(cpu->gpr[3]) : 4;
@@ -546,7 +592,7 @@ extern "C" void MH3_SceneBlendMode(CpuContext* cpu) {
     raster.blend_mode = mode == 0 ? 0 : mode == 3 ? 3 : 1;
     SetNativeRaster(raster);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E45D8, MH3_SceneBlendMode, "SceneBlendMode");
+REGISTER_NATIVE_FUNCTION(0x802AF1D4, MH3_SceneBlendMode);
 extern "C" void MH3_SceneDepthMode(CpuContext* cpu) {
     constexpr uint8_t compare[] = {0, 1, 3, 2, 5, 6, 4, 7};
     auto raster = GetNativeDrawState().raster;
@@ -556,4 +602,4 @@ extern "C" void MH3_SceneDepthMode(CpuContext* cpu) {
     raster.depth_write = uint8_t(cpu->gpr[5]) != 0;
     SetNativeRaster(raster);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E46EC, MH3_SceneDepthMode, "SceneDepthMode");
+REGISTER_NATIVE_FUNCTION(0x802AF2E8, MH3_SceneDepthMode);

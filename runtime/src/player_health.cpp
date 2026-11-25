@@ -101,4 +101,4 @@ static void PlAddHealthPort(CpuContext* ctx) {
 extern "C" void MH3_PlAddHealth(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlAddHealth", func_802762F0, PlAddHealthPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802762F0, MH3_PlAddHealth, "PlAddHealth");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802762F0, MH3_PlAddHealth, "PlAddHealth");

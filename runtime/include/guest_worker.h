@@ -182,6 +182,6 @@ inline uint32_t G3dScratch() {
         return DrawThread::Thread().WorkArea();
 
     default:
-        return 0x8066D300u;
+        return 0x8086BB80u;
     }
 }

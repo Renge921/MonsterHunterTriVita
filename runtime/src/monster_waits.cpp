@@ -101,29 +101,178 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    RoarVoice = 0x801293A0,      // (work, channel, voice, length)
-    RoarVoice0 = 0x801296CC,     // (work, channel, voice): RoarVoice with length 0
-    SetMotionEx = 0x8012F568,    // (work, motion, blend, flags, 1)
-    SetMotionLoop = 0x8012F690,  // (work, motion, flags, blend)
-    SetMotionSpeed = 0x8012F92C, // (work; f1)
-    SetUpCarried = 0x801302AC,   // (work) -> f1, then SetScale takes that f1
-    SetScale = 0x80130628,       // (work; f1)
-    Steer = 0x80133CB4,          // (work, rate)
-    TurnSetUp = 0x80134068,      // (work, 0; f1)
-    TurnStep = 0x80134178,       // (work, 0, 0) -> 1 when turned
-    Mark = 0x80136BB4,           // (work, a, b)
-    AddVelocity = 0x8013547C,    // EnemyAddVelocity (work): position += velocity · s
-    RotateY = 0x800510C8,        // rotVecY (VEC3*, angle)
-    NextAction = 0x80128A78,     // (work, group, action)
-    ActionDone = 0x80127FAC,     // (work): back to the AI
-    ActionDone94 = 0x80128094,   // a variant of it with another set-up
-    JointEffect = 0x80104918,    // (work, kind, joint, angle; f1 scale)
-    JointPosition = 0x8013599C,  // get_joint_wpos_em (work, joint, VEC3* out)
-    Spark = 0x80306AFC,          // (work, kind)
-    Discharge = 0x8010A838,      // (work, kind): 0/7 and 1 start an effect, others nothing
+    RoarVoice = 0x8016177C,      // (work, channel, voice, length)
+    RoarVoice0 = 0x80161A54,     // (work, channel, voice): RoarVoice with length 0
+    SetMotionEx = 0x80168E80,    // (work, motion, blend, flags, 1)
+    SetMotionLoop = 0x80169284,  // (work, motion, flags, blend)
+    SetMotionSpeed = 0x80169A70, // (work; f1)
+    SetUpCarried = 0x8016A47C,   // (work) -> f1, then SetScale takes that f1
+    SetScale = 0x8016A878,       // (work; f1)
+    Steer = 0x8016EA8C,          // (work, rate)
+    TurnSetUp = 0x8016EE30,      // (work, 0; f1)
+    TurnStep = 0x8016EF18,       // (work, 0, 0) -> 1 when turned
+    Mark = 0x80172B18,           // (work, a, b)
+    AddVelocity = 0x80170F84,    // EnemyAddVelocity (work): position += velocity · s
+    RotateY = 0x8028BD04,        // rotVecY (VEC3*, angle)
+    NextAction = 0x80160800,     // (work, group, action)
+    ActionDone = 0x8015FDDC,     // (work): back to the AI
+    ActionDone94 = 0x8015FEC0,   // a variant of it with another set-up
+    JointEffect = 0x800433E0,    // (work, kind, joint, angle; f1 scale)
+    JointPosition = 0x801717A0,  // get_joint_wpos_em (work, joint, VEC3* out)
+    Spark = 0x80069B48,          // (work, kind)
+    Discharge = 0x8004953C,      // (work, kind): 0/7 and 1 start an effect, others nothing
 };
 
-constexpr uint32_t kShellTable = 0x80797020; // shell_set_func_ptr: the shell functions' table
+constexpr uint32_t kShellTable = 0x808A0540; // shell_set_func_ptr: the shell functions' table
+
+void Vec3Zero(uint32_t p) {
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::WriteFloat32(p + i, 0.0f);
+}
+
+void Vec3Sub(uint32_t dst, uint32_t a, uint32_t b) {
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::WriteFloat32(dst + i, Memory::ReadFloat32(a + i) - Memory::ReadFloat32(b + i));
+}
+
+void Vec3Scale(uint32_t dst, uint32_t src, float s) {
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::WriteFloat32(dst + i, Memory::ReadFloat32(src + i) * s);
+}
+
+void Vec3SquareMag(GuestCall& g, uint32_t v) {
+    const float x = Memory::ReadFloat32(v);
+    const float y = Memory::ReadFloat32(v + 4);
+    const float z = Memory::ReadFloat32(v + 8);
+    const float xy0 = x * x;
+    const float xy1 = y * y;
+    const float zz = std::fmaf(z, z, xy0);
+    g.cpu->fpr[1].d = double(zz + xy1);
+}
+
+template <uint32_t Act>
+void InlinedEndGroup3(GuestCall& g, uint32_t w) {
+    g.Call<0x8016A47C>({w});
+    g.Call<0x8016A878>({w});
+    g.Call<0x8016091C>({w, 3, Act});
+    g.Call<0x8016E9E0>({w});
+}
+
+template <uint32_t Act>
+void InlinedEndGroup6(GuestCall& g, uint32_t w) {
+    g.Call<0x8016A708>({w, 4});
+    g.Call<0x8016091C>({w, 6, Act});
+    g.Call<0x8016E9E0>({w});
+}
+
+void Inlined_8015D8C4(GuestCall& g, uint32_t w) {
+    Memory::Write8(w + 0x1E4, 0);
+    if ((g.Call<0x801560F8>({w, 2}) & 0xFF) >= 2)
+        Memory::Write8(w + 0x1E4, Memory::Read8(w + 0x1E4) | 4);
+    if ((Memory::Read16(w + 0x836) & 2) != 0)
+        Memory::Write8(w + 0x1E4, Memory::Read8(w + 0x1E4) | 1);
+    if ((Memory::Read16(w + 0x836) & 1) != 0)
+        Memory::Write8(w + 0x1E4, Memory::Read8(w + 0x1E4) | 0x20);
+}
+
+void Inlined_803790E8(uint32_t w) {
+    Memory::Write8(w + 0x358, 1);
+}
+
+void Inlined_80379000(uint32_t w, uint32_t mask) {
+    const uint8_t m = uint8_t(mask);
+    Memory::Write8(w + 0x1E4, Memory::Read8(w + 0x1E4) | m);
+    if (m & 0x03) Memory::Write16(w + 0x330, 0);
+    if (m & 0x0C) Memory::Write16(w + 0x332, 0);
+    if (m & 0x30) Memory::Write16(w + 0x334, 0);
+    if (m & 0xC0) Memory::Write16(w + 0x336, 0);
+}
+
+void Inlined_801B70AC(GuestCall& g, uint32_t w) {
+    if ((Memory::Read16(w + 0x228) & 6) != 0) {
+        g.Call<0x801717A8>({w});
+        const float minY = Memory::ReadFloat32(w + 0x210) + 30.0f * float(g.F1());
+        if (Memory::ReadFloat32(w + 0x18C) < minY)
+            Memory::WriteFloat32(w + 0x18C, minY);
+    }
+}
+
+void InlinedRotateOffset(GuestCall& g, uint32_t w, float zOff) {
+    GuestFrame frame(g.cpu, 0x30);
+    const uint32_t v = frame[0x14], out = frame[0x08];
+    Memory::WriteFloat32(v, 0.0f);
+    Memory::WriteFloat32(v + 4, 0.0f);
+    Memory::WriteFloat32(v + 8, zOff);
+    g.Call<0x8028BD04>({v, Memory::Read32(w + 0x1C0)});
+    Memory::Write32(out, Memory::Read32(v));
+    Memory::Write32(out + 4, Memory::Read32(v + 4));
+    Memory::Write32(out + 8, Memory::Read32(v + 8));
+    g.Call<0x8016A5B8>({w, out});
+}
+
+void Inlined_801B7084(uint32_t w) {
+    const float y = Memory::ReadFloat32(w + 0x18C);
+    if (y > 1500.0f + Memory::ReadFloat32(w + 0x370))
+        Memory::WriteFloat32(w + 0x18C, y - 20.0f);
+}
+
+void Inlined_8032C9F8(uint32_t w) {
+    Vec3Zero(w + 0x328);
+    Memory::Write32(w + 0x334, 0);
+}
+
+void Inlined_801C2ABC(uint32_t w) {
+    Memory::Write32(w + 0x1C0, (Memory::Read32(w + 0x1C0) + 0x8000u) & 0xFFFFu);
+    Memory::Write32(w + 0x1C4, 0);
+}
+
+void Inlined_8019E9AC(uint32_t w) {
+    Memory::Write8(w + 0x354, 0);
+    Memory::Write8(w + 0x355, 0);
+    Memory::Write8(w + 0x356, 0);
+    Memory::Write8(w + 0x357, 0);
+}
+
+template <int MaxSqDistInt>
+uint32_t InlinedLedgeTarget(GuestCall& g, uint32_t w, uint32_t target) {
+    const uint32_t base = g.Call<0x802BCF94>({2});
+    const uint32_t count = g.Call<0x802BCFD0>({2}) & 0xFFFFu;
+    const uint32_t idx = target & 0xFFu;
+    if (idx >= count)
+        return 0;
+    const uint32_t pl = base + idx * 0xB20u;
+    if (Memory::Read8(pl) == 0)
+        return 0;
+    GuestFrame frame(g.cpu, 0x50);
+    const uint32_t vec = frame[0x0C], pt = frame[0x18];
+    Memory::WriteFloat32(vec, 0.0f);
+    Memory::WriteFloat32(vec + 4, 0.0f);
+    Memory::WriteFloat32(vec + 8, 1.0f);
+    g.Call<0x8028BD04>({vec, Memory::Read32(w + 0x1C0)});
+    g.Call<0x801717B8>({w});
+    const float dist = 300.0f * float(g.F1());
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::WriteFloat32(pt + i, Memory::ReadFloat32(w + 0x188 + i) + Memory::ReadFloat32(vec + i) * dist);
+    g.Call<0x8028BB34>({pl + 0x3C, pt});
+    return g.F1() <= float(MaxSqDistInt) ? 1u : 0u;
+}
+
+uint32_t InlinedForwardHitCheck(GuestCall& g, uint32_t w, uint32_t minVal, float x0, float zScale, float zBase, float radius) {
+    if ((g.Call<0x801560F8>({w, 0}) & 0xFFu) >= minVal)
+        return 0;
+    GuestFrame frame(g.cpu, 0x40);
+    const uint32_t vec = frame[0x08], pt = frame[0x14];
+    Memory::WriteFloat32(vec, x0);
+    Memory::WriteFloat32(vec + 4, 0.0f);
+    g.Call<0x801717B8>({w});
+    Memory::WriteFloat32(vec + 8, std::fmaf(zScale, float(g.F1()), zBase));
+    g.Call<0x8028BD04>({vec, Memory::Read32(w + 0x1C0)});
+    for (uint32_t i = 0; i < 12; i += 4)
+        Memory::WriteFloat32(pt + i, Memory::ReadFloat32(w + 0x188 + i) + Memory::ReadFloat32(vec + i));
+    const uint32_t mask = g.Call<0x8015FD0C>({w}) & 0xFFFFu;
+    const uint32_t hit = g.Call<0x801A6850>({w + 0x188, pt, 1, 0x100, Memory::Read8(w + 0x1E1), mask}, {double(radius)});
+    return hit != 0 ? 1u : 0u;
+}
 
 // The countdown at +0x20 by the step's ticks; true once it is below 1.
 bool CountDown(const Em::Enemy& em) {
@@ -168,7 +317,7 @@ void Em003StaggerPort(CpuContext* ctx) {
         slow();
         em.Count(0x6E);
 
-        if (game.Call<0x8015D674>({work}) == 1) // em003_atama_koware_act_ck: the head is broken
+        if (game.Call<0x8008E374>({work}) == 1) // em003_atama_koware_act_ck: the head is broken
             em.Count(em.Count() << 1);
 
         em.Count(int32_t(float(em.Count()) * perRate(2.0f)));
@@ -259,9 +408,9 @@ void Em018LungePort(CpuContext* ctx) {
             break;
 
         game.Call<AddVelocity>({work});
-        game.Call<0x80130348>({work});
+        game.Call<0x8016A528>({work});
 
-        if (game.Call<0x8013006C>({work}) == 1) {
+        if (game.Call<0x8016A258>({work}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0xC9, 0, 0);
@@ -398,7 +547,7 @@ void Em003MovePort(CpuContext* ctx) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
-        game.Call<0x80130D40>({work, uint32_t(-12)}); // stamina (+0x8A0) less 12
+        game.Call<0x8016B06C>({work, uint32_t(-12)}); // stamina (+0x8A0) less 12
         em.SetMotion(8, 4, 0);
         game.Call<RoarVoice>({work, 0, 4, 3});
         em.Count(0);
@@ -440,10 +589,10 @@ void Em003MovePort(CpuContext* ctx) {
             if (kind == 2)
                 em.SetMotion(0x40, 4, 0);
             else if (kind == 3 || kind == 4) {
-                game.Call<0x80129788>({work, 0});
-                game.Call<0x80128AD4>({work, kind == 3 ? 4u : 7u, 7});
+                game.Call<0x80161B38>({work, 0});
+                game.Call<0x801608C0>({work, kind == 3 ? 4u : 7u, 7});
             } else {
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
                 em.SetMotion(9, 4, 0);
             }
         }
@@ -452,7 +601,7 @@ void Em003MovePort(CpuContext* ctx) {
     case 2:
         if (kind == 2 && Memory::Read8(work + 6) == 0 && em.At(120.0f, 1)) {
             Memory::Write8(work + 6, 1);
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
         }
 
         if (em.Ended())
@@ -476,7 +625,7 @@ void Em003BackstepPort(CpuContext* ctx) {
         em.State(1);
         game.Call<Em::SetUp>({work, 3});
         em.SetMotion(0x1B, 6, 0);
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
 
         if (kind == 1 || kind == 2) {
             Memory::WriteFloat32(work + 0x318, -22.0f);
@@ -490,16 +639,16 @@ void Em003BackstepPort(CpuContext* ctx) {
 
         break;
     case 1:
-        game.Call<0x8013562C>({work, work + 0x1BC});
+        game.Call<0x801712E4>({work, work + 0x1BC});
 
         if (Memory::ReadFloat32(work + 0x318) > 0.0f)
             Memory::WriteFloat32(work + 0x318, 0.0f);
 
         if (CountDown(em)) {
             if (kind == 0 || kind == 2)
-                game.Call<0x80128AD4>({work, 4, 1});
+                game.Call<0x801608C0>({work, 4, 1});
             else
-                game.Call<0x80128110>({work});
+                game.Call<0x8015FF38>({work});
         }
 
         break;
@@ -514,7 +663,7 @@ void Em012RetreatPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    const uint32_t data = game.Call<0x801264B8>({work}); // the kind's data: f32 the near distance
+    const uint32_t data = game.Call<0x8015DD14>({work}); // the kind's data: f32 the near distance
     const float near = Memory::ReadFloat32(data);
 
     switch (em.State()) {
@@ -522,13 +671,13 @@ void Em012RetreatPort(CpuContext* ctx) {
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(10, 6, 0);
-        game.Call<0x80050F58>({work + 0x188, work + 0x36C});
+        game.Call<0x8028BB74>({work + 0x188, work + 0x36C});
         const float away = -0.5f * game.F1();
         game.Call<TurnSetUp>({work, 0}, {double(away > -near ? -near : away)});
         break;
     }
     case 1:
-        if (game.Call<TurnStep>({work, 0, 0x80}) == 1 && game.Call<0x8012F9AC>({work}) == 0) {
+        if (game.Call<TurnStep>({work, 0, 0x80}) == 1 && game.Call<0x80169AE0>({work}) == 0) {
             em.NextState();
             em.SetMotion(11, 4, 0);
             game.Call<TurnSetUp>({work, 0}, {0.0});
@@ -544,7 +693,7 @@ void Em012RetreatPort(CpuContext* ctx) {
         else if (em.Ended()) {
             game.Call<ActionDone>({work});
         } else {
-            game.Call<0x80050FE4>({work + 0x188, work + 0x36C});
+            game.Call<0x8028BC04>({work + 0x188, work + 0x36C});
 
             if (game.F1() < near)
                 game.Call<ActionDone>({work});
@@ -619,7 +768,7 @@ void Em030RunPort(CpuContext* ctx) {
         if (game.Call<TurnStep>({work, 0, 0x800}) == 1 || CountDown(em))
             game.Call<ActionDone>({work});
 
-        if (em.Count() > 15 && game.Call<0x801B01CC>({work}) == 1)
+        if (em.Count() > 15 && game.Call<0x801396F0>({work}) == 1)
             em.Count(15);
 
         break;
@@ -665,17 +814,17 @@ void Sleep(CpuContext* ctx, const SleepMotions& m) {
             em.NextState();
             em.SetMotion(m.sleep, m.sleepFlags, 0);
             em.Count(1800);
-            game.Call<0x80132288>({work});
+            game.Call<0x8016C9EC>({work});
         }
 
         break;
     case 2:
-        game.Call<0x80132280>({work, 1, m.every}, {double(m.rate)});
+        game.Call<0x8016C9E4>({work, 1, m.every}, {double(m.rate)});
 
         if (CountDown(em)) {
             em.NextState();
             em.SetMotion(m.wake, m.wakeFlags, 0);
-            game.Call<0x801322C8>({work});
+            game.Call<0x8016CA1C>({work});
         }
 
         break;
@@ -735,23 +884,23 @@ void Em018SleepPort(CpuContext* ctx) {
     const uint32_t work = ctx->gpr[3];
     Memory::Write8(work + 0x359, 1);
     Memory::Write8(work + 0x35B, 1);
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
     ctx->gpr[3] = work;
-    Sleep(ctx, {0xCC, 0, 0xCF, 0, 0xCD, 0, 0.4f, 15, 0x80128158, [](GuestCall& g, uint32_t w) { g.Call<Em::SetUp>({w, 4}); },
+    Sleep(ctx, {0xCC, 0, 0xCF, 0, 0xCD, 0, 0.4f, 15, 0x8015FF80, [](GuestCall& g, uint32_t w) { g.Call<Em::SetUp>({w, 4}); },
                 [](GuestCall& g, uint32_t w) {
-                    g.Call<0x80130390>({w}); // f1 passes on
-                    g.Call<0x80130450>({w});
-                    g.Call<0x801321FC>({w});
+                    g.Call<0x8016A588>({w}); // f1 passes on
+                    g.Call<0x8016A668>({w});
+                    g.Call<0x8016C960>({w});
                 }});
 }
 
 // kind 4 0x801C6014: Gigginox', set up with its carried scale and 0x80130724
 // (work, 1), ended through 0x801281F8.
 void Em004SleepPort(CpuContext* ctx) {
-    Sleep(ctx, {0xEB, 4, 0xDD, 10, 0xDF, 6, 0.6f, 10, 0x801281F8, [](GuestCall& g, uint32_t w) {
-                    g.Call<0x801302AC>({w}); // f1: the carried scale, for SetScale
+    Sleep(ctx, {0xEB, 4, 0xDD, 10, 0xDF, 6, 0.6f, 10, 0x80160020, [](GuestCall& g, uint32_t w) {
+                    g.Call<0x8016A47C>({w}); // f1: the carried scale, for SetScale
                     g.Call<SetScale>({w});
-                    g.Call<0x80130724>({w, 1});
+                    g.Call<0x8016A968>({w, 1});
                 }});
 }
 
@@ -766,10 +915,10 @@ void Em001WalkPort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
     const bool dusty = uint8_t(frame.Arg(4)) == 1;
-    game.Call<0x80043F0C>({at});
+    (void)at;
 
     if (uint8_t(frame.Arg(4)) == 0)
-        game.Call<0x8012CF84>({work});
+        game.Call<0x80165D0C>({work});
 
     const auto dust = [&](uint32_t kind, float scale) {
         game.Call<Em::Vec3Set>({at}, {0.0, -30.0, 70.0});
@@ -778,7 +927,7 @@ void Em001WalkPort(CpuContext* ctx) {
 
     const auto puff = [&] {
         game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 50.0});
-        game.Call<0x80104A34>({work, 0x1A, 0x2F, 0, at}, {1.4});
+        game.Call<0x80043504>({work, 0x1A, 0x2F, 0, at}, {1.4});
     };
 
     switch (em.State()) {
@@ -829,14 +978,14 @@ void Em001HoverPort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work}); // f1: the carried scale, for SetScale
+        game.Call<0x8016A47C>({work}); // f1: the carried scale, for SetScale
         game.Call<SetScale>({work});
         game.Call<SetMotionLoop>({work, 0x1F, 4, 0});
         em.Count(0x3C);
         break;
     case 1:
         if (CountDown(em))
-            game.Call<0x80148260>({work});
+            InlinedEndGroup3<0xB>(game, work);
 
         break;
     }
@@ -856,9 +1005,9 @@ void Em016SwimPort(CpuContext* ctx) {
     const auto way = [&](float distance) { game.Call<TurnSetUp>({work, 0x12}, {double(distance)}); };
 
     if (swim == 8) {
-        game.Call<0x80131DE8>({work});
-        game.Call<0x8012CF84>({work});
-        game.Call<0x80131ED8>({work});
+        game.Call<0x8016C438>({work});
+        game.Call<0x80165D0C>({work});
+        game.Call<0x8016C528>({work});
     }
 
     switch (em.State()) {
@@ -917,13 +1066,13 @@ void Em016SwimPort(CpuContext* ctx) {
 
         if (swim == 3) {
             game.Call<TurnStep>({work, 0, 0x80});
-            game.Call<0x80136DB0>({work}, {3.0});
+            game.Call<0x80172CFC>({work}, {3.0});
             there = CountDown(em);
 
             if (!there) {
-                game.Call<0x801359B4>({work}); // get_em_chg_scale
+                game.Call<0x801717B8>({work}); // get_em_chg_scale
                 const float size = game.F1();
-                game.Call<0x801302D0>({work});
+                game.Call<0x8016A4AC>({work});
                 const float below = Memory::ReadFloat32(work + 0x370) - (10.0f + game.F1()) * size;
                 there = Memory::ReadFloat32(work + 0x18C) >= below;
             }
@@ -932,7 +1081,7 @@ void Em016SwimPort(CpuContext* ctx) {
         else
             there = game.Call<TurnStep>({work, 0, 0x80}) == 1;
 
-        if (there && game.Call<0x8012F9AC>({work}) == 0) {
+        if (there && game.Call<0x80169AE0>({work}) == 0) {
             em.NextState();
             game.Call<SetMotionEx>({work, 0x2F, 0x28, 0, 1});
         }
@@ -956,14 +1105,14 @@ void Em016RestPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 2});
         game.Call<SetMotionEx>({work, 0x2A, 10, 0, 1});
-        game.Call<0x801321D0>({work});
+        game.Call<0x8016C934>({work});
         break;
     case 1:
         if (em.Ended()) {
@@ -974,7 +1123,7 @@ void Em016RestPort(CpuContext* ctx) {
 
         break;
     case 2: {
-        game.Call<0x8011E750>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
+        game.Call<0x80155E78>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
         const uint32_t ticks = GameStep::Ticks();
         const int32_t before = em.Count();
         em.Count(std::min(before + int32_t(ticks), 0x708));
@@ -988,7 +1137,7 @@ void Em016RestPort(CpuContext* ctx) {
                 const float distance = Memory::ReadFloat32(work + 0x454 + 4 * i);
 
                 if (distance > 0.0f && distance <= 3000.0f) {
-                    game.Call<0x8012B3E4>({work, 0, 2});
+                    game.Call<0x801640C0>({work, 0, 2});
                     game.Call<NextAction>({work, 5, 0x11});
                     return;
                 }
@@ -996,8 +1145,8 @@ void Em016RestPort(CpuContext* ctx) {
         }
 
         if (em.Count() >= 0x708) {
-            game.Call<0x8012B3E4>({work, 5, 2, 5});
-            game.Call<0x801307DC>({work, 0});
+            game.Call<0x801640C0>({work, 5, 2, 5});
+            game.Call<0x8016AA20>({work, 0});
             game.Call<NextAction>({work, 5, 0x11});
         }
 
@@ -1068,8 +1217,8 @@ void Then(GuestCall& game, uint32_t work) {
 // The height above the ground (+0x1AC) set again: 0x80130390 (work) -> f1,
 // which 0x80130450 (work; f1) takes.
 void KeepHeight(GuestCall& game, uint32_t work) {
-    game.Call<0x80130390>({work});
-    game.Call<0x80130450>({work});
+    game.Call<0x8016A588>({work});
+    game.Call<0x8016A668>({work});
 }
 
 using WorkTest = bool (*)(GuestCall&, uint32_t work);
@@ -1108,7 +1257,7 @@ void Timed(CpuContext* ctx, const TimedAction& t) {
         em.State(1);
 
         if (t.setUp < 0) {
-            game.Call<0x801302AC>({work}); // f1: the carried scale, for SetScale
+            game.Call<0x8016A47C>({work}); // f1: the carried scale, for SetScale
             game.Call<SetScale>({work});
         } else
             game.Call<Em::SetUp>({work, uint32_t(t.setUp)});
@@ -1204,7 +1353,7 @@ void Em019PausePort(CpuContext* ctx) {
 
 void Em019Pause2Port(CpuContext* ctx) {
     Timed(ctx, {.motion = 0x6, .flags = 10, .ticks = 300,
-                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x803B9C04>({w, w + 0x188, 0x3C}); },
+                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80208000>({w, w + 0x188, 0x3C}); },
                 .end = Next<13, 8>});
 }
 
@@ -1232,32 +1381,32 @@ void Em030Idle2Port(CpuContext* ctx) {
 }
 
 void Em003HoverPort(CpuContext* ctx) {
-    Timed(ctx, {.setUp = -1, .loop = true, .motion = 0x1F, .flags = 4, .ticks = 60, .end = Then<0x80155700>});
+    Timed(ctx, {.setUp = -1, .loop = true, .motion = 0x1F, .flags = 4, .ticks = 60, .end = InlinedEndGroup3<0xB>});
 }
 
 void Em006WalkPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84}, .motion = 0x13, .flags = 6, .ticks = 300, .end = Next<1, 4>});
+    Timed(ctx, {.steps = {0x80165D0C}, .motion = 0x13, .flags = 6, .ticks = 300, .end = Next<1, 4>});
 }
 
 void Em005WalkPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84}, .motion = 0x13, .flags = 6, .ticks = 300, .end = Next<1, 3>});
+    Timed(ctx, {.steps = {0x80165D0C}, .motion = 0x13, .flags = 6, .ticks = 300, .end = Next<1, 3>});
 }
 
 void Em004WaitPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131E00}, .setUp = -1, .loop = true, .motion = 0x15, .flags = 4, .ticks = 60, .end = Then<0x801C2BEC>});
+    Timed(ctx, {.steps = {0x8016C450}, .setUp = -1, .loop = true, .motion = 0x15, .flags = 4, .ticks = 60, .end = InlinedEndGroup3<4>});
 }
 
 void Em005WaitPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84, 0x80131E00}, .setUp = -1, .loop = true, .motion = 0x1F, .flags = 4, .ticks = 60,
-                .end = Then<0x801CAFD4>});
+    Timed(ctx, {.steps = {0x80165D0C, 0x8016C450}, .setUp = -1, .loop = true, .motion = 0x1F, .flags = 4, .ticks = 60,
+                .end = InlinedEndGroup3<0xB>});
 }
 
 void Em018WaitPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84, 0x80131ED8}, .setUp = 2, .motion = 0x80, .flags = 4, .ticks = 190, .end = Next<5, 0x20>});
+    Timed(ctx, {.steps = {0x80165D0C, 0x8016C528}, .setUp = 2, .motion = 0x80, .flags = 4, .ticks = 190, .end = Next<5, 0x20>});
 }
 
 void Em033WaitPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131E58, 0x80131DE8}, .loop = true, .motion = 3, .flags = 2, .ticks = 30, .spent = Spent::BelowZero,
+    Timed(ctx, {.steps = {0x8016C4A8, 0x8016C438}, .loop = true, .motion = 3, .flags = 2, .ticks = 30, .spent = Spent::BelowZero,
                 .end = Then<ActionDone>});
 }
 
@@ -1268,44 +1417,44 @@ void Em012PausePort(CpuContext* ctx) {
 
 void Em025RestPort(CpuContext* ctx) {
     Timed(ctx, {.setUp = 4, .loop = true, .motion = 1, .flags = 0x1E, .ticks = 150, .extra = KeepHeight,
-                .end = [](GuestCall& g, uint32_t w) { KeepHeight(g, w); g.Call<0x8019F190>({w}); }});
+                .end = [](GuestCall& g, uint32_t w) { KeepHeight(g, w); InlinedEndGroup6<9>(g, w); }});
 }
 
 void Em010BackPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131DE8, 0x80131ED8, 0x80131E58}, .motion = 0xE, .flags = 8, .ticks = 0x20,
-                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x8012FD28>({w, 0x1E}, {0.0f}); },
-                .early = Settled, .end = Then<0x8012E6F8>});
+    Timed(ctx, {.steps = {0x8016C438, 0x8016C528, 0x8016C4A8}, .motion = 0xE, .flags = 8, .ticks = 0x20,
+                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80169DEC>({w, 0x1E}, {0.0f}); },
+                .early = Settled, .end = Then<0x80167BCC>});
 }
 
 void Em011BackPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131DE8, 0x80131ED8, 0x80131E58}, .motion = 10, .flags = 4, .ticks = 0x1E,
-                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x8012FD28>({w, 0x1C}, {0.0f}); },
-                .early = Settled, .end = Then<0x8012E6F8>});
+    Timed(ctx, {.steps = {0x8016C438, 0x8016C528, 0x8016C4A8}, .motion = 10, .flags = 4, .ticks = 0x1E,
+                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80169DEC>({w, 0x1C}, {0.0f}); },
+                .early = Settled, .end = Then<0x80167BCC>});
 }
 
 void Em008WaitPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131ED8, 0x80136D78}, .setUp = 4, .loop = true, .motion = 0x25, .flags = 0, .ticks = 150,
+    Timed(ctx, {.steps = {0x8016C528, 0x80172CC4}, .setUp = 4, .loop = true, .motion = 0x25, .flags = 0, .ticks = 150,
                 .extra = [](GuestCall& g, uint32_t w) {
-                    g.Call<0x80130450>({w}, {0.0f});
-                    g.Call<0x8015D8C4>({w});
-                    g.Call<0x801321FC>({w});
+                    g.Call<0x8016A668>({w}, {0.0f});
+                    Inlined_8015D8C4(g, w);
+                    g.Call<0x8016C960>({w});
                 },
-                .end = Then<0x8015DE64>});
+                .end = InlinedEndGroup6<0xC>});
 }
 
 void Em009BuriedPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84, 0x80131ED8}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A, .extra = KeepHeight,
-                .spent = Spent::AtZero, .end = Then<0x80128158>});
+    Timed(ctx, {.steps = {0x80165D0C, 0x8016C528}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A, .extra = KeepHeight,
+                .spent = Spent::AtZero, .end = Then<0x8015FF80>});
 }
 
 void Em007BuriedPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x8012CF84, 0x80131ED8}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A, .extra = KeepHeight,
-                .spent = Spent::AtZero, .end = Then<0x80128158>});
+    Timed(ctx, {.steps = {0x80165D0C, 0x8016C528}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A, .extra = KeepHeight,
+                .spent = Spent::AtZero, .end = Then<0x8015FF80>});
 }
 
 void Em008BuriedPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131ED8, 0x80131E64, 0x80136D78}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A,
-                .extra = KeepHeight, .spent = Spent::AtZero, .end = Then<0x80128158>});
+    Timed(ctx, {.steps = {0x8016C528, 0x8016C4B4, 0x80172CC4}, .setUp = 4, .loop = true, .motion = 1, .ticks = 0x5A,
+                .extra = KeepHeight, .spent = Spent::AtZero, .end = Then<0x8015FF80>});
 }
 
 // More timed actions (the static list of per-call counts):
@@ -1335,7 +1484,7 @@ void Em025WaitPort(CpuContext* ctx) {
 void Em025Rest2Port(CpuContext* ctx) {
     const bool shorter = uint8_t(ctx->gpr[4]) != 0;
     Timed(ctx, {.setUp = 4, .loop = true, .motion = 1, .flags = 0x1E, .ticks = shorter ? 150 : 240,
-                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80130450>({w}, {630.0}); }, .end = Then<0x80128158>});
+                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x8016A668>({w}, {630.0}); }, .end = Then<0x8015FF80>});
 }
 
 void Em026WaitPort(CpuContext* ctx) {
@@ -1364,24 +1513,27 @@ void Em026TurnPort(CpuContext* ctx) {
     Timed(ctx, {.setUp = -1, .motion = 0xCD, .flags = 4, .ticks = 120,
                 .extra = [](GuestCall& g, uint32_t w) {
                     g.Call<TurnSetUp>({w, 0}, {-100.0});
-                    g.Call<0x80136E58>({w});
+                    g.Call<0x80172D44>({w});
                 },
-                .during = Then<0x80136E58>, .first = Turned<0x40>, .end = Then<0x80128048>});
+                .during = Then<0x80172D44>, .first = Turned<0x40>, .end = Then<0x8015FE74>});
 }
 
 void Em033BackPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131DE8, 0x80131ED8, 0x80131E58}, .motion = 3, .flags = 4, .ticks = 0x1E,
-                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x8012FD28>({w, 0x1E}, {0.0}); }, .early = Settled, .end = Then<0x8012E6F8>});
+    Timed(ctx, {.steps = {0x8016C438, 0x8016C528, 0x8016C4A8}, .motion = 3, .flags = 4, .ticks = 0x1E,
+                .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80169DEC>({w, 0x1E}, {0.0}); }, .early = Settled, .end = Then<0x80167BCC>});
+}
+
+void Em033PauseRun(CpuContext* ctx, bool second) {
+    Timed(ctx, {.steps = {0x80165D0C}, .motion = 0xC, .flags = 4, .ticks = 0x76, .end = second ? Next<1, 0xC> : Next<1, 3>});
 }
 
 void Em033PausePort(CpuContext* ctx) {
-    const bool second = uint8_t(ctx->gpr[4]) != 0;
-    Timed(ctx, {.steps = {0x8012CF84}, .motion = 0xC, .flags = 4, .ticks = 0x76, .end = second ? Next<1, 0xC> : Next<1, 3>});
+    Em033PauseRun(ctx, uint8_t(ctx->gpr[4]) != 0);
 }
 
 void Em035Rest(CpuContext* ctx, uint32_t flags) {
     Timed(ctx, {.each = [](GuestCall&, uint32_t w) { Memory::Write32(w + 0x1C4, 0x8000); }, .setUp = -1, .loop = true, .motion = 1,
-                .flags = flags, .ticks = 0x5A, .extra = Then<0x80136E58>, .during = Then<0x80136E58>, .end = Then<0x80128048>});
+                .flags = flags, .ticks = 0x5A, .extra = Then<0x80172D44>, .during = Then<0x80172D44>, .end = Then<0x8015FE74>});
 }
 
 void Em035RestPort(CpuContext* ctx) {
@@ -1395,23 +1547,23 @@ void Em035Rest2Port(CpuContext* ctx) {
 // Agnaktor in the lava: its steps (0x80131ED8, 0x80136E58, the height 2000
 // through 0x80130404, 0x80136D78, 0x803790E8) and 0x80379000 (work, 0xFF).
 void Em019Lava(CpuContext* ctx, int32_t ticks, WorkCall end) {
-    Timed(ctx, {.steps = {0x80131ED8, 0x80136E58},
+    Timed(ctx, {.steps = {0x8016C528, 0x80172D44},
                 .each = [](GuestCall& g, uint32_t w) {
-                    g.Call<0x80130404>({w}, {2000.0});
-                    g.Call<0x80136D78>({w});
-                    g.Call<0x803790E8>({w});
+                    g.Call<0x8016A620>({w}, {2000.0});
+                    g.Call<0x80172CC4>({w});
+                    Inlined_803790E8(w);
                 },
-                .setUp = -1, .loop = true, .motion = 1, .ticks = ticks, .extra = [](GuestCall& g, uint32_t w) { g.Call<0x80379000>({w, 0xFF}); },
+                .setUp = -1, .loop = true, .motion = 1, .ticks = ticks, .extra = [](GuestCall& g, uint32_t w) { Inlined_80379000(w, 0xFF); },
                 .spent = Spent::AtZero, .end = end});
 }
 
 void Em019LavaPort(CpuContext* ctx) {
-    Em019Lava(ctx, 0x5A, Then<0x80128048>);
+    Em019Lava(ctx, 0x5A, Then<0x8015FE74>);
 }
 
 void Em019Lava2Port(CpuContext* ctx) {
     const uint8_t how = uint8_t(ctx->gpr[4]);
-    Em019Lava(ctx, how == 0 ? 0x5A : how == 1 ? 0x1E : int32_t(Memory::Read32(ctx->gpr[3] + Em::kCount)), Then<0x80379510>);
+    Em019Lava(ctx, how == 0 ? 0x5A : how == 1 ? 0x1E : int32_t(Memory::Read32(ctx->gpr[3] + Em::kCount)), InlinedEndGroup3<0>);
 }
 
 void Em027TurnPort(CpuContext* ctx) {
@@ -1486,7 +1638,7 @@ void Em030Charge2Port(CpuContext* ctx) {
     Timed(ctx, {.each = [](GuestCall&, uint32_t w) { Memory::Write8(w + kCharging, 1); }, .motion = 7, .flags = 4, .ticks = 0x1C2,
                 .during = [](GuestCall& g, uint32_t w) { g.Call<Steer>({w, 0x400}); },
                 .early = [](GuestCall& g, uint32_t w) {
-                    if (int32_t(Memory::Read32(w + Em::kCount)) > 15 && g.Call<0x801B01CC>({w}) == 1)
+                    if (int32_t(Memory::Read32(w + Em::kCount)) > 15 && g.Call<0x801396F0>({w}) == 1)
                         Memory::Write32(w + Em::kCount, 15);
 
                     return false;
@@ -1501,25 +1653,25 @@ void Em008TrackPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x80131ED8>({work});
-    game.Call<0x80136D78>({work});
+    game.Call<0x8016C528>({work});
+    game.Call<0x80172CC4>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 4});
         game.Call<SetMotionLoop>({work, 0x25, 0, 0});
-        game.Call<0x80130450>({work}, {0.0});
+        game.Call<0x8016A668>({work}, {0.0});
         em.Count(0);
-        game.Call<0x8015D8C4>({work});
-        game.Call<0x801321FC>({work});
+        Inlined_8015D8C4(game, work);
+        game.Call<0x8016C960>({work});
         break;
     case 1:
         game.Call<Steer>({work, 0x5B});
         em.CountTicks();
 
         if (em.Count() > 0xB3)
-            game.Call<0x8015DE64>({work});
+            InlinedEndGroup6<0xC>(game, work);
 
         break;
     }
@@ -1538,7 +1690,7 @@ void Em003SettlePort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0x1A, 6, 0);
         em.Count(100);
@@ -1552,7 +1704,7 @@ void Em003SettlePort(CpuContext* ctx) {
 
         if (CountDown(em) || (y - 50.0f <= target && target <= 50.0f + y)) {
             em.NextState();
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
         }
 
         break;
@@ -1572,10 +1724,10 @@ void Em034HopAwayPort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(3, 0x14, 0);
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         Memory::WriteFloat32(work + kSideSpeed, -5.0f);
         em.Count(100);
 
@@ -1590,7 +1742,7 @@ void Em034HopAwayPort(CpuContext* ctx) {
         game.Call<Steer>({work, 0x1000});
 
         if (em.Count() < 1)
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
         else {
             game.Call<AddVelocity>({work});
             em.Count(em.Count() - int32_t(GameStep::Ticks()));
@@ -1599,7 +1751,7 @@ void Em034HopAwayPort(CpuContext* ctx) {
         break;
     }
 
-    game.Call<0x801B70AC>({work});
+    Inlined_801B70AC(game, work);
 }
 
 // kind 34 0x801B81F0: Kelbi's leap to its mark (+0x36C, motion 1), a tenth
@@ -1613,10 +1765,10 @@ void Em034LeapToPort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(1, 4, 0);
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
 
         for (uint32_t i = 0; i < 3; ++i) {
             const float way = Memory::ReadFloat32(work + 0x36C + 4 * i) - Memory::ReadFloat32(work + 0x188 + 4 * i);
@@ -1626,7 +1778,7 @@ void Em034LeapToPort(CpuContext* ctx) {
         em.Count(10);
         break;
     case 1:
-        game.Call<0x801B7108>({work});
+        InlinedRotateOffset(game, work, 45.0f);
 
         if (em.Count() < 1) {
             Memory::Write32(work + kYaw, Memory::Read16(work + 0x32E));
@@ -1663,11 +1815,11 @@ bool Em008Hurt(GuestCall&, uint32_t work) {
 }
 
 void Em008HoldPort(CpuContext* ctx) {
-    Timed(ctx, {.steps = {0x80131ED8, 0x80136D78}, .setUp = 4, .loop = true, .motion = 0x25, .ticks = 300,
+    Timed(ctx, {.steps = {0x8016C528, 0x80172CC4}, .setUp = 4, .loop = true, .motion = 0x25, .ticks = 300,
                 .extra = [](GuestCall& g, uint32_t w) {
-                    g.Call<0x80130450>({w}, {0.0});
-                    g.Call<0x8015D8C4>({w});
-                    g.Call<0x801321FC>({w});
+                    g.Call<0x8016A668>({w}, {0.0});
+                    Inlined_8015D8C4(g, w);
+                    g.Call<0x8016C960>({w});
                 },
                 .first = Em008Hurt,
                 .end = [](GuestCall& g, uint32_t w) {
@@ -1686,7 +1838,7 @@ void Em030LookPort(CpuContext* ctx) {
                 .early = [](GuestCall& g, uint32_t w) {
                     if (int32_t(Memory::Read32(w + Em::kCount)) >= 1) {
                         const uint32_t goal = uint32_t(Memory::Read8(w + 6) & 0xF) << 12;
-                        Memory::Write32(w + kYaw, g.Call<0x80133E14>({goal, Memory::Read32(w + kYaw) & 0xFFFF, 0x800}) & 0xFFFF); // EnemyTurnToward
+                        Memory::Write32(w + kYaw, g.Call<0x8016EBF4>({goal, Memory::Read32(w + kYaw) & 0xFFFF, 0x800}) & 0xFFFF); // EnemyTurnToward
                     }
 
                     return false;
@@ -1723,7 +1875,7 @@ void Em030Turn2Port(CpuContext* ctx) {
             em.SetMotion(0x19, 4, 0);
         }
 
-        if (em.Count() > 15 && game.Call<0x801B01CC>({work}) == 1)
+        if (em.Count() > 15 && game.Call<0x801396F0>({work}) == 1)
             em.Count(15);
 
         break;
@@ -1743,24 +1895,24 @@ void Em026HangPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x80131E18>({work});
-    game.Call<0x80131E58>({work});
-    game.Call<0x80136D78>({work});
+    game.Call<0x8016C468>({work});
+    game.Call<0x8016C4A8>({work});
+    game.Call<0x80172CC4>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(1, 0, 0);
-        game.Call<0x80130450>({work}, {-100.0});
+        game.Call<0x8016A668>({work}, {-100.0});
         em.Count(0);
         break;
     case 1:
-        game.Call<0x80130450>({work}, {-100.0});
+        game.Call<0x8016A668>({work}, {-100.0});
 
         if (em.CountEvery(32)) {
-            const uint32_t hunters = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max
-            uint32_t hunter = game.Call<0x800CFAF4>({2});                 // get_move_work_adrs
+            const uint32_t hunters = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max
+            uint32_t hunter = game.Call<0x802BCF94>({2});                 // get_move_work_adrs
 
             for (uint32_t i = 0; (i & 0xFF) < hunters; ++i, hunter += 0xB20) {
                 if (!hunter || !Memory::Read8(hunter) || !Memory::Read32(hunter + 0x3B0))
@@ -1788,7 +1940,7 @@ void Em003Stagger2Port(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    constexpr uint32_t HeadBroken = 0x8015D674; // em003_atama_koware_act_ck
+    constexpr uint32_t HeadBroken = 0x8008E374; // em003_atama_koware_act_ck
 
     switch (em.State()) {
     case 0:
@@ -1799,17 +1951,17 @@ void Em003Stagger2Port(CpuContext* ctx) {
         em.Count(game.Call<HeadBroken>({work}) == 1 ? 300 : 0x96);
 
         if (Memory::Read8(work + 0x7C8) > 0x28) {
-            game.Call<0x8012F948>({work}); // the motion's rate
+            game.Call<0x80169A88>({work}); // the motion's rate
             const float perRate = 1.2f / game.F1();
             game.Call<SetMotionSpeed>({work}, {2.0f * perRate});
             em.Count(int32_t(float(em.Count()) / 1.2f));
         }
 
-        game.Call<0x80432230>({work});
+        game.Call<0x8040949C>({work});
         break;
     case 1: {
         const bool broken = game.Call<HeadBroken>({work}) == 1;
-        game.Call<0x80432244>({work, Memory::Read8(work + 0x334), broken ? 1u : 0u});
+        game.Call<0x804094B0>({work, Memory::Read8(work + 0x334), broken ? 1u : 0u});
 
         if (CountDown(em))
             game.Call<NextAction>({work, 1, 0x15});
@@ -1833,23 +1985,23 @@ void Em034Jump(CpuContext* ctx, bool turning) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(2, 0x14, 0);
 
         if (turning)
             game.Call<TurnSetUp>({work, 8}, {how == 1 ? -450.0 : -80.0});
 
-        game.Call<0x8013545C>({work});
-        game.Call<0x80041EA4>({way, work + 0x36C}); // Vec3Copy
+        game.Call<0x80170F64>({work});
+        game.Call<0x8003EDCC>({way, work + 0x36C}); // Vec3Copy
         Memory::WriteFloat32(way + 4, Memory::ReadFloat32(way + 4) + 60.0f);
-        game.Call<0x800B0BF4>({way, work + 0x188}); // way -= position
-        game.Call<0x80050F40>({way});               // VECMag
+        Vec3Sub(way, way, work + 0x188); // way -= position
+        Vec3SquareMag(game, way);               // VECMag
 
         if (game.F1() > 0.001f) {
-            game.Call<0x800508B4>({way, way}); // VecNormalizeTo
-            game.Call<0x80051F44>({velocity, way}, {turning ? 8.0 : 10.0});
-            game.Call<0x80041EA4>({work + kVelocity, velocity});
+            game.Call<0x80430258>({way, way}); // VecNormalizeTo
+            Vec3Scale(velocity, way, float(turning ? 8.0 : 10.0));
+            game.Call<0x8003EDCC>({work + kVelocity, velocity});
         }
 
         em.Count(turning ? 0xF0 : 0x96);
@@ -1859,7 +2011,7 @@ void Em034Jump(CpuContext* ctx, bool turning) {
             game.Call<Steer>({work, 0x1000});
 
         if ((turning && game.Call<TurnStep>({work, 0, 0}) == 1) || em.Count() < 1)
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
         else {
             game.Call<AddVelocity>({work});
             em.Count(em.Count() - int32_t(GameStep::Ticks()));
@@ -1868,7 +2020,7 @@ void Em034Jump(CpuContext* ctx, bool turning) {
         break;
     }
 
-    game.Call<0x801B70AC>({work});
+    Inlined_801B70AC(game, work);
 }
 
 void Em034JumpPort(CpuContext* ctx) {
@@ -1889,17 +2041,17 @@ void Em034LookUpPort(CpuContext* ctx) {
     const uint32_t work = em.work;
 
     const auto lookUp = [&] {
-        Memory::Write32(work + 0x1BC, game.Call<0x80133E14>({0xC000, Memory::Read32(work + 0x1BC) & 0xFFFF, 0xC00}) & 0xFFFF); // EnemyTurnToward
-        game.Call<0x80133CA0>({work});
+        Memory::Write32(work + 0x1BC, game.Call<0x8016EBF4>({0xC000, Memory::Read32(work + 0x1BC) & 0xFFFF, 0xC00}) & 0xFFFF); // EnemyTurnToward
+        game.Call<0x8016EA78>({work});
     };
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         game.Call<SetMotionLoop>({work, 7, 10, 0});
-        game.Call<0x801321D0>({work});
+        game.Call<0x8016C934>({work});
         lookUp();
         Memory::Write8(work + 0x38B, 1);
         em.Count(0);
@@ -1909,7 +2061,7 @@ void Em034LookUpPort(CpuContext* ctx) {
 
         if (em.CountEvery(30))
             for (uint32_t i = 0; i < 4; ++i)
-                if (game.Call<0x80131974>({work, i}) != 0 && int32_t(game.Call<0x8012C150>({work, i})) > 199) {
+                if (game.Call<0x8016BD44>({work, i}) != 0 && int32_t(game.Call<0x80164ED0>({work, i})) > 199) {
                     game.Call<NextAction>({work, 3, 0xC});
                     return;
                 }
@@ -1918,7 +2070,7 @@ void Em034LookUpPort(CpuContext* ctx) {
         break;
     }
 
-    game.Call<0x801B7108>({work});
+    InlinedRotateOffset(game, work, 45.0f);
 }
 
 // kind 15 0x801783DC and em020 0x8036E928 (r4 1: first a push away from the
@@ -1934,18 +2086,18 @@ void PathWalk(CpuContext* ctx, uint32_t path, bool ceadeus) {
     const bool push = uint8_t(ctx->gpr[4]) == 1;
 
     if (ceadeus)
-        game.Call<0x80133CA0>({work});
+        game.Call<0x8016EA78>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         Memory::Write8(work + Em::kSubState, 0);
         game.Call<Em::SetUp>({work, 2});
-        game.Call<0x801349C8>({work, path, 0, 1, 0});
-        game.Call<0x80135448>({work});
+        game.Call<0x8016F5D8>({work, path, 0, 1, 0});
+        game.Call<0x80170F50>({work});
 
         if (push) {
-            const uint32_t angle = game.Call<0x80050AF4>({work + 0x188, work + 0x36C}); // calcVecAng2
+            const uint32_t angle = game.Call<0x8028B678>({work + 0x188, work + 0x36C}); // calcVecAng2
             game.Call<Em::Vec3Set>({work + kVelocity}, {0.0, 0.0, -5.0});
             game.Call<RotateY>({work + kVelocity, angle});
             em.Count(0x28);
@@ -1960,13 +2112,13 @@ void PathWalk(CpuContext* ctx, uint32_t path, bool ceadeus) {
                 Memory::Write8(work + Em::kSubState, uint8_t(Memory::Read8(work + Em::kSubState) + 1));
         }
 
-        if (game.Call<0x80134B70>({work, path}) == 1)
+        if (game.Call<0x8016FC3C>({work, path}) == 1)
             game.Call<ActionDone94>({work});
         else {
-            game.Call<0x80136DB0>({work}, {Memory::Read8(work + 0x482) ? 5.0 : 10.0});
+            game.Call<0x80172CFC>({work}, {Memory::Read8(work + 0x482) ? 5.0 : 10.0});
 
             if (ceadeus)
-                game.Call<0x80133D2C>({work, 0x40, 0});
+                game.Call<0x8016EB00>({work, 0x40, 0});
         }
 
         break;
@@ -1974,11 +2126,11 @@ void PathWalk(CpuContext* ctx, uint32_t path, bool ceadeus) {
 }
 
 void Em015PathPort(CpuContext* ctx) {
-    PathWalk(ctx, 0x80570610, false);
+    PathWalk(ctx, 0x8062DA40, false);
 }
 
 void Em020PathPort(CpuContext* ctx) {
-    PathWalk(ctx, 0x805711E0, true);
+    PathWalk(ctx, 0x8062DD80, true);
 }
 
 // kinds 16/17 0x801849A0 (r4 1-3): the Ludroth kinds' turn (motion 0x59,
@@ -2004,28 +2156,28 @@ void Em026Wait(CpuContext* ctx, uint32_t flags, bool hold, uint32_t next) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0xC9, flags, 0);
 
         if (hold)
-            game.Call<0x80136E58>({work});
+            game.Call<0x80172D44>({work});
 
         em.Count(0);
         break;
     case 1:
         if (hold)
-            game.Call<0x80136E58>({work});
+            game.Call<0x80172D44>({work});
 
         if (em.CountEvery(16)) {
-            const uint32_t hunters = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max
-            uint32_t hunter = game.Call<0x800CFAF4>({2});                 // get_move_work_adrs
+            const uint32_t hunters = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max
+            uint32_t hunter = game.Call<0x802BCF94>({2});                 // get_move_work_adrs
 
             for (uint32_t i = 0; (i & 0xFF) < hunters; ++i, hunter += 0xB20) {
                 if (!hunter || !Memory::Read8(hunter))
                     continue;
 
-                game.Call<0x80050FE4>({hunter + 0x3C, work + 0x188});
+                game.Call<0x8028BC04>({hunter + 0x3C, work + 0x188});
 
                 if (game.F1() <= 800.0f) {
                     game.Call<NextAction>({work, 7, next});
@@ -2089,16 +2241,16 @@ void Em033RisePort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, lift = frame[0x08];
-    game.Call<0x80131DE8>({work});
-    game.Call<0x80131ED8>({work});
-    game.Call<0x80131E58>({work});
+    game.Call<0x8016C438>({work});
+    game.Call<0x8016C528>({work});
+    game.Call<0x8016C4A8>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(3, 4, 0);
-        game.Call<0x8012FD28>({work, 0x1E}, {0.0});
+        game.Call<0x80169DEC>({work, 0x1E}, {0.0});
         em.Count(0x1E);
         Memory::Write8(work + Em::kSubState, 0);
         break;
@@ -2108,10 +2260,10 @@ void Em033RisePort(CpuContext* ctx) {
         Memory::WriteFloat32(lift, 0.0f);
         Memory::WriteFloat32(lift + 4, -1.0f * 2.0f * float(ticks));
         Memory::WriteFloat32(lift + 8, 0.0f);
-        game.Call<0x801303B4>({work, lift});
+        game.Call<0x8016A5B8>({work, lift});
 
         if (CountDown(em) || Memory::ReadFloat32(work + 0x1D4) <= 0.0f)
-            game.Call<0x8012E6F8>({work});
+            game.Call<0x80167BCC>({work});
 
         break;
     }
@@ -2133,17 +2285,17 @@ void Em001RisePort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0x1A, 10, 0);
-        game.Call<0x80134EF0>({work});
+        game.Call<0x80170434>({work});
         em.Count(300);
         break;
     case 1: {
         const float gap = below();
 
         if (gap < -3500.0f)
-            game.Call<0x80134F7C>({work});
+            game.Call<0x801704BC>({work});
         else if (gap > -2000.0f)
             Memory::WriteFloat32(work + 0x18C, Memory::ReadFloat32(work + 0x18C) + float(10.0 * GameStep::Scale()));
 
@@ -2166,8 +2318,8 @@ void Em025HoldPort(CpuContext* ctx) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const uint32_t how = ctx->gpr[4] & 0xFF;
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0:
@@ -2180,10 +2332,10 @@ void Em025HoldPort(CpuContext* ctx) {
             em.Count(how == 2 ? 0x96 : 0x3C);
 
             if (Memory::Read8(work + 0x358) == 0) {
-                const uint32_t hunters = game.Call<0x800CFAF4>({2});                      // get_move_work_adrs
-                const int32_t me = int8_t(game.Call<0x800CF3E8>());                       // MyPlayerIndex
-                game.Call<0x802672D4>({hunters + uint32_t(me * 0xB20), 1, 0x29, 0}); // PlShowStatusMessage
-                game.Call<0x800F6484>();
+                const uint32_t hunters = game.Call<0x802BCF94>({2});                      // get_move_work_adrs
+                const int32_t me = int8_t(game.Call<0x802BC844>());                       // MyPlayerIndex
+                game.Call<0x80335528>({hunters + uint32_t(me * 0xB20), 1, 0x29, 0}); // PlShowStatusMessage
+                game.Call<0x802879B8>();
                 Memory::Write8(work + 0x358, 1);
             }
         } else if (how == 0)
@@ -2198,7 +2350,7 @@ void Em025HoldPort(CpuContext* ctx) {
 
         if (em.Ended() || em.Count() < 1) {
             KeepHeight(game, work);
-            game.Call<0x8019F190>({work});
+            InlinedEndGroup6<9>(game, work);
         }
 
         break;
@@ -2231,7 +2383,7 @@ void Em030NapPort(CpuContext* ctx) {
         if (how == 1) {
             em.State(2);
             em.SetMotion(0x26, 0, 0);
-            game.Call<0x803B9C04>({work, work + 0x188, 100});
+            game.Call<0x80208000>({work, work + 0x188, 100});
         } else {
             if (how == 2)
                 Memory::Write8(work + 0x331, 0);
@@ -2275,18 +2427,18 @@ void Em030CirclePort(CpuContext* ctx) {
         em.Count((Memory::Read16(work + kRandom) & 0x3F) + 0x78);
         break;
     case 1: {
-        game.Call<0x80050FE4>({work + 0x36C, work + 0x188}); // VECDistance
+        game.Call<0x8028BC04>({work + 0x36C, work + 0x188}); // VECDistance
         const float past = std::max(game.F1() - 1000.0f, 0.0f);
         int32_t offset = std::max(0x2000 - (int32_t(past) << 4), 0);
-        game.Call<0x80050D04>({frame[0x10], work + 0x36C, work + 0x188}); // VectorSubtractWrapper
-        game.Call<0x80041EA4>({frame[0x1C], frame[0x10]});                 // Vec3Copy
-        game.Call<0x80050D7C>({frame[0x1C], frame[0x0C], frame[0x08]});    // calcVecAngXY
+        Vec3Sub(frame[0x10], work + 0x36C, work + 0x188); // VectorSubtractWrapper
+        game.Call<0x8003EDCC>({frame[0x1C], frame[0x10]});                 // Vec3Copy
+        game.Call<0x8028B944>({frame[0x1C], frame[0x0C], frame[0x08]});    // calcVecAngXY
 
         if (otherSide)
             offset = -offset;
 
         const uint32_t goal = (Memory::Read32(frame[0x08]) + uint32_t(offset)) & 0xFFFF;
-        Memory::Write32(work + kYaw, game.Call<0x80133E14>({goal, Memory::Read32(work + kYaw) & 0xFFFF, 0x800}) & 0xFFFF); // EnemyTurnToward
+        Memory::Write32(work + kYaw, game.Call<0x8016EBF4>({goal, Memory::Read32(work + kYaw) & 0xFFFF, 0x800}) & 0xFFFF); // EnemyTurnToward
 
         if (CountDown(em)) {
             em.NextState();
@@ -2312,8 +2464,8 @@ void Em024LandPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0:
@@ -2327,25 +2479,25 @@ void Em024LandPort(CpuContext* ctx) {
             break;
 
         em.NextState();
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0x25, 0, 0);
-        game.Call<0x80135448>({work});
-        game.Call<0x801359A4>({work}); // get_em_scale
+        game.Call<0x80170F50>({work});
+        game.Call<0x801717A8>({work}); // get_em_scale
         Memory::WriteFloat32(work + kSpeed, 194.0f * game.F1());
         game.Call<AddVelocity>({work});
         break;
     case 2:
-        game.Call<0x801356A8>({work, 0x805EC410});
+        game.Call<0x80171504>({work, 0x8069E6F0});
         Memory::WriteFloat32(work + kSpeed, game.F1());
         game.Call<AddVelocity>({work});
 
         if (em.At(32.0f))
-            game.Call<0x80129788>({work, 0});
+            game.Call<0x80161B38>({work, 0});
 
-        game.Call<0x801302AC>({work}); // f1 for 0x8013006C
+        game.Call<0x8016A47C>({work}); // f1 for 0x8013006C
 
-        if (game.Call<0x8013006C>({work}) == 1) {
+        if (game.Call<0x8016A258>({work}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 3});
             game.Call<SetMotionEx>({work, 8, 0x14, 0, 1});
@@ -2355,7 +2507,7 @@ void Em024LandPort(CpuContext* ctx) {
         break;
     case 3:
         if (CountDown(em))
-            game.Call<0x80128110>({work});
+            game.Call<0x8015FF38>({work});
 
         break;
     }
@@ -2385,7 +2537,7 @@ void Em003DisplayPort(CpuContext* ctx) {
                 game.Call<JointEffect>({work, 0x18, 0x29, 0}, {1.0});
 
             if (em.At(96.0f))
-                game.Call<0x80306B74>({work, 6, 0x30});
+                game.Call<0x80069BBC>({work, 6, 0x30});
 
             if (em.At(146.0f) || em.At(314.0f))
                 game.Call<JointEffect>({work, 0x18, 0x2A, 0}, {1.0});
@@ -2396,7 +2548,7 @@ void Em003DisplayPort(CpuContext* ctx) {
             }
 
             if (em.At(264.0f))
-                game.Call<0x80306B74>({work, 6, 0x58});
+                game.Call<0x80069BBC>({work, 6, 0x58});
         }
 
         if (CountDown(em))
@@ -2421,24 +2573,24 @@ void Em004GasPort(CpuContext* ctx) {
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(0x32, 4, 0);
-        game.Call<0x80130D40>({work, uint32_t(-12)});
+        game.Call<0x8016B06C>({work, uint32_t(-12)});
         em.Count(0);
         Memory::Write8(work + Em::kSubState, 0);
         break;
     case 1:
         if (em.At(176.0f)) {
-            const uint8_t level = uint8_t(game.Call<0x8011EA40>({work, 2})); // em_parts_damage_level_get
+            const uint8_t level = uint8_t(game.Call<0x801560F8>({work, 2})); // em_parts_damage_level_get
             game.Call<RoarVoice>({work, 0, level > 1 ? 0x16u : 4u, 2});
         }
 
-        if (game.Call<0x8012F990>({work, 1}, {190.0, 0.0}) == 1) { // em_after_frame_check
+        if (game.Call<0x80169AC8>({work, 1}, {190.0, 0.0}) == 1) { // em_after_frame_check
             em.Count(em.Count() - int32_t(GameStep::Ticks()));
 
             if (em.Count() < 0) {
                 const bool turned = Memory::Read8(work + Em::kSubState) != 0;
                 game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 0.0});
                 Memory::Write8(work + Em::kSubState, turned ? 0 : 1);
-                game.Call<0x80304574>({work, 0x1B, 3, at, turned ? 0x2000u : 0u}, {1.0});
+                game.Call<0x800673A4>({work, 0x1B, 3, at, turned ? 0x2000u : 0u}, {1.0});
                 em.Count(12);
             }
         }
@@ -2467,7 +2619,7 @@ void Em004DropPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
-    game.Call<0x80131E58>({work});
+    game.Call<0x8016C4A8>({work});
 
     switch (em.State()) {
     case 0:
@@ -2478,17 +2630,17 @@ void Em004DropPort(CpuContext* ctx) {
     case 1:
         if (em.At(50.0f)) {
             game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 50.0});
-            game.Call<0x80136A04>({work, 2, 1, at}, {2.5});
+            game.Call<0x80172920>({work, 2, 1, at}, {2.5});
         }
 
         if (em.Ended()) {
             em.NextState();
             Memory::Write8(work + Em::kSubState, 0);
-            em.Count(int16_t(Memory::Read16(0x80793FB4)));
-            game.Call<0x801302AC>({work});
+            em.Count(int16_t(Memory::Read16(0x8089CE64)));
+            game.Call<0x8016A47C>({work});
             game.Call<SetScale>({work});
             em.SetMotion(0x1C, 0, 0);
-            game.Call<0x80135448>({work});
+            game.Call<0x80170F50>({work});
             Memory::Write32(work + kSpeed, 0x42DC0000); // 110
         }
 
@@ -2498,15 +2650,15 @@ void Em004DropPort(CpuContext* ctx) {
             game.Call<AddVelocity>({work});
 
         if (CountDown(em)) {
-            if (game.Call<0x8012D204>({work}) == 1)
-                game.Call<0x80128048>({work});
+            if (game.Call<0x80165F68>({work}) == 1)
+                game.Call<0x8015FE74>({work});
         } else {
-            game.Call<0x8013036C>({work});
+            game.Call<0x8016A558>({work});
 
-            if (game.Call<0x8012FF18>({work}) == 1) {
+            if (game.Call<0x80169FB8>({work}) == 1) {
                 Memory::Write8(work + Em::kSubState, 1);
 
-                if (game.Call<0x8012D204>({work}) == 1)
+                if (game.Call<0x80165F68>({work}) == 1)
                     game.Call<NextAction>({work, 3, 0x15});
             }
         }
@@ -2527,48 +2679,48 @@ void Em026LatchPort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, place = frame[0x08], joint = frame[0x18];
 
-    game.Call<0x80050570>({joint});
-    game.Call<0x80131E58>({work});
-    game.Call<0x80131E18>({work});
+    Vec3Zero(joint);
+    game.Call<0x8016C4A8>({work});
+    game.Call<0x8016C468>({work});
 
-    const auto hunter = [&] { return game.Call<0x800CFAF4>({2}) + uint32_t(int32_t(int8_t(Memory::Read8(work + 0x1F6))) * 0xB20); };
+    const auto hunter = [&] { return game.Call<0x802BCF94>({2}) + uint32_t(int32_t(int8_t(Memory::Read8(work + 0x1F6))) * 0xB20); };
 
     // The latch point in the world: +0x328 through the hunter's joint matrix.
     const auto latch = [&](uint32_t pl) {
-        game.Call<0x8026A3F8>({pl, Memory::Read32(work + 0x334), joint});
-        game.Call<0x80041EA4>({place, work + 0x328});                   // Vec3Copy
-        game.Call<0x80051510>({place, joint});                          // mulVecMatAddTrans
+        game.Call<0x80338654>({pl, Memory::Read32(work + 0x334), joint});
+        game.Call<0x8003EDCC>({place, work + 0x328});                   // Vec3Copy
+        game.Call<0x8028C3E4>({place, joint});                          // mulVecMatAddTrans
     };
 
     switch (em.State()) {
     case 0:
         em.State(1);
         Memory::Write16(work + 0x33A, 0);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0x32, 0, 0);
-        game.Call<0x80132254>({work});
-        game.Call<0x80132228>({work});
+        game.Call<0x8016C9B8>({work});
+        game.Call<0x8016C98C>({work});
         em.Count(0x1A4);
         latch(hunter());
-        game.Call<0x80041EA4>({work + 0x188, place});
+        game.Call<0x8003EDCC>({work + 0x188, place});
         break;
     case 1: {
         const uint32_t pl = hunter();
         latch(pl);
-        game.Call<0x80050F10>({work + 0x188, place});
+        game.Call<0x8028BB34>({work + 0x188, place});
         const float apart = game.F1();
 
         if (10000.0f > apart)
-            game.Call<0x80041EA4>({work + 0x188, place});
+            game.Call<0x8003EDCC>({work + 0x188, place});
 
-        game.Call<0x8011E750>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
+        game.Call<0x80155E78>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
 
-        if (game.Call<0x8027D580>({pl}) == 1)
+        if (game.Call<0x8034DD8C>({pl}) == 1)
             em.Count(em.Count() - 0x168);
 
-        if (CountDown(em) || game.Call<0x8027D560>({pl}) == 1 || 10000.0f <= apart) {
-            game.Call<0x8032C9F8>({work});
+        if (CountDown(em) || game.Call<0x8034DD6C>({pl}) == 1 || 10000.0f <= apart) {
+            Inlined_8032C9F8(work);
             game.Call<NextAction>({work, 7, 5});
         }
 
@@ -2598,14 +2750,14 @@ void Em015RestPort(CpuContext* ctx) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const int32_t limit = uint8_t(ctx->gpr[4]) == 1 ? 600 : 0x708;
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 2});
         game.Call<SetMotionEx>({work, 0x2A, 10, 0, 1});
-        game.Call<0x801321D0>({work});
+        game.Call<0x8016C934>({work});
         break;
     case 1:
         if (em.Ended()) {
@@ -2616,12 +2768,12 @@ void Em015RestPort(CpuContext* ctx) {
 
         break;
     case 2: {
-        game.Call<0x8011E750>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
+        game.Call<0x80155E78>({work, 5, 0x1E}, {1.0}); // EnemyEveryNScaled
         const uint32_t ticks = GameStep::Ticks();
         em.Count(std::min(em.Count() + int32_t(ticks), limit));
 
         // No game time passed: nothing to look at (the original's next call does).
-        if (ticks == 0 || game.Call<0x8012D204>({work}) != 1)
+        if (ticks == 0 || game.Call<0x80165F68>({work}) != 1)
             break;
 
         const int32_t count = em.Count();
@@ -2632,15 +2784,15 @@ void Em015RestPort(CpuContext* ctx) {
 
                 if (0.0f < distance && distance <= 3000.0f) {
                     em.NextState();
-                    game.Call<0x8012B3E4>({work, 0, 2});
+                    game.Call<0x801640C0>({work, 0, 2});
                     game.Call<NextAction>({work, 5, 0x13});
                     return;
                 }
             }
 
         if (limit <= count) {
-            game.Call<0x8012B3E4>({work, 5, 2, 5});
-            game.Call<0x801307DC>({work, 0});
+            game.Call<0x801640C0>({work, 5, 2, 5});
+            game.Call<0x8016AA20>({work, 0});
             game.Call<NextAction>({work, 5, 0x13});
         }
 
@@ -2659,7 +2811,7 @@ void Em003Stagger3Port(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
     const uint8_t colour = uint8_t(frame.Arg(4));
-    constexpr uint32_t HeadBroken = 0x8015D674; // em003_atama_koware_act_ck
+    constexpr uint32_t HeadBroken = 0x8008E374; // em003_atama_koware_act_ck
 
     const auto feathers = [&](uint32_t first) {
         game.Call<Em::Vec3Set>({at}, {0.0, 50.0, 150.0});
@@ -2676,7 +2828,7 @@ void Em003Stagger3Port(CpuContext* ctx) {
         em.Count(game.Call<HeadBroken>({work}) == 1 ? 0x13B : 0xD2);
 
         if (Memory::Read8(work + 0x7C8) > 0x28) {
-            game.Call<0x8012F948>({work}); // the motion's rate
+            game.Call<0x80169A88>({work}); // the motion's rate
             const float perRate = 1.2f / game.F1();
             game.Call<SetMotionSpeed>({work}, {2.0f * perRate});
             em.Count(int32_t(float(em.Count()) / 1.2f));
@@ -2709,9 +2861,9 @@ void Em004LeapPort(CpuContext* ctx) {
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
-        game.Call<0x80130724>({work, 1});
+        game.Call<0x8016A968>({work, 1});
         em.SetMotion(0xEC, 4, 0);
         break;
     case 1:
@@ -2719,11 +2871,11 @@ void Em004LeapPort(CpuContext* ctx) {
             break;
 
         em.NextState();
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0xED, 0, 0);
-        game.Call<0x801C2ABC>({work});
-        game.Call<0x8013545C>({work});
+        Inlined_801C2ABC(work);
+        game.Call<0x80170F64>({work});
         Memory::Write32(work + kSpeed, 0x42580000);     // 54
         Memory::Write32(work + kSideSpeed, 0x42580000); // 54
         Memory::Write32(work + 0x320, 0xC0400000);      // -3
@@ -2731,19 +2883,19 @@ void Em004LeapPort(CpuContext* ctx) {
         em.Count(0);
         break;
     case 2:
-        game.Call<0x8013548C>({work});
+        game.Call<0x80170FA8>({work});
         em.CountTicks();
-        game.Call<0x801302AC>({work}); // f1 for 0x8013006C
+        game.Call<0x8016A47C>({work}); // f1 for 0x8013006C
 
-        if (game.Call<0x8013006C>({work}) == 1) {
+        if (game.Call<0x8016A258>({work}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0xD5, 0, 0);
-        } else if (game.Call<0x8012D204>({work}) == 1) {
+        } else if (game.Call<0x80165F68>({work}) == 1) {
             if (em.At(14.0f, 3, 40.0f)) {
-                game.Call<0x8013036C>({work});
+                game.Call<0x8016A558>({work});
 
-                if (game.Call<0x8012FF18>({work}) == 1)
+                if (game.Call<0x80169FB8>({work}) == 1)
                     game.Call<NextAction>({work, 3, 0x1A});
             }
 
@@ -2783,14 +2935,14 @@ void SwimTo(CpuContext* ctx, const Approach& a) {
     case 0: {
         em.State(1);
         game.Call<Em::SetUp>({work, 2});
-        game.Call<0x801349C8>({work, a.path, 0, 1, 0});
+        game.Call<0x8016F5D8>({work, a.path, 0, 1, 0});
         em.Count(0x32);
-        game.Call<0x80050D04>({way, work + 0x36C, work + 0x188}); // VectorSubtractWrapper
-        game.Call<0x80041EA4>({copy, way});                        // Vec3Copy
-        const uint32_t angle = game.Call<0x80050B08>({copy}) & 0xFFFF; // calcVecAng3
-        game.Call<0x80050F88>({copy});                                  // VecMagWrapper
+        Vec3Sub(way, work + 0x36C, work + 0x188); // VectorSubtractWrapper
+        game.Call<0x8003EDCC>({copy, way});                        // Vec3Copy
+        const uint32_t angle = game.Call<0x8028B6DC>({copy}) & 0xFFFF; // calcVecAng3
+        game.Call<0x8043029C>({copy});                                  // VecMagWrapper
         const float distance = game.F1();
-        game.Call<0x801359B4>({work}); // get_em_chg_scale
+        game.Call<0x801717B8>({work}); // get_em_chg_scale
         const float reach = a.margin * game.F1(); // fmuls, then fsubs: no fused multiply-add
         const float speed = std::clamp((distance - reach) / 50.0f, -50.0f, 50.0f);
         game.Call<Em::Vec3Set>({work + kVelocity}, {0.0, 0.0, double(speed)});
@@ -2803,26 +2955,26 @@ void SwimTo(CpuContext* ctx, const Approach& a) {
             game.Call<AddVelocity>({work});
         }
 
-        if (game.Call<0x80134B70>({work, a.path}) == 1) {
-            if (game.Call<0x8012D204>({work}) == 1) {
+        if (game.Call<0x8016FC3C>({work, a.path}) == 1) {
+            if (game.Call<0x80165F68>({work}) == 1) {
                 if (game(a.near, {work, 1}) == 1)
                     game.Call<NextAction>({work, 0xD, 4});
                 else
                     game.Call<NextAction>({work, 5, a.other});
             }
         } else
-            game.Call<0x80136DB0>({work}, {Memory::Read8(work + 0x482) ? 5.0 : 10.0});
+            game.Call<0x80172CFC>({work}, {Memory::Read8(work + 0x482) ? 5.0 : 10.0});
 
         break;
     }
 }
 
 void Em015SwimToPort(CpuContext* ctx) {
-    SwimTo(ctx, {0x80570610, 900.0f, 0x80182494, 0});
+    SwimTo(ctx, {0x8062DA40, 900.0f, 0x800DFDB0, 0});
 }
 
 void Em018SwimToPort(CpuContext* ctx) {
-    SwimTo(ctx, {0x80570850, 600.0f, 0x8019E500, 10});
+    SwimTo(ctx, {0x8062DC80, 600.0f, 0x800FC0F8, 10});
 }
 
 // kind 33 0x8035DB1C: Altaroth's motion 2 (0x80131E58, 0x80131DE8 each
@@ -2835,14 +2987,14 @@ void Em033ClimbPort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, lift = frame[0x10];
     const int32_t ticks = int32_t(GameStep::Ticks());
-    game.Call<0x80131E58>({work});
-    game.Call<0x80131DE8>({work});
+    game.Call<0x8016C4A8>({work});
+    game.Call<0x8016C438>({work});
 
     const auto raise = [&](int32_t count) {
         Memory::WriteFloat32(lift, 0.0f);
         Memory::WriteFloat32(lift + 4, -1.0f * 2.0f * float(count));
         Memory::WriteFloat32(lift + 8, 0.0f);
-        game.Call<0x801303B4>({work, lift});
+        game.Call<0x8016A5B8>({work, lift});
     };
 
     switch (em.State()) {
@@ -2851,11 +3003,11 @@ void Em033ClimbPort(CpuContext* ctx) {
         game.Call<SetMotionLoop>({work, 2, 4, 0});
         em.NextState();
         em.Count((Memory::Read8(work + 2) & 7) * 10);
-        game.Call<0x801321B8>({work});
+        game.Call<0x8016C91C>({work});
         break;
     case 1:
         em.Count(em.Count() - ticks);
-        game.Call<0x801321B8>({work});
+        game.Call<0x8016C91C>({work});
 
         if (em.Count() < 0) {
             em.NextState();
@@ -2934,7 +3086,7 @@ void Em010WanderPort(CpuContext* ctx) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const uint8_t then = uint8_t(ctx->gpr[4]);
-    constexpr uint32_t kPath = 0x80570450;
+    constexpr uint32_t kPath = 0x8062D880;
 
     switch (em.State()) {
     case 0:
@@ -2957,24 +3109,24 @@ void Em010WanderPort(CpuContext* ctx) {
         if (game.Call<TurnStep>({work, 0, 0xA0}) != 1)
             break;
 
-        uint32_t off = (game.Call<0x80050AF4>({work + 0x188, work + 0x36C}) - Memory::Read32(work + kYaw)) & 0xFFFF; // calcVecAng2
+        uint32_t off = (game.Call<0x8028B678>({work + 0x188, work + 0x36C}) - Memory::Read32(work + kYaw)) & 0xFFFF; // calcVecAng2
 
         if (off > 0x7FFF)
             off = 0x10000 - off;
 
-        game.Call<0x80050FAC>({work + 0x188, work + 0x36C}); // calcDistanceSqXZ
+        game.Call<0x8028BBBC>({work + 0x188, work + 0x36C}); // calcDistanceSqXZ
 
         if (game.F1() <= 22500.0f || Memory::Read8(work + Em::kSubState) > 2 || off > 0x4000) {
             em.NextState();
-            const uint8_t map = uint8_t(game.Call<0x802B06CC>({Memory::Read8(work + 0x1E0)})); // MapKind
+            const uint8_t map = uint8_t(game.Call<0x8037DEF0>({Memory::Read8(work + 0x1E0)})); // MapKind
             const uint8_t area = Memory::Read8(work + 0x1E1);
 
             if (map == 2 && area == 5)
-                game.Call<0x80126388>({work, 0xFF, 0xB}, {400.0});
+                game.Call<0x8015DBD8>({work, 0xFF, 0xB}, {400.0});
             else if (map == 4 && (area == 5 || area == 6))
-                game.Call<0x80126388>({work, 0xFF, area == 5 ? 0xCu : 10u}, {200.0});
+                game.Call<0x8015DBD8>({work, 0xFF, area == 5 ? 0xCu : 10u}, {200.0});
 
-            game.Call<0x801349C8>({work, kPath, 0, 0, 0});
+            game.Call<0x8016F5D8>({work, kPath, 0, 0, 0});
         } else {
             Memory::Write8(work + Em::kSubState, uint8_t(Memory::Read8(work + Em::kSubState) + 1));
             game.Call<TurnSetUp>({work, 0}, {0.0});
@@ -2983,7 +3135,7 @@ void Em010WanderPort(CpuContext* ctx) {
         break;
     }
     case 3:
-        if (game.Call<0x80134B70>({work, kPath}) == 1 && then <= 2)
+        if (game.Call<0x8016FC3C>({work, kPath}) == 1 && then <= 2)
             game.Call<NextAction>({work, 0xC, then * 3u});
 
         break;
@@ -3008,28 +3160,28 @@ void Em034Skip(CpuContext* ctx, const Skip& k) {
     const auto step = [&](uint32_t move) {
         game.Call<Steer>({work, 0x1000});
         game(move, {work});
-        game.Call<0x801B7084>({work});
+        Inlined_801B7084(work);
         return CountDown(em);
     };
 
     switch (em.State()) {
     case 0: {
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.Count(k.crouch);
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         Memory::WriteFloat32(work + kVelocity, (random & 1) == 0 ? 8.0f * -1.0f : 8.0f);
         Memory::WriteFloat32(work + kSpeed, float(int32_t(random & 7) - 4));
         const float aside = float(int32_t(random >> 4 & 7) - 4);
         Memory::WriteFloat32(work + kSideSpeed, aside);
         em.SetMotion(aside < 0.0f ? 3 : 2, 0x14, 0);
         game.Call<RotateY>({work + kVelocity, Memory::Read32(work + kYaw)});
-        game.Call<0x80041EA4>({work + 0x31C, work + kVelocity}); // Vec3Copy
+        game.Call<0x8003EDCC>({work + 0x31C, work + kVelocity}); // Vec3Copy
         break;
     }
     case 1:
-        if (step(0x8013548C)) {
+        if (step(0x80170FA8)) {
             em.NextState();
             em.Count((Memory::Read16(work + kRandom) & 3) + k.hop);
         }
@@ -3039,18 +3191,18 @@ void Em034Skip(CpuContext* ctx, const Skip& k) {
         if (step(AddVelocity)) {
             em.NextState();
             em.Count(k.landing);
-            game.Call<0x80051454>({work + 0x31C}, {-1.0}); // VecScaleInPlace
+            Vec3Scale(work + 0x31C, work + 0x31C, -1.0f); // VecScaleInPlace
         }
 
         break;
     case 3:
-        if (step(0x8013548C))
-            game.Call<0x80128048>({work});
+        if (step(0x80170FA8))
+            game.Call<0x8015FE74>({work});
 
         break;
     }
 
-    game.Call<0x801B70AC>({work});
+    Inlined_801B70AC(game, work);
 }
 
 void Em034SkipPort(CpuContext* ctx) {
@@ -3077,20 +3229,20 @@ void Em034ClimbPort(CpuContext* ctx) {
         em.State(1);
         Memory::Write8(work + 6, 0);
         Memory::Write8(work + 7, 0);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(2, 0x14, 0);
         game.Call<TurnSetUp>({work, 8}, {how == 1 ? -450.0 : 0.0});
-        game.Call<0x8013545C>({work});
-        game.Call<0x80041EA4>({way, work + 0x36C}); // Vec3Copy
+        game.Call<0x80170F64>({work});
+        game.Call<0x8003EDCC>({way, work + 0x36C}); // Vec3Copy
         Memory::WriteFloat32(way + 4, Memory::ReadFloat32(way + 4) + 60.0f);
-        game.Call<0x800B0BF4>({way, work + 0x188}); // way -= position
-        game.Call<0x80050F40>({way});               // VECMag
+        Vec3Sub(way, way, work + 0x188); // way -= position
+        Vec3SquareMag(game, way);               // VECMag
 
         if (game.F1() > 0.001f) {
-            game.Call<0x800508B4>({way, way}); // VecNormalizeTo
-            game.Call<0x80051F44>({velocity, way}, {8.0});
-            game.Call<0x80041EA4>({work + kVelocity, velocity});
+            game.Call<0x80430258>({way, way}); // VecNormalizeTo
+            Vec3Scale(velocity, way, float(8.0));
+            game.Call<0x8003EDCC>({work + kVelocity, velocity});
         }
 
         em.Count(0xF0);
@@ -3110,7 +3262,7 @@ void Em034ClimbPort(CpuContext* ctx) {
             Memory::Write8(work + 7, 1);
 
         if ((Memory::Read8(work + 6) == 1 && Memory::Read8(work + 7) == 1) || em.Count() < 1)
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
         else {
             game.Call<AddVelocity>({work});
             em.Count(em.Count() - int32_t(GameStep::Ticks()));
@@ -3120,7 +3272,7 @@ void Em034ClimbPort(CpuContext* ctx) {
     }
     }
 
-    game.Call<0x801B70AC>({work});
+    Inlined_801B70AC(game, work);
 }
 
 // kinds 30/31 0x801B22FC (r4 1: steering at 1.2, for 120 ticks): Felyne
@@ -3135,7 +3287,7 @@ void Em030FacePort(CpuContext* ctx) {
     const bool steer = uint8_t(frame.Arg(4)) == 1;
 
     const auto stop = [&] {
-        game.Call<0x80129788>({work, 0});
+        game.Call<0x80161B38>({work, 0});
         em.SetMotion(0x19, 4, 0);
     };
 
@@ -3153,9 +3305,9 @@ void Em030FacePort(CpuContext* ctx) {
         } else
             em.Count(0x3C);
 
-        game.Call<0x80050D04>({frame[0x20], work + 0x36C, work + 0x188}); // VectorSubtractWrapper
-        game.Call<0x80041EA4>({frame[0x2C], frame[0x20]});                 // Vec3Copy
-        game.Call<0x80050D7C>({frame[0x2C], frame[0x1C], frame[0x18]});    // calcVecAngXY
+        Vec3Sub(frame[0x20], work + 0x36C, work + 0x188); // VectorSubtractWrapper
+        game.Call<0x8003EDCC>({frame[0x2C], frame[0x20]});                 // Vec3Copy
+        game.Call<0x8028B944>({frame[0x2C], frame[0x1C], frame[0x18]});    // calcVecAngXY
         Memory::Write32(work + 0x37C, Memory::Read32(frame[0x18]));
         break;
     case 1:
@@ -3166,9 +3318,9 @@ void Em030FacePort(CpuContext* ctx) {
             } else if (steer)
                 game.Call<Steer>({work, 0x800});
             else
-                Memory::Write32(work + kYaw, game.Call<0x80133E14>({Memory::Read32(work + 0x37C) & 0xFFFF, Memory::Read32(work + kYaw) & 0xFFFF, 0x800}) & 0xFFFF);
+                Memory::Write32(work + kYaw, game.Call<0x8016EBF4>({Memory::Read32(work + 0x37C) & 0xFFFF, Memory::Read32(work + kYaw) & 0xFFFF, 0x800}) & 0xFFFF);
 
-            if (em.Count() > 15 && game.Call<0x801B01CC>({work}) == 1)
+            if (em.Count() > 15 && game.Call<0x801396F0>({work}) == 1)
                 em.Count(15);
         } else {
             em.State(2);
@@ -3208,24 +3360,24 @@ void Em026PouncePort(CpuContext* ctx) {
     const bool hold = uint8_t(frame.Arg(4)) != 1;
 
     if (hold && em.State() <= 2 && em.State() != 0)
-        game.Call<0x80136E58>({work});
+        game.Call<0x80172D44>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         em.SetMotion(0xC9, 6, 0);
 
         if (hold)
-            game.Call<0x80136E58>({work});
+            game.Call<0x80172D44>({work});
 
         em.Count(0x3C);
         game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 0.0});
         game.Call<Em::Spawn>({work, 0x4F, 3, at}, {1.0});
 
-        if ((game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + 0x1E1))                // get_now_areano
-            game.Call<0x800D9F0C>({Memory::Read32(work + 0xB14), 0x16, 2, work + 0x188}); // se_req_pos_ps
+        if ((game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + 0x1E1))                // get_now_areano
+            game.Call<0x802B1E60>({Memory::Read32(work + 0xB14), 0x16, 2, work + 0x188}); // se_req_pos_ps
 
         break;
     case 1:
@@ -3242,20 +3394,20 @@ void Em026PouncePort(CpuContext* ctx) {
         em.NextState();
         em.SetMotion(0x3D, 0, 0);
         game.Call<RoarVoice>({work, 0, 1, 2});
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170F64>({work});
         Memory::Write32(work + kSpeed, 0xC20C0000); // -35
-        game.Call<0x8013548C>({work});
-        game.Call<0x8013545C>({work});
+        game.Call<0x80170FA8>({work});
+        game.Call<0x80170F64>({work});
         Memory::Write32(work + kSpeed, 0xC1200000); // -10
         Memory::WriteFloat32(work + kSideSpeed, 0.0f);
         Memory::Write32(work + 0x320, 0xC0400000); // -3
         game.Call<RotateY>({work + kVelocity, Memory::Read32(work + kYaw)});
         break;
     case 3:
-        game.Call<0x8013548C>({work});
-        game.Call<0x801302AC>({work}); // f1 for 0x8013006C
+        game.Call<0x80170FA8>({work});
+        game.Call<0x8016A47C>({work}); // f1 for 0x8013006C
 
-        if (game.Call<0x8013006C>({work}) == 1) {
+        if (game.Call<0x8016A258>({work}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0x3E, 0, 0);
@@ -3286,7 +3438,7 @@ void Em001TurnPort(CpuContext* ctx) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
-        game.Call<0x80154CD8>({work});
+        game.Call<0x800858C8>({work});
         em.SetMotion(8, 4, 0);
         game.Call<RoarVoice>({work, 0, 5, 3});
         em.Count(0);
@@ -3321,10 +3473,10 @@ void Em001TurnPort(CpuContext* ctx) {
             else if (how == 3)
                 em.SetMotion(0x30, 4, 0);
             else if (how == 4) {
-                game.Call<0x80129788>({work, 0});
-                game.Call<0x80128AD4>({work, 4, 7});
+                game.Call<0x80161B38>({work, 0});
+                game.Call<0x801608C0>({work, 4, 7});
             } else {
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
                 em.SetMotion(9, 4, 0);
             }
         }
@@ -3334,7 +3486,7 @@ void Em001TurnPort(CpuContext* ctx) {
         if (how == 2) {
             if (Memory::Read8(work + Em::kSubState) == 0 && em.At(120.0f, 1)) {
                 Memory::Write8(work + Em::kSubState, 1);
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
             }
         } else if (how == 3 && Memory::Read8(work + Em::kSubState) == 0 && em.At(36.0f, 1)) {
             Memory::Write8(work + Em::kSubState, 1);
@@ -3359,7 +3511,7 @@ void Em015SurfacePort(CpuContext* ctx) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const uint8_t how = uint8_t(ctx->gpr[4]), motion = uint8_t(ctx->gpr[5]);
-    game.Call<0x80182404>({work, 1});
+    game.Call<0x800DFD20>({work, 1});
 
     switch (em.State()) {
     case 0:
@@ -3390,24 +3542,24 @@ void Em015SurfacePort(CpuContext* ctx) {
 
         if (how == 3) {
             game.Call<TurnStep>({work, 0, 0x80});
-            game.Call<0x80136DB0>({work}, {3.0});
+            game.Call<0x80172CFC>({work}, {3.0});
             done = true;
 
             if (!CountDown(em)) {
-                game.Call<0x801359B4>({work}); // get_em_chg_scale
+                game.Call<0x801717B8>({work}); // get_em_chg_scale
                 const float scale = game.F1();
-                game.Call<0x801302D0>({work});
+                game.Call<0x8016A4AC>({work});
                 const float raised = 10.0f + game.F1();
                 const float depth = raised * scale; // fmuls, then fsubs: no fused multiply-add
                 done = !(Memory::ReadFloat32(work + 0x18C) < Memory::ReadFloat32(work + 0x370) - depth);
             }
         } else if (how == 5) {
-            game.Call<0x80131DE8>({work});
+            game.Call<0x8016C438>({work});
             done = false;
         } else
             done = game.Call<TurnStep>({work, 0, 0x80}) == 1;
 
-        if (done && game.Call<0x8012F9AC>({work}) == 0) {
+        if (done && game.Call<0x80169AE0>({work}) == 0) {
             em.NextState();
             game.Call<SetMotionEx>({work, 0x2F, 0x28, 0, 1});
         }
@@ -3437,15 +3589,15 @@ void Em015CirclePort(CpuContext* ctx) {
     const uint32_t work = em.work, callerR28 = ctx->gpr[28];
     uint32_t flag = ctx->gpr[4];
     const uint8_t how = uint8_t(ctx->gpr[5]);
-    const uint32_t path = (flag & 0xFF) == 0 ? 0x80570690 : 0x805706D0;
-    game.Call<0x80182404>({work, 1});
+    const uint32_t path = (flag & 0xFF) == 0 ? 0x8062DAC0 : 0x8062DB00;
+    game.Call<0x800DFD20>({work, 1});
 
     const auto spin = [&] {
         const int32_t amount = em.At(80.0f, 3, 130.0f) ? 0xA0 : int32_t(callerR28);
-        game.Call<0x8012F948>({work}); // the motion's rate
+        game.Call<0x80169A88>({work}); // the motion's rate
         const float advance = float(game.F1() * GameStep::Scale());
         const int32_t turn = int32_t(float(amount) * advance);
-        const bool left = (game.Call<0x8012F960>({work}) & 0xFFFF) == 0x29; // em_get_mot_no
+        const bool left = (game.Call<0x80169AA0>({work}) & 0xFFFF) == 0x29; // em_get_mot_no
         Memory::Write32(work + kYaw, Memory::Read32(work + kYaw) + uint32_t(left ? turn : -turn));
     };
 
@@ -3457,7 +3609,7 @@ void Em015CirclePort(CpuContext* ctx) {
 
         if (how == 0) {
             span = 0x3000;
-            game.Call<0x80041EA4>({work + 0x334, work + 0x36C}); // Vec3Copy
+            game.Call<0x8003EDCC>({work + 0x334, work + 0x36C}); // Vec3Copy
             const float lower = Memory::ReadFloat32(work + 0x370) + 2000.0f;
             Memory::WriteFloat32(work + 0x370, lower);
 
@@ -3469,14 +3621,14 @@ void Em015CirclePort(CpuContext* ctx) {
         }
 
         if ((flag & 0xFF) == 0)
-            game.Call<0x801349C8>({work, 0x80570690, 0, 5, uint32_t(-span)});
+            game.Call<0x8016F5D8>({work, 0x8062DAC0, 0, 5, uint32_t(-span)});
         else
-            game.Call<0x801349C8>({work, 0x805706D0, 0, 3, uint32_t(span)});
+            game.Call<0x8016F5D8>({work, 0x8062DB00, 0, 3, uint32_t(span)});
 
         break;
     }
     case 1:
-        game.Call<0x80134B70>({work, path});
+        game.Call<0x8016FC3C>({work, path});
 
         if (how != 0)
             game.Call<TurnStep>({work, 0, 0});
@@ -3490,8 +3642,8 @@ void Em015CirclePort(CpuContext* ctx) {
         break;
     case 2:
         if (how == 0) {
-            game.Call<0x80133D2C>({work, 0x40, em.At(80.0f, 3, 130.0f) ? 0x80u : 0x40u});
-            game.Call<0x80133CA0>({work});
+            game.Call<0x8016EB00>({work, 0x40, em.At(80.0f, 3, 130.0f) ? 0x80u : 0x40u});
+            game.Call<0x8016EA78>({work});
             flag = 0;
         } else if (how == 3) {
             spin();
@@ -3518,13 +3670,13 @@ void Em015CirclePort(CpuContext* ctx) {
                     em.NextState();
                     Memory::Write8(work + Em::kSubState, 0);
                     game.Call<SetMotionEx>({work, 0x13, 0x14, 0, 1});
-                    game.Call<0x80041EA4>({work + 0x36C, work + 0x334});
+                    game.Call<0x8003EDCC>({work + 0x36C, work + 0x334});
                     break;
                 }
             }
 
             if (Memory::Read8(work + 7) != 1)
-                game.Call<SetMotionEx>({work, (game.Call<0x8012F960>({work}) & 0xFFFF) == 0x29 ? 0x2Cu : 0x29u, 0x18, 0, 1});
+                game.Call<SetMotionEx>({work, (game.Call<0x80169AA0>({work}) & 0xFFFF) == 0x29 ? 0x2Cu : 0x29u, 0x18, 0, 1});
         } else if (!em.At(50.0f, 3, 200.0f)) {
             em.NextState();
 
@@ -3546,14 +3698,14 @@ void Em015CirclePort(CpuContext* ctx) {
         }
 
         if (em.At(20.0f, 1))
-            game.Call<0x80133D2C>({work, 0x40, 0x200});
+            game.Call<0x8016EB00>({work, 0x40, 0x200});
 
-        game.Call<0x80133CA0>({work});
+        game.Call<0x8016EA78>({work});
 
         if (em.Ended()) {
             if (how == 0) {
                 em.SetMotion(0x43, 10, 0);
-                game.Call<NextAction>({work, 7, uint8_t(game.Call<0x8018297C>({work})) == 0 ? 0x1Fu : 0x25u});
+                game.Call<NextAction>({work, 7, uint8_t(game.Call<0x800E0298>({work})) == 0 ? 0x1Fu : 0x25u});
             } else {
                 em.SetMotion(0x24, 10, 0);
                 game.Call<NextAction>({work, 7, 0x20});
@@ -3577,7 +3729,9 @@ struct Ledge {
     uint32_t path;
     float share, lastFrame;
     bool rathian;
-    uint32_t waitMotion, waitFlags, target, giveUpGroup, giveUpAction;
+    uint32_t waitMotion, waitFlags;
+    uint32_t (*target)(GuestCall&, uint32_t, uint32_t);
+    uint32_t giveUpGroup, giveUpAction;
 };
 
 void LeapToLedge(CpuContext* ctx, const Ledge& l) {
@@ -3592,30 +3746,30 @@ void LeapToLedge(CpuContext* ctx, const Ledge& l) {
         Memory::Write8(work + Em::kSubState, 0);
         game.Call<Em::SetUp>({work, 0});
         game(l.pick, {work, frame[0x3C], frame[0x08]}, {l.reach});
-        game.Call<0x80050D04>({frame[0x24], frame[0x3C], work + 0x188}); // VectorSubtractWrapper
-        game.Call<0x80041EA4>({frame[0x30], frame[0x24]});                // Vec3Copy
-        game.Call<0x80128C5C>({work, frame[0x3C]});
-        game.Call<0x801349C8>({work, l.path, 2, 1, Memory::Read16(frame[0x08])});
-        game.Call<0x80135448>({work});
-        game.Call<0x8012F948>({work}); // the motion's rate
+        Vec3Sub(frame[0x24], frame[0x3C], work + 0x188); // VectorSubtractWrapper
+        game.Call<0x8003EDCC>({frame[0x30], frame[0x24]});                // Vec3Copy
+        game.Call<0x80160A28>({work, frame[0x3C]});
+        game.Call<0x8016F5D8>({work, l.path, 2, 1, Memory::Read16(frame[0x08])});
+        game.Call<0x80170F50>({work});
+        game.Call<0x80169A88>({work}); // the motion's rate
         const double rate = game.cpu->fpr[1].d;
-        game.Call<0x80051F44>({frame[0x0C], frame[0x30]}, {double(l.share)}); // VectorScaleWrapper
-        game.Call<0x80051F44>({frame[0x18], frame[0x0C]}, {rate});
-        game.Call<0x80041EA4>({work + kVelocity, frame[0x18]});
+        Vec3Scale(frame[0x0C], frame[0x30], float(double(l.share))); // VectorScaleWrapper
+        Vec3Scale(frame[0x18], frame[0x0C], float(rate));
+        game.Call<0x8003EDCC>({work + kVelocity, frame[0x18]});
         Memory::WriteFloat32(work + kSpeed, 0.0f);
         break;
     }
     case 1:
         if (!l.rathian)
-            game.Call<0x80131F24>({work});
+            game.Call<0x8016C574>({work});
 
         if (em.At(12.0f, 3, l.lastFrame)) {
             game.Call<AddVelocity>({work});
-            game.Call<0x80134B70>({work, l.path});
+            game.Call<0x8016FC3C>({work, l.path});
         }
 
         if (l.rathian && em.At(50.0f, 1))
-            game.Call<0x80131F24>({work});
+            game.Call<0x8016C574>({work});
 
         if (em.Ended()) {
             em.NextState();
@@ -3625,30 +3779,30 @@ void LeapToLedge(CpuContext* ctx, const Ledge& l) {
 
         break;
     case 2: {
-        game.Call<0x80131F24>({work});
+        game.Call<0x8016C574>({work});
         em.Count(std::max(em.Count() - int32_t(GameStep::Ticks()), 0));
 
-        if (game.Call<0x8012D204>({work}) != 1)
+        if (game.Call<0x80165F68>({work}) != 1)
             break;
 
         const uint32_t target = Memory::Read8(work + 0x382);
 
-        if (game(l.target, {work, target}) != 1)
+        if (l.target(game, work, target) != 1)
             game.Call<NextAction>({work, l.giveUpGroup, l.giveUpAction});
-        else if (game.Call<0x8012D2A0>({work, 1, target}) == 1) {
-            const bool high = game.Call<0x8012ECA0>({work}) == 1;
+        else if (game.Call<0x80165FF8>({work, 1, target}) == 1) {
+            const bool high = game.Call<0x8016828C>({work}) == 1;
 
             if (l.rathian) {
                 Memory::Write8(work + 0x1E7, 3);
-                game.Call<0x80130D40>({work, high ? 300u : 0x96u});
+                game.Call<0x8016B06C>({work, high ? 300u : 0x96u});
                 const int32_t every = int32_t(0.015f * float(int32_t(Memory::Read32(work + 0x7A4))));
-                game.Call<0x8011E750>({work, uint32_t(every), 1}, {1.0}); // EnemyEveryNScaled
+                game.Call<0x80155E78>({work, uint32_t(every), 1}, {1.0}); // EnemyEveryNScaled
                 game.Call<NextAction>({work, 9, 1});
             } else {
                 Memory::Write8(work + 0x1E7, 5);
                 game.Call<NextAction>({work, 9, high ? 3u : 1u});
             }
-        } else if (em.Count() < 1 || game.Call<0x8012D2A0>({work, 0, target}) == 0)
+        } else if (em.Count() < 1 || game.Call<0x80165FF8>({work, 0, target}) == 0)
             game.Call<NextAction>({work, l.giveUpGroup, l.giveUpAction});
 
         break;
@@ -3657,11 +3811,11 @@ void LeapToLedge(CpuContext* ctx, const Ledge& l) {
 }
 
 void Em007LedgePort(CpuContext* ctx) {
-    LeapToLedge(ctx, {0x801DFDA0, 250.0, 0x80570E40, 0.02f, 62.0f, false, 0x35, 2, 0x801DA474, 1, 7});
+    LeapToLedge(ctx, {0x800B2984, 250.0, 0x8062D680, 0.02f, 62.0f, false, 0x35, 2, InlinedLedgeTarget<40000>, 1, 7});
 }
 
 void Em001LedgePort(CpuContext* ctx) {
-    LeapToLedge(ctx, {0x80154B68, 300.0, 0x80570120, 0.02631579f, 50.0f, true, 0xCA, 4, 0x8014E6D4, 2, 6});
+    LeapToLedge(ctx, {0x80085730, 300.0, 0x8062D0B0, 0.02631579f, 50.0f, true, 0xCA, 4, InlinedLedgeTarget<90000>, 2, 6});
 }
 
 // kind 5 0x801D2F34: Barioth's climb. On the Tundra's areas 1-3 it first
@@ -3677,7 +3831,7 @@ void Em005ClimbPort(CpuContext* ctx) {
     const uint32_t work = em.work, point = frame[0x08];
 
     const auto rise = [&] {
-        game.Call<0x80134EF0>({work});
+        game.Call<0x80170434>({work});
         em.Count(300);
     };
 
@@ -3685,7 +3839,7 @@ void Em005ClimbPort(CpuContext* ctx) {
     case 0: {
         bool glide = false;
 
-        if (uint8_t(game.Call<0x802B06CC>({Memory::Read8(work + 0x1E0)})) == 4) { // MapKind
+        if (uint8_t(game.Call<0x8037DEF0>({Memory::Read8(work + 0x1E0)})) == 4) { // MapKind
             static constexpr float kPoints[3][2] = {{-654.0f, 1598.0f}, {-2578.0f, -1253.0f}, {950.0f, -3978.0f}};
             const uint8_t area = Memory::Read8(work + 0x1E1);
 
@@ -3697,17 +3851,17 @@ void Em005ClimbPort(CpuContext* ctx) {
 
         if (glide) {
             em.NextState();
-            game.Call<0x801302AC>({work});
+            game.Call<0x8016A47C>({work});
             game.Call<SetScale>({work});
-            game.Call<0x80041EA4>({work + 0x334, work + 0x36C}); // Vec3Copy
-            game.Call<0x80041EA4>({work + 0x36C, point});
-            game.Call<0x80134FD4>({work, 0x80570C90});
+            game.Call<0x8003EDCC>({work + 0x334, work + 0x36C}); // Vec3Copy
+            game.Call<0x8003EDCC>({work + 0x36C, point});
+            game.Call<0x80170514>({work, 0x8062D450});
             game.Call<TurnSetUp>({work, 0x19}, {0.0});
-            game.Call<0x801302AC>({work});
-            game.Call<0x801355E8>({work, work + 0x1BC});
+            game.Call<0x8016A47C>({work});
+            game.Call<0x801711B8>({work, work + 0x1BC});
         } else {
             em.State(3);
-            game.Call<0x801302AC>({work});
+            game.Call<0x8016A47C>({work});
             game.Call<SetScale>({work});
             em.SetMotion(0x1A, 10, 0);
             rise();
@@ -3718,12 +3872,12 @@ void Em005ClimbPort(CpuContext* ctx) {
     case 1:
         if (game.Call<TurnStep>({work, 0, 0}) == 1) {
             em.NextState();
-            game.Call<0x80041EA4>({work + 0x36C, work + 0x334});
+            game.Call<0x8003EDCC>({work + 0x36C, work + 0x334});
             em.SetMotion(0x1A, 10, 0);
         } else {
-            game.Call<0x80135064>({work, 2, 0x80570C90}); // EnemyGlide
-            game.Call<0x801302AC>({work});
-            game.Call<0x801355E8>({work, work + 0x1BC});
+            game.Call<0x80170700>({work, 2, 0x8062D450}); // EnemyGlide
+            game.Call<0x8016A47C>({work});
+            game.Call<0x801711B8>({work, work + 0x1BC});
         }
 
         break;
@@ -3739,14 +3893,14 @@ void Em005ClimbPort(CpuContext* ctx) {
         const float gap = below();
 
         if (gap < -2000.0f)
-            game.Call<0x80134F7C>({work});
+            game.Call<0x801704BC>({work});
         else if (gap > -1500.0f)
             Memory::WriteFloat32(work + 0x18C, Memory::ReadFloat32(work + 0x18C) + float(10.0 * GameStep::Scale()));
 
         const float after = below();
 
         if (CountDown(em) || (game.Call<Steer>({work, 0x180}) == 1 && -2000.0f <= after && after <= -1500.0f)) {
-            const bool whole = game.Call<0x8011EA40>({work, 2}) == 0 || game.Call<0x8011EA40>({work, 3}) == 0; // em_parts_damage_level_get
+            const bool whole = game.Call<0x801560F8>({work, 2}) == 0 || game.Call<0x801560F8>({work, 3}) == 0; // em_parts_damage_level_get
             game.Call<NextAction>({work, 0xD, whole ? 5u : 6u});
         }
 
@@ -3765,12 +3919,12 @@ void Em026CeilingPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    constexpr uint32_t kNpc = 0x806BF7E0;
+    constexpr uint32_t kNpc = 0x80769510;
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
         game.Call<SetMotionLoop>({work, 0xD1, 4, 0});
         em.Count(0);
@@ -3780,19 +3934,19 @@ void Em026CeilingPort(CpuContext* ctx) {
         if (em.CountEvery(16)) {
             bool torch = false, found = false;
 
-            if (Memory::Read8(kNpc) != 0 && Memory::Read8(work + 0x1E1) == Memory::Read8(0x806BF984) &&
-                game.Call<0x802D8478>({kNpc}) == 1) { // ai_torch_ck
-                game.Call<0x80050F10>({work + 0x188, 0x806BF958});
+            if (Memory::Read8(kNpc) != 0 && Memory::Read8(work + 0x1E1) == Memory::Read8(0x807696B4) &&
+                game.Call<0x802E12AC>({kNpc}) == 1) { // ai_torch_ck
+                game.Call<0x8028BB34>({work + 0x188, 0x80769688});
                 torch = game.F1() <= 1000000.0f;
             }
 
             if (!torch) {
                 float nearest = 800.0f;
-                const uint32_t hunters = game.Call<0x800CFB34>({2}); // get_move_work_max
-                uint32_t hunter = game.Call<0x800CFAF4>({2});        // get_move_work_adrs
+                const uint32_t hunters = game.Call<0x802BCFD0>({2}); // get_move_work_max
+                uint32_t hunter = game.Call<0x802BCF94>({2});        // get_move_work_adrs
 
                 for (uint8_t i = 0; i < hunters; ++i, hunter += 0xB20) {
-                    if (!hunter || !Memory::Read8(hunter) || game.Call<0x8012D118>({work, hunter}) == 0) // EnemySensesPlayer
+                    if (!hunter || !Memory::Read8(hunter) || game.Call<0x80165E80>({work, hunter}) == 0) // EnemySensesPlayer
                         continue;
 
                     const float distance = Memory::ReadFloat32(work + 4 * i + 0x454);
@@ -3800,16 +3954,16 @@ void Em026CeilingPort(CpuContext* ctx) {
                     if (distance > 700.0f || distance < 0.0f)
                         continue;
 
-                    if (game.Call<0x8012D860>({hunter}) == 1) {
+                    if (game.Call<0x801667AC>({hunter}) == 1) {
                         found = false;
                         break;
                     }
 
-                    if (game.Call<0x80131974>({work, i}) != 0) {
+                    if (game.Call<0x8016BD44>({work, i}) != 0) {
                         const float again = Memory::ReadFloat32(work + 4 * i + 0x454);
 
                         if (again < nearest) {
-                            game.Call<0x8012B3E4>({work, 1, 2, i});
+                            game.Call<0x801640C0>({work, 1, 2, i});
                             nearest = again;
                         }
 
@@ -3826,7 +3980,7 @@ void Em026CeilingPort(CpuContext* ctx) {
         break;
     }
 
-    game.Call<0x8032C984>({work});
+    InlinedRotateOffset(game, work, -35.0f);
 }
 
 // kinds 1/2 0x8014B730 (r4 0-2: the landing): Rathian and Rathalos dropping
@@ -3845,7 +3999,7 @@ void Em001LandPort(CpuContext* ctx) {
     const int32_t ticks = int32_t(GameStep::Ticks());
 
     const auto move = [&] {
-        game.Call<0x8013562C>({work, work + 0x1BC});
+        game.Call<0x801712E4>({work, work + 0x1BC});
 
         if (110.0f < Memory::ReadFloat32(work + kSideSpeed))
             Memory::WriteFloat32(work + kSideSpeed, 110.0f);
@@ -3856,12 +4010,12 @@ void Em001LandPort(CpuContext* ctx) {
         em.State(1);
         Memory::Write8(work + Em::kSubState, 0);
         game.Call<Em::SetUp>({work, 3});
-        game.Call<0x80154CD8>({work});
+        game.Call<0x800858C8>({work});
         em.SetMotion(0xD1, 6, 0);
         em.Count(0);
         break;
     case 1:
-        game.Call<0x80130460>({work}, {double(-6.6666665f * float(GameStep::Scale()))});
+        game.Call<0x8016A678>({work}, {double(-6.6666665f * float(GameStep::Scale()))});
 
         if (Memory::ReadFloat32(work + 0x1AC) < -200.0f)
             Memory::WriteFloat32(work + 0x1AC, -200.0f);
@@ -3871,7 +4025,7 @@ void Em001LandPort(CpuContext* ctx) {
 
             if (em.At(50.0f, 1)) {
                 Memory::Write8(work + Em::kSubState, 1);
-                game.Call<0x8013545C>({work});
+                game.Call<0x80170F64>({work});
                 Memory::Write32(work + 0x324, 0x40400000); // 3
                 game.Call<TurnSetUp>({work, 0x10}, {0.0});
                 game.Call<RoarVoice>({work, 0, 0xE, 3});
@@ -3887,7 +4041,7 @@ void Em001LandPort(CpuContext* ctx) {
 
         break;
     case 2:
-        game.Call<0x80130450>({work}, {-200.0});
+        game.Call<0x8016A668>({work}, {-200.0});
         move();
 
         if (uint8_t(game.Call<TurnStep>({work, 0, 0})) == 1) {
@@ -3897,7 +4051,7 @@ void Em001LandPort(CpuContext* ctx) {
             if (how == 1) {
                 game.Call<Em::SetUp>({work, 0});
                 em.SetMotion(0xDD, 0, 0);
-                game.Call<0x80130450>({work}, {0.0});
+                game.Call<0x8016A668>({work}, {0.0});
             } else if (how == 2)
                 em.SetMotion(0x35, 10, 0);
             else {
@@ -3917,7 +4071,7 @@ void Em001LandPort(CpuContext* ctx) {
                 }
             } else if (Memory::Read8(work + Em::kSubState) == 1) {
                 if (em.At(30.0f))
-                    game.Call<0x80129788>({work, 0});
+                    game.Call<0x80161B38>({work, 0});
 
                 if (em.Ended())
                     game.Call<ActionDone>({work});
@@ -3926,12 +4080,12 @@ void Em001LandPort(CpuContext* ctx) {
             if (Memory::Read8(work + Em::kSubState) == 0) {
                 if (em.Count() < 10) {
                     em.Count(std::min(em.Count() + ticks, 10));
-                    game.Call<0x80130450>({work}, {double(-200.0f * float(5 - em.Count()) / 5.0f)});
+                    game.Call<0x8016A668>({work}, {double(-200.0f * float(5 - em.Count()) / 5.0f)});
                 }
 
                 if (em.Ended()) {
                     Memory::Write8(work + Em::kSubState, 1);
-                    game.Call<0x80129788>({work, 0});
+                    game.Call<0x80161B38>({work, 0});
                     game.Call<Em::SetUp>({work, 0});
                     em.SetMotion(0x3C, 0, 0);
                 }
@@ -3940,19 +4094,19 @@ void Em001LandPort(CpuContext* ctx) {
         } else {
             if (em.Count() < 0x14) {
                 em.Count(std::min(em.Count() + ticks, 0x14));
-                game.Call<0x80130450>({work}, {double(-150.0f * float(0x14 - em.Count()) / 20.0f)});
+                game.Call<0x8016A668>({work}, {double(-150.0f * float(0x14 - em.Count()) / 20.0f)});
             }
 
             if (em.At(30.0f))
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
 
-            game.Call<0x8013562C>({work, work + 0x1BC});
+            game.Call<0x801712E4>({work, work + 0x1BC});
 
             if (Memory::ReadFloat32(work + kSideSpeed) < 0.0f)
                 Memory::WriteFloat32(work + kSideSpeed, 0.0f);
 
             if (em.Ended())
-                game.Call<0x80128110>({work});
+                game.Call<0x8015FF38>({work});
         }
 
         break;
@@ -3974,41 +4128,41 @@ void Em005PouncePort(CpuContext* ctx) {
     const bool second = uint8_t(frame.Arg(4)) != 0;
 
     const auto rate = [&] {
-        game.Call<0x8012F948>({work});
+        game.Call<0x80169A88>({work});
         return game.F1();
     };
 
     const auto glide = [&] {
-        game.Call<0x80131ED8>({work});
-        game.Call<0x80131DE8>({work});
+        game.Call<0x8016C528>({work});
+        game.Call<0x8016C438>({work});
     };
 
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x801302AC>({work});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
-        game.Call<0x80130D40>({work, uint32_t(-10)});
+        game.Call<0x8016B06C>({work, uint32_t(-10)});
         em.SetMotion(0xE7, 6, 8);
-        game.Call<0x8013545C>({work});
-        game.Call<0x80131ED8>({work});
+        game.Call<0x80170F64>({work});
+        game.Call<0x8016C528>({work});
         break;
     case 1:
         glide();
 
         if (em.At(0.0f, 3, 14.0f)) {
             Memory::WriteFloat32(work + kSideSpeed, -21.428572f * rate());
-            game.Call<0x80135558>({work, work + 0x1BC}); // EnemyAddTurnedVelocity
+            game.Call<0x80171104>({work, work + 0x1BC}); // EnemyAddTurnedVelocity
         }
 
         if (em.At(28.0f, 1)) {
             em.NextState();
-            game.Call<0x8013545C>({work});
+            game.Call<0x80170F64>({work});
             Memory::Write32(work + kSpeed, 0x42200000); // 40
             Memory::WriteFloat32(work + kSideSpeed, 60.0f * rate());
-            game.Call<0x8013570C>({work}, {2.0, 0.5, 2000.0});
+            game.Call<0x80171548>({work}, {2.0, 0.5, 2000.0});
             Memory::WriteFloat32(work + kSideSpeed, Memory::ReadFloat32(work + kSideSpeed) * game.F1());
             Memory::Write32(work + 0x320, 0xC1200000); // -10
             em.Count(0);
@@ -4029,10 +4183,10 @@ void Em005PouncePort(CpuContext* ctx) {
             game.Call<Steer>({work, uint32_t(int32_t(0.5f + units)) & 0xFFFF});
         }
 
-        game.Call<0x8013562C>({work, work + 0x1BC});
-        game.Call<0x801302AC>({work}); // f1 for 0x8013006C
+        game.Call<0x801712E4>({work, work + 0x1BC});
+        game.Call<0x8016A47C>({work}); // f1 for 0x8013006C
 
-        if (game.Call<0x8013006C>({work}) == 1) {
+        if (game.Call<0x8016A258>({work}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
 
@@ -4054,22 +4208,22 @@ void Em005PouncePort(CpuContext* ctx) {
 
         if (em.At(20.0f)) {
             if (second)
-                game.Call<0x80129788>({work, 0});
+                game.Call<0x80161B38>({work, 0});
             else
                 game.Call<RoarVoice>({work, 0, 0xC, 0x10});
         }
 
-        game.Call<0x80133EA0>({work, second ? 0x10000u : 0x8000u}, {0.0, double(last)}); // EnemyTurnWhile
+        game.Call<0x8016EC7C>({work, second ? 0x10000u : 0x8000u}, {0.0, double(last)}); // EnemyTurnWhile
 
         if (em.At(0.0f, 3, last)) {
-            game.Call<0x801356A8>({work, second ? 0x805B5A28u : 0x805B59D8u});
+            game.Call<0x80171504>({work, second ? 0x8068AB50u : 0x8068AB00u});
             Memory::WriteFloat32(work + kVelocity, second ? game.F1() / 3.0f : game.F1());
-            game.Call<0x801356A8>({work, second ? 0x805B5A68u : 0x805B5A00u});
+            game.Call<0x80171504>({work, second ? 0x8068AB90u : 0x8068AB28u});
             Memory::WriteFloat32(work + kSideSpeed, game.F1());
             Memory::Write32(slide, 0);
             Memory::Write32(slide + 4, uint32_t(em.Count()) & 0xFFFF);
             Memory::Write32(slide + 8, 0);
-            game.Call<0x80135558>({work, slide}); // EnemyAddTurnedVelocity
+            game.Call<0x80171104>({work, slide}); // EnemyAddTurnedVelocity
         }
 
         if (em.Ended())
@@ -4095,17 +4249,17 @@ void Em020CirclePort(CpuContext* ctx) {
     const uint32_t work = em.work, callerR27 = ctx->gpr[27];
     uint32_t flag = ctx->gpr[30];
     const uint8_t side = uint8_t(ctx->gpr[4]), how = uint8_t(ctx->gpr[5]);
-    const uint32_t path = side == 0 ? 0x80571220 : 0x80571260;
+    const uint32_t path = side == 0 ? 0x8062DDC0 : 0x8062DE00;
 
-    if (game.Call<0x8045169C>() == 0)
-        game.Call<0x80128C5C>({work, 0});
+    if (game.Call<0x8039BA94>() == 0)
+        game.Call<0x80160A28>({work, 0});
 
     const auto spin = [&] {
         const int32_t amount = em.At(160.0f, 3, 260.0f) ? 0x50 : int32_t(callerR27);
-        game.Call<0x8012F948>({work}); // the motion's rate
+        game.Call<0x80169A88>({work}); // the motion's rate
         const float advance = float(game.F1() * GameStep::Scale());
         const int32_t turn = int32_t(float(amount) * advance);
-        const bool left = (game.Call<0x8012F960>({work}) & 0xFFFF) == 0x29; // em_get_mot_no
+        const bool left = (game.Call<0x80169AA0>({work}) & 0xFFFF) == 0x29; // em_get_mot_no
         Memory::Write32(work + kYaw, Memory::Read32(work + kYaw) + uint32_t(left ? turn : -turn));
     };
 
@@ -4117,7 +4271,7 @@ void Em020CirclePort(CpuContext* ctx) {
 
         if (how == 0) {
             span = 0x3000;
-            game.Call<0x80041EA4>({work + 0x328, work + 0x36C}); // Vec3Copy
+            game.Call<0x8003EDCC>({work + 0x328, work + 0x36C}); // Vec3Copy
             const float lower = Memory::ReadFloat32(work + 0x370) + 2000.0f;
             Memory::WriteFloat32(work + 0x370, lower);
 
@@ -4129,14 +4283,14 @@ void Em020CirclePort(CpuContext* ctx) {
         }
 
         if (side == 0)
-            game.Call<0x801349C8>({work, 0x80571220, 0, 0x45, uint32_t(-span)});
+            game.Call<0x8016F5D8>({work, 0x8062DDC0, 0, 0x45, uint32_t(-span)});
         else
-            game.Call<0x801349C8>({work, 0x80571260, 0, 0x43, uint32_t(span)});
+            game.Call<0x8016F5D8>({work, 0x8062DE00, 0, 0x43, uint32_t(span)});
 
         break;
     }
     case 1: {
-        const uint32_t arrived = game.Call<0x80134B70>({work, path});
+        const uint32_t arrived = game.Call<0x8016FC3C>({work, path});
 
         if (how != 0)
             game.Call<TurnStep>({work, 0, 0});
@@ -4152,8 +4306,8 @@ void Em020CirclePort(CpuContext* ctx) {
     }
     case 2:
         if (how == 0) {
-            game.Call<0x80133D2C>({work, 0x40, em.At(160.0f, 3, 260.0f) ? 0x80u : 0x40u});
-            game.Call<0x80133CA0>({work});
+            game.Call<0x8016EB00>({work, 0x40, em.At(160.0f, 3, 260.0f) ? 0x80u : 0x40u});
+            game.Call<0x8016EA78>({work});
             flag = 0;
         } else if (how == 3) {
             spin();
@@ -4163,7 +4317,7 @@ void Em020CirclePort(CpuContext* ctx) {
         } else {
             flag = game.Call<TurnStep>({work, 0, 0x10});
 
-            if (game.Call<0x8012F9AC>({work}) == 1)
+            if (game.Call<0x80169AE0>({work}) == 1)
                 flag = 0;
 
             spin();
@@ -4184,13 +4338,13 @@ void Em020CirclePort(CpuContext* ctx) {
                     em.NextState();
                     Memory::Write8(work + Em::kSubState, 0);
                     game.Call<SetMotionEx>({work, 0x13, 0x28, 0, 1});
-                    game.Call<0x80041EA4>({work + 0x36C, work + 0x328});
+                    game.Call<0x8003EDCC>({work + 0x36C, work + 0x328});
                     break;
                 }
             }
 
             if (Memory::Read8(work + 7) != 1)
-                game.Call<SetMotionEx>({work, (game.Call<0x8012F960>({work}) & 0xFFFF) == 0x29 ? 0x2Cu : 0x29u, 0x30, 0, 1});
+                game.Call<SetMotionEx>({work, (game.Call<0x80169AA0>({work}) & 0xFFFF) == 0x29 ? 0x2Cu : 0x29u, 0x30, 0, 1});
         } else if (!em.At(100.0f, 3, 400.0f)) {
             em.NextState();
 
@@ -4212,9 +4366,9 @@ void Em020CirclePort(CpuContext* ctx) {
         }
 
         if (em.At(40.0f, 1))
-            game.Call<0x80133D2C>({work, 0x20, 0x100});
+            game.Call<0x8016EB00>({work, 0x20, 0x100});
 
-        game.Call<0x80133CA0>({work});
+        game.Call<0x8016EA78>({work});
 
         if (em.Ended()) {
             em.SetMotion(how == 0 ? 0x43 : 0x24, 10, 0);
@@ -4242,38 +4396,38 @@ void Em033ClimbOutPort(CpuContext* ctx) {
     constexpr uint32_t kPitch = 0x1BC, kLift = 0x32C;
 
     const auto applyLift = [&] {
-        game.Call<0x80041EA4>({lift, work + kLift}); // Vec3Copy
-        game.Call<0x801303B4>({work, lift});
+        game.Call<0x8003EDCC>({lift, work + kLift}); // Vec3Copy
+        game.Call<0x8016A5B8>({work, lift});
     };
 
-    game.Call<0x80131E58>({work});
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
+    game.Call<0x8016C4A8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
-        game.Call<0x80041EA4>({before, work + 0x21C});
-        game.Call<0x801302AC>({work});
+        game.Call<0x8003EDCC>({before, work + 0x21C});
+        game.Call<0x8016A47C>({work});
         game.Call<SetScale>({work});
-        game.Call<0x80130724>({work, 1});
-        game.Call<0x80050D04>({part, before, work + 0x21C}); // VectorSubtractWrapper
-        game.Call<0x80041EA4>({shift, part});
+        game.Call<0x8016A968>({work, 1});
+        Vec3Sub(part, before, work + 0x21C); // VectorSubtractWrapper
+        game.Call<0x8003EDCC>({shift, part});
         Memory::WriteFloat32(shift + 4, 0.0f);
         game.Call<RotateY>({shift, Memory::Read32(work + kYaw)});
         Memory::WriteFloat32(work + 0x188, Memory::ReadFloat32(work + 0x188) + Memory::ReadFloat32(shift));
         Memory::WriteFloat32(work + 0x190, Memory::ReadFloat32(work + 0x190) + Memory::ReadFloat32(shift + 8));
-        game.Call<0x80051454>({shift}, {-1.0}); // VecScaleInPlace
-        game.Call<0x80041EA4>({work + kLift, shift});
-        game.Call<0x80041EA4>({lift, shift});
-        game.Call<0x801303B4>({work, lift});
+        Vec3Scale(shift, shift, -1.0f); // VecScaleInPlace
+        game.Call<0x8003EDCC>({work + kLift, shift});
+        game.Call<0x8003EDCC>({lift, shift});
+        game.Call<0x8016A5B8>({work, lift});
         game.Call<SetMotionLoop>({work, 3, 2, 0});
         em.Count(0xB);
         break;
     case 1: {
         for (uint32_t i = 0; i < ticks && em.Count() > 0; ++i) {
-            game.Call<0x800ADA24>({part, work + kLift}, {double(float(em.Count()))}); // part = lift / count
-            game.Call<0x800B0BF4>({work + kLift, part});                              // lift -= part
+            Vec3Scale(part, work + kLift, 1.0f / float(em.Count())); // part = lift / count
+            Vec3Sub(work + kLift, work + kLift, part);                              // lift -= part
             applyLift();
             em.Count(em.Count() - 1);
         }
@@ -4290,22 +4444,22 @@ void Em033ClimbOutPort(CpuContext* ctx) {
         break;
     }
     case 2:
-        game.Call<0x80131DE8>({work});
+        game.Call<0x8016C438>({work});
         Memory::Write32(work + kPitch, 0xC000);
-        game.Call<0x8035EEA4>({work, 1, floor});
+        game.Call<0x80145AB8>({work, 1, floor});
 
         if (Memory::ReadFloat32(floor + 4) < Memory::ReadFloat32(work + 0x18C)) {
             em.NextState();
-            game.Call<0x80135448>({work});
+            game.Call<0x80170F50>({work});
         }
 
         break;
     case 3: {
-        game.Call<0x80131DE8>({work});
-        game.Call<0x801321B8>({work});
+        game.Call<0x8016C438>({work});
+        game.Call<0x8016C91C>({work});
         game.Call<Em::Vec3Set>({shift}, {0.0, 0.0, 2.0});
         game.Call<RotateY>({shift, Memory::Read32(work + kYaw)});
-        game.Call<0x80041EA4>({work + kVelocity, shift});
+        game.Call<0x8003EDCC>({work + kVelocity, shift});
         game.Call<AddVelocity>({work});
         const uint32_t pitch = Memory::Read32(work + kPitch) + uint32_t(GameStep::Share(0x38E));
         Memory::Write32(work + kPitch, pitch);
@@ -4313,9 +4467,9 @@ void Em033ClimbOutPort(CpuContext* ctx) {
         if (pitch < 0x1000) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
-            game.Call<0x80130724>({work, 0});
+            game.Call<0x8016A968>({work, 0});
             game.Call<AddVelocity>({work});
-            game.Call<0x8035EEA4>({work, 1, floor});
+            game.Call<0x80145AB8>({work, 1, floor});
             Memory::WriteFloat32(work + 0x18C, Memory::ReadFloat32(floor + 4));
             Memory::WriteFloat32(work + 0x190, Memory::ReadFloat32(work + 0x190) + 10.0f);
             Memory::Write32(work + kPitch, 0);
@@ -4327,7 +4481,7 @@ void Em033ClimbOutPort(CpuContext* ctx) {
         break;
     }
     case 4:
-        game.Call<0x80131DE8>({work});
+        game.Call<0x8016C438>({work});
         em.Count(em.Count() - int32_t(ticks));
 
         if (em.Count() < 0)
@@ -4357,10 +4511,10 @@ void Em025BreachPort(CpuContext* ctx) {
         em.State(1);
         game.Call<Em::SetUp>({work, 4});
         em.SetMotion(0x67, 0, 0);
-        game.Call<0x802BC82C>({0x39, work});
-        game.Call<0x801460BC>({work}, {-3515.6f, 0.0, -2467.8f}); // SetPosition
-        game.Call<0x80146170>({work}, {0.0, 240.0, 0.0});
-        game.Call<0x80130450>({work}, {630.0});
+        game.Call<0x803747F4>({0x39, work});
+        game.Call<0x80184730>({work}, {-3515.6f, 0.0, -2467.8f}); // SetPosition
+        game.Call<0x80184778>({work}, {0.0, 240.0, 0.0});
+        game.Call<0x8016A668>({work}, {630.0});
         em.Count(0);
         break;
     case 1:
@@ -4413,17 +4567,17 @@ void Em025BreachPort(CpuContext* ctx) {
         if (em.Count() > 0x1DF) {
             em.NextState();
             em.SetMotion(0x11, 0, 0);
-            game.Call<0x801460BC>({work}, {-13200.0, 0.0, 12000.0});
-            game.Call<0x80146170>({work}, {0.0, -35.0, 0.0});
-            game.Call<0x80130450>({work}, {-1930.0});
-            game.Call<0x8019E9AC>({work});
+            game.Call<0x80184730>({work}, {-13200.0, 0.0, 12000.0});
+            game.Call<0x80184778>({work}, {0.0, -35.0, 0.0});
+            game.Call<0x8016A668>({work}, {-1930.0});
+            Inlined_8019E9AC(work);
         }
 
         break;
     case 3:
-        game.Call<0x801356A8>({work, 0x805B0908});
-        game.Call<0x80130460>({work}, {double(game.F1() * float(GameStep::Scale()))}); // height += the table's climb
-        game.Call<0x80135558>({work, work + 0x1BC});                                    // EnemyAddTurnedVelocity
+        game.Call<0x80171504>({work, 0x806A1628});
+        game.Call<0x8016A678>({work}, {double(game.F1() * float(GameStep::Scale()))}); // height += the table's climb
+        game.Call<0x80171104>({work, work + 0x1BC});                                    // EnemyAddTurnedVelocity
 
         if (630.0f <= Memory::ReadFloat32(work + 0x1AC))
             Memory::WriteFloat32(work + 0x1AC, 630.0f);
@@ -4431,15 +4585,15 @@ void Em025BreachPort(CpuContext* ctx) {
         if (em.Ended()) {
             em.NextState();
             em.SetMotion(1, 0x1E, 0);
-            game.Call<0x80130450>({work}, {630.0});
-            game.Call<0x8013545C>({work});
+            game.Call<0x8016A668>({work}, {630.0});
+            game.Call<0x80170F64>({work});
             Memory::Write32(work + kSideSpeed, 0x41480000); // 12.5
-            game.Call<0x8019E9AC>({work});
+            Inlined_8019E9AC(work);
         }
 
         break;
     case 4:
-        game.Call<0x80135558>({work, work + 0x1BC});
+        game.Call<0x80171104>({work, work + 0x1BC});
         break;
     }
 }
@@ -4447,10 +4601,13 @@ void Em025BreachPort(CpuContext* ctx) {
 // kind 6 0x801BD2F0 (r4 1: at once): Diablos under the sand (set up with
 // kind 4, motion 1 looped, 0x80131E64 each step) for 90 ticks, or 1 with r4
 // 1, then 0x80128158.
+void Em006UnderRun(CpuContext* ctx, bool atOnce) {
+    Timed(ctx, {.steps = {0x8016C4B4}, .setUp = 4, .loop = true, .motion = 1, .ticks = atOnce ? 1 : 0x5A, .extra = KeepHeight,
+                .end = Then<0x8015FF80>});
+}
+
 void Em006UnderPort(CpuContext* ctx) {
-    const bool atOnce = uint8_t(ctx->gpr[4]) == 1;
-    Timed(ctx, {.steps = {0x80131E64}, .setUp = 4, .loop = true, .motion = 1, .ticks = atOnce ? 1 : 0x5A, .extra = KeepHeight,
-                .end = Then<0x80128158>});
+    Em006UnderRun(ctx, uint8_t(ctx->gpr[4]) == 1);
 }
 
 // kind 6 0x801BC4D8: Diablos' motion 0xD6 (0x803B9C04: work, its place, 100)
@@ -4467,13 +4624,13 @@ void Em006SinkPort(CpuContext* ctx) {
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(0xD6, 6, 0);
         em.Count(240);
-        game.Call<0x803B9C04>({work, work + 0x188, 100});
+        game.Call<0x80208000>({work, work + 0x188, 100});
         break;
     case 1:
         if (CountDown(em)) {
             em.State(2);
             em.SetMotion(0xD7, 0, 0);
-        } else if (game.Call<0x801BB7BC>({work}) == 0)
+        } else if (InlinedForwardHitCheck(game, work, 2, 0.0f, 130.0f, 400.0f, 155.0f) == 0)
             game.Call<NextAction>({work, 1, 10});
 
         break;
@@ -4488,14 +4645,14 @@ void Em006SinkPort(CpuContext* ctx) {
 // The hunter a Gobul aims at (+0x1F6, s8) among the hunters' works
 // (get_move_work_adrs(2), 0xB20 each).
 uint32_t Em018Hunter(GuestCall& game, uint32_t work) {
-    return game.Call<0x800CFAF4>({2}) + uint32_t(int32_t(int8_t(Memory::Read8(work + 0x1F6))) * 0xB20);
+    return game.Call<0x802BCF94>({2}) + uint32_t(int32_t(int8_t(Memory::Read8(work + 0x1F6))) * 0xB20);
 }
 
 // Whether a hunter is there and in reach: present (+0), 0x8012D20C (its
 // +8) 0, EnemySensesPlayer and 0x8027D594 (hunter) 1.
 bool Em018Reaches(GuestCall& game, uint32_t work, uint32_t hunter) {
-    return Memory::Read8(hunter) && game.Call<0x8012D20C>({Memory::Read8(hunter + 8)}) == 0 && game.Call<0x8012D118>({work, hunter}) == 1 &&
-           game.Call<0x8027D594>({hunter}) == 1;
+    return Memory::Read8(hunter) && game.Call<0x80165F70>({Memory::Read8(hunter + 8)}) == 0 && game.Call<0x80165E80>({work, hunter}) == 1 &&
+           game.Call<0x8034DDA0>({hunter}) == 1;
 }
 
 // The count at +0x20 less the step's ticks, not below 0 (the originals: one
@@ -4512,14 +4669,14 @@ void Em018LurkPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 0});
         em.SetMotion(0x7D, 0, 0);
-        game.Call<0x803B9C04>({work, work + 0x188, 100});
+        game.Call<0x80208000>({work, work + 0x188, 100});
         break;
     case 1:
         if (em.Ended()) {
@@ -4530,7 +4687,7 @@ void Em018LurkPort(CpuContext* ctx) {
 
         break;
     case 2:
-        if (CountDown(em) && game.Call<0x8012D204>({work}) == 1)
+        if (CountDown(em) && game.Call<0x80165F68>({work}) == 1)
             game.Call<NextAction>({work, 5, 0x22});
 
         break;
@@ -4548,10 +4705,10 @@ void Em018Gape(CpuContext* ctx, bool hold) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     if (hold)
-        game.Call<0x80131ED8>({work});
+        game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0:
@@ -4560,13 +4717,13 @@ void Em018Gape(CpuContext* ctx, bool hold) {
         game.Call<SetMotionEx>({work, 0x28, 0x14, 0, 3});
         em.Count(60);
 
-        if (hold && game.Call<0x8012D204>({work}) == 1) {
+        if (hold && game.Call<0x80165F68>({work}) == 1) {
             const uint32_t hunter = Em018Hunter(game, work);
 
-            if (Em018Reaches(game, work, hunter) && game.Call<0x801924AC>({work}) == 1) {
+            if (Em018Reaches(game, work, hunter) && game.Call<0x800F01F8>({work}) == 1) {
                 Memory::Write16(hunter + 0x59A, uint16_t(em.Count()));
-                game.Call<0x8027D5E8>({hunter, work});
-                game.Call<0x80275524>({hunter, 1});
+                game.Call<0x8034DDF4>({hunter, work});
+                game.Call<0x80344A60>({hunter, 1});
             }
         }
 
@@ -4574,15 +4731,15 @@ void Em018Gape(CpuContext* ctx, bool hold) {
     case 1: {
         CountDownToZero(em);
 
-        if (game.Call<0x8012D204>({work}) != 1)
+        if (game.Call<0x80165F68>({work}) != 1)
             break;
 
         const uint32_t hunter = Em018Hunter(game, work);
         bool reach;
 
         if (hold)
-            reach = Memory::Read8(hunter) && game.Call<0x8012D20C>({Memory::Read8(hunter + 8)}) == 0 && game.Call<0x8012D118>({work, hunter}) == 1 &&
-                    game.Call<0x801924AC>({work}) == 1 && game.Call<0x8026FECC>({hunter, 0, 0x9A}) != 0; // Pl_act_ck
+            reach = Memory::Read8(hunter) && game.Call<0x80165F70>({Memory::Read8(hunter + 8)}) == 0 && game.Call<0x80165E80>({work, hunter}) == 1 &&
+                    game.Call<0x800F01F8>({work}) == 1 && game.Call<0x8033DC3C>({hunter, 0, 0x9A}) != 0; // Pl_act_ck
         else
             reach = Em018Reaches(game, work, hunter);
 
@@ -4618,7 +4775,7 @@ void Em018AmbushPort(CpuContext* ctx) {
     constexpr uint32_t kSub = 6, kLure = 0x334;
     Memory::Write8(work + 0x359, 1);
     Memory::Write8(work + 0x35B, 1);
-    game.Call<0x8012CF84>({work});
+    game.Call<0x80165D0C>({work});
 
     switch (em.State()) {
     case 0:
@@ -4626,7 +4783,7 @@ void Em018AmbushPort(CpuContext* ctx) {
         game.Call<Em::SetUp>({work, 4});
         em.SetMotion(0xCC, 0, 0);
         KeepHeight(game, work);
-        game.Call<0x801321FC>({work});
+        game.Call<0x8016C960>({work});
         break;
     case 1:
         if (!em.Ended())
@@ -4638,16 +4795,16 @@ void Em018AmbushPort(CpuContext* ctx) {
         em.Count(0);
 
         if (Memory::Read32(work + kLure) != 0xFFFFFFFF) {
-            game.Call<0x803B99F8>({Memory::Read32(work + kLure)});
+            game.Call<0x80207DD4>({Memory::Read32(work + kLure)});
             Memory::Write32(work + kLure, 0xFFFFFFFF);
         }
 
-        game.Call<0x803B95EC>({work, 2, work + kLure, 4, 0});
+        game.Call<0x802079F8>({work, 2, work + kLure, 4, 0});
         break;
     case 2: {
         em.CountTicks();
 
-        if (game.Call<0x8012D204>({work}) != 1)
+        if (game.Call<0x80165F68>({work}) != 1)
             break;
 
         // The original's look at a count (after its +1) that is a multiple of 16.
@@ -4688,7 +4845,7 @@ void Em018AmbushPort(CpuContext* ctx) {
             if (Memory::Read8(work + 0x43D) == 1)
                 break;
 
-            for (uint32_t i = 0, n = game.Call<0x800CFB34>({2}) & 0xFFFF, hunter = game.Call<0x800CFAF4>({2}); i < n; ++i, hunter += 0xB20)
+            for (uint32_t i = 0, n = game.Call<0x802BCFD0>({2}) & 0xFFFF, hunter = game.Call<0x802BCF94>({2}); i < n; ++i, hunter += 0xB20)
                 if (Em018Reaches(game, work, hunter)) {
                     game.Call<NextAction>({work, 6, 4});
                     return;
@@ -4712,7 +4869,7 @@ void Em018AmbushPort(CpuContext* ctx) {
     case 3:
         CountDownToZero(em);
 
-        if (game.Call<0x8012D204>({work}) == 1 && em.Count() < 1)
+        if (game.Call<0x80165F68>({work}) == 1 && em.Count() < 1)
             game.Call<NextAction>({work, 6, 0xB});
 
         break;
@@ -4750,7 +4907,7 @@ void Em018LeapPort(CpuContext* ctx) {
         em.SetMotion(0xCE, 0, 0);
         KeepHeight(game, work);
         em.Count(0x18);
-        game.Call<0x80130D40>({work, uint32_t(-12)});
+        game.Call<0x8016B06C>({work, uint32_t(-12)});
         submerged();
         break;
     case 1:
@@ -4761,10 +4918,10 @@ void Em018LeapPort(CpuContext* ctx) {
             splash(1.0f, 0x27, 3, 0.0f, 15.0f, 0.0f);
 
             if (Memory::Read8(work + 6) == 0) {
-                if ((game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + 0x1E1)) { // get_now_areano
+                if ((game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + 0x1E1)) { // get_now_areano
                     game.Call<JointPosition>({work, 3, joint});
                     Memory::WriteFloat32(joint + 4, 5.0f + Memory::ReadFloat32(work + 0x20C));
-                    game.Call<0x800D9F0C>({Memory::Read32(work + 0xB14), 4, 2, joint}); // se_req_pos_ps
+                    game.Call<0x802B1E60>({Memory::Read32(work + 0xB14), 4, 2, joint}); // se_req_pos_ps
                 }
 
                 Memory::Write8(work + 6, 1);
@@ -4775,31 +4932,31 @@ void Em018LeapPort(CpuContext* ctx) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0xDD, 0, 0);
-            game.Call<0x80130450>({work}, {0.0});
+            game.Call<0x8016A668>({work}, {0.0});
             game.Call<RoarVoice>({work, 0, 0xD, 3});
             game.Call<RoarVoice>({work, 1, 0x15, 3});
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
         }
 
         break;
     case 2:
         if (em.At(14.0f, 2))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.Ended()) {
             em.NextState();
             game.Call<Em::SetUp>({work, 2});
             em.SetMotion(0xDF, 0, 0);
-            game.Call<0x80135448>({work});
+            game.Call<0x80170F50>({work});
             Memory::Write32(work + kSpeed, 0x42AD570A); // 86.67
         }
 
         break;
     case 3:
         game.Call<AddVelocity>({work});
-        game.Call<0x801302D0>({work});
+        game.Call<0x8016A4AC>({work});
 
-        if (game.Call<0x801300EC>({work}, {double(50.0f + game.F1())}) == 1) {
+        if (game.Call<0x8016A2D0>({work}, {double(50.0f + game.F1())}) == 1) {
             em.NextState();
             game.Call<SetScale>({work}, {0.0});
         }
@@ -4810,11 +4967,11 @@ void Em018LeapPort(CpuContext* ctx) {
 
         if (Memory::ReadFloat32(work + 0x210) <= Memory::ReadFloat32(work + 0x18C)) {
             em.NextState();
-            game.Call<0x80129788>({work, 0});
-            game.Call<0x80129788>({work, 1});
+            game.Call<0x80161B38>({work, 0});
+            game.Call<0x80161B38>({work, 1});
             game.Call<SetMotionEx>({work, 0xE0, 4, 0, 1});
             game.Call<RoarVoice>({work, 0, 0x1C, 2});
-            game.Call<0x8013545C>({work});
+            game.Call<0x80170F64>({work});
             Memory::Write32(work + kSpeed, 0x42AD570A);  // 86.67
             Memory::Write32(work + 0x320, 0xC05E147B);   // -3.47
             game.Call<JointEffect>({work, 0xE, 0x2C, 0}, {1.0});
@@ -4824,16 +4981,16 @@ void Em018LeapPort(CpuContext* ctx) {
 
         break;
     case 5: {
-        const uint32_t moved = game.Call<0x801354CC>({work}, {200.0});
+        const uint32_t moved = game.Call<0x80170FE8>({work}, {200.0});
 
-        if (game.Call<0x80130168>({work}) == 1) { // em_water_check
+        if (game.Call<0x8016A344>({work}) == 1) { // em_water_check
             if (Memory::ReadFloat32(work + 0x18C) <= Memory::ReadFloat32(work + 0x210)) {
                 Memory::WriteFloat32(work + 0x18C, Memory::ReadFloat32(work + 0x210));
                 em.NextState();
                 game.Call<Em::SetUp>({work, 2});
                 em.SetMotion(0xE1, 0, 0);
                 game.Call<RoarVoice0>({work, 0, 0x1D});
-                game.Call<0x8012FEA0>({work}, {300.0});
+                game.Call<0x80169F48>({work}, {300.0});
                 game.Call<JointEffect>({work, 0xE, 0x2C, 0}, {1.0});
                 splash(0.7f, 0x30, 0xE, 0.0f, 0.0f, 0.0f);
                 splash(0.7f, 0x31, 3, 0.0f, 0.0f, 15.0f);
@@ -4871,7 +5028,7 @@ void Em018HopPort(CpuContext* ctx) {
         em.SetMotion(0xCE, 0, 0);
         KeepHeight(game, work);
         em.Count(12);
-        game.Call<0x80130D40>({work, uint32_t(-12)});
+        game.Call<0x8016B06C>({work, uint32_t(-12)});
         Memory::Write8(work + 0x359, 1);
         Memory::Write8(work + 0x35B, 1);
         break;
@@ -4884,9 +5041,9 @@ void Em018HopPort(CpuContext* ctx) {
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0xDC, 0, 0);
             game.Call<RoarVoice0>({work, 0, 0xC});
-            game.Call<0x80130450>({work}, {0.0});
-            game.Call<0x80136D78>({work});
-            game.Call<0x80135448>({work});
+            game.Call<0x8016A668>({work}, {0.0});
+            game.Call<0x80172CC4>({work});
+            game.Call<0x80170F50>({work});
             Memory::WriteFloat32(work + kSideSpeed, 50.0f);
         }
 
@@ -4896,7 +5053,7 @@ void Em018HopPort(CpuContext* ctx) {
             game.Call<Steer>({work, 0x300});
 
         if (em.At(38.0f, 3, 50.0f))
-            game.Call<0x80135558>({work, work + 0x1BC}); // EnemyAddTurnedVelocity
+            game.Call<0x80171104>({work, work + 0x1BC}); // EnemyAddTurnedVelocity
 
         if (em.At(12.0f)) {
             game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 0.0});
@@ -4904,11 +5061,11 @@ void Em018HopPort(CpuContext* ctx) {
         }
 
         if (em.At(28.0f, 2))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.At(50.0f)) {
             game.Call<Em::Vec3Set>({at}, {0.0, 0.0, 200.0});
-            game.Call<0x801E2D68>({work, 0xF, 0xD, at, 0x3C}, {1.3f});
+            game.Call<0x8006168C>({work, 0xF, 0xD, at, 0x3C}, {1.3f});
         }
 
         if (em.Ended())
@@ -4928,10 +5085,10 @@ void Em009DozePort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    constexpr uint32_t kPath = 0x805712E0;
+    constexpr uint32_t kPath = 0x8062D780;
     const auto steer = [&] {
-        game.Call<0x8012CF84>({work});
-        game.Call<0x80131ED8>({work});
+        game.Call<0x80165D0C>({work});
+        game.Call<0x8016C528>({work});
     };
 
     switch (em.State()) {
@@ -4939,17 +5096,17 @@ void Em009DozePort(CpuContext* ctx) {
         em.NextState();
         game.Call<SetMotionLoop>({work, 0x6E, 0, 0});
         em.Count(0x96);
-        game.Call<0x80132288>({work});
+        game.Call<0x8016C9EC>({work});
         steer();
         break;
     case 1:
         steer();
-        game.Call<0x80132280>({work, 1, 3}, {0.6f});
+        game.Call<0x8016C9E4>({work, 1, 3}, {0.6f});
 
         if (CountDown(em)) {
             em.NextState();
             em.SetMotion(0x70, 4, 0);
-            game.Call<0x801322C8>({work});
+            game.Call<0x8016CA1C>({work});
         }
 
         break;
@@ -4967,40 +5124,40 @@ void Em009DozePort(CpuContext* ctx) {
         steer();
 
         if (em.At(200.0f, 1))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.Ended()) {
             em.NextState();
             game.Call<Em::SetUp>({work, 4});
-            game.Call<0x801349C8>({work, kPath, 0, 0, 0});
-            game.Call<0x80130390>({work}); // f1 passes on
-            game.Call<0x80130450>({work});
+            game.Call<0x8016F5D8>({work, kPath, 0, 0, 0});
+            game.Call<0x8016A588>({work}); // f1 passes on
+            game.Call<0x8016A668>({work});
         }
 
         break;
     case 4:
         steer();
 
-        if (game.Call<0x80134B70>({work, kPath}) == 1) {
+        if (game.Call<0x8016FC3C>({work, kPath}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 4});
             em.SetMotion(10, 0, 0);
             game.Call<TurnSetUp>({work, 0}, {0.0});
-            game.Call<0x80130390>({work}); // f1 passes on
-            game.Call<0x80130450>({work});
+            game.Call<0x8016A588>({work}); // f1 passes on
+            game.Call<0x8016A668>({work});
         }
 
         break;
     case 5:
         steer();
-        game.Call<0x80131DE8>({work});
+        game.Call<0x8016C438>({work});
 
         if (game.Call<TurnStep>({work, 0, 0x100}) == 1) {
             em.NextState();
             game.Call<Em::SetUp>({work, 0});
             em.SetMotion(0x27, 0, 0);
-            game.Call<0x80130450>({work}, {0.0});
-            game.Call<0x80136D78>({work});
+            game.Call<0x8016A668>({work}, {0.0});
+            game.Call<0x80172CC4>({work});
         }
 
         break;
@@ -5009,7 +5166,7 @@ void Em009DozePort(CpuContext* ctx) {
             steer();
 
         if (em.At(10.0f, 2))
-            game.Call<0x80136D78>({work});
+            game.Call<0x80172CC4>({work});
 
         if (em.Ended()) {
             em.NextState();
@@ -5018,8 +5175,8 @@ void Em009DozePort(CpuContext* ctx) {
 
         break;
     case 7:
-        if (game.Call<0x8012F9AC>({work}) == 1) {
-            game.Call<0x8012B3E4>({work, 0, 0, 0});
+        if (game.Call<0x80169AE0>({work}) == 1) {
+            game.Call<0x801640C0>({work, 0, 0, 0});
             game.Call<NextAction>({work, 1, 7});
         }
 
@@ -5038,8 +5195,8 @@ void Em009SleepPort(CpuContext* ctx) {
     const uint32_t entryR28 = ctx->gpr[28];
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
-    game.Call<0x8012CF84>({work});
-    game.Call<0x80131ED8>({work});
+    game.Call<0x80165D0C>({work});
+    game.Call<0x8016C528>({work});
 
     switch (em.State()) {
     case 0:
@@ -5052,28 +5209,28 @@ void Em009SleepPort(CpuContext* ctx) {
             em.NextState();
             em.SetMotion(0x6E, 4, 0);
             em.Count(0x708);
-            game.Call<0x80132288>({work});
+            game.Call<0x8016C9EC>({work});
         }
 
         break;
     case 2: {
-        game.Call<0x80132280>({work, 1, 0xF}, {0.6f});
+        game.Call<0x8016C9E4>({work, 1, 0xF}, {0.6f});
         uint32_t wake = entryR28;
 
         if (CountDown(em))
             wake = 1;
         else if (Memory::Read8(work + 0x1F5) == 1) {
-            const uint32_t players = game.Call<0x800CFB34>({2}) & 0xFFFF; // get_move_work_max(2)
-            uint32_t player = game.Call<0x800CFAF4>({2});                 // get_move_work_adrs(2)
+            const uint32_t players = game.Call<0x802BCFD0>({2}) & 0xFFFF; // get_move_work_max(2)
+            uint32_t player = game.Call<0x802BCF94>({2});                 // get_move_work_adrs(2)
             wake = 0;
 
             for (uint32_t i = 0; i < players; ++i, player += 0xB20)
-                if (Memory::Read8(player) != 0 && game.Call<0x8012D20C>({Memory::Read8(player + 8)}) == 0 && game.Call<0x8012D118>({work, player}) == 1)
+                if (Memory::Read8(player) != 0 && game.Call<0x80165F70>({Memory::Read8(player + 8)}) == 0 && game.Call<0x80165E80>({work, player}) == 1)
                     wake = 1;
         }
 
         if (wake == 1) {
-            game.Call<0x8012B3E4>({work, 5, 8, 4});
+            game.Call<0x801640C0>({work, 5, 8, 4});
             game.Call<NextAction>({work, 1, 6});
         }
 
@@ -5146,17 +5303,17 @@ void Em019BuriedPort(CpuContext* ctx) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const uint8_t kind = uint8_t(ctx->gpr[4]);
-    game.Call<0x80131E64>({work});
-    game.Call<0x803790E8>({work});
+    game.Call<0x8016C4B4>({work});
+    Inlined_803790E8(work);
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 4});
         game.Call<SetMotionLoop>({work, 1, 0, 0});
-        game.Call<0x80130390>({work}); // f1 passes on
-        game.Call<0x80130450>({work});
-        game.Call<0x80379000>({work, 0xFF});
+        game.Call<0x8016A588>({work}); // f1 passes on
+        game.Call<0x8016A668>({work});
+        Inlined_80379000(work, 0xFF);
         em.Count(kind == 1 ? 0x3C : kind == 2 ? 0xF : 0x5A);
         break;
     case 1: {
@@ -5169,7 +5326,7 @@ void Em019BuriedPort(CpuContext* ctx) {
 
         if (ticks && em.Count() > 0 && em.Count() - int32_t(ticks) <= 0) {
             em.Count(0);
-            game.Call<0x80128158>({work});
+            game.Call<0x8015FF80>({work});
         } else
             em.Count(em.Count() - int32_t(ticks));
 
@@ -5189,16 +5346,16 @@ void Em006BuriedPort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
     const bool longer = uint8_t(frame.Arg(4)) == 1;
-    game.Call<0x80043F0C>({at});
-    game.Call<0x80131E64>({work});
+    (void)at;
+    game.Call<0x8016C4B4>({work});
 
     switch (em.State()) {
     case 0:
         em.State(1);
         game.Call<Em::SetUp>({work, 4});
         game.Call<SetMotionLoop>({work, 1, 0, 0});
-        game.Call<0x80130390>({work}); // f1 passes on
-        game.Call<0x80130450>({work});
+        game.Call<0x8016A588>({work}); // f1 passes on
+        game.Call<0x8016A668>({work});
         em.Count(0);
         break;
     case 1:
@@ -5209,14 +5366,14 @@ void Em006BuriedPort(CpuContext* ctx) {
             Memory::WriteFloat32(at + 4, 5.0f + Memory::ReadFloat32(work + (other ? 0x210 : 0x20C)));
             game.Call<JointEffect>({work, 3, other ? 0x54u : 0x53u, 0}, {1.0});
 
-            if ((game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + 0x1E1)) // get_now_areano
-                game.Call<0x800D9F0C>({Memory::Read32(work + 0xB14), 0x27, 2, at});
+            if ((game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + 0x1E1)) // get_now_areano
+                game.Call<0x802B1E60>({Memory::Read32(work + 0xB14), 0x27, 2, at});
         }
 
         em.CountTicks();
 
         if (em.Count() >= (longer ? 0x50 : 0x2D))
-            game.Call<0x80128158>({work});
+            game.Call<0x8015FF80>({work});
 
         break;
     }
@@ -5231,8 +5388,8 @@ void Em006BurrowPort(CpuContext* ctx) {
     GuestCall game{ctx};
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
-    game.Call<0x80043F0C>({at});
-    game.Call<0x80131E64>({work});
+    (void)at;
+    game.Call<0x8016C4B4>({work});
 
     switch (em.State()) {
     case 0:
@@ -5243,21 +5400,21 @@ void Em006BurrowPort(CpuContext* ctx) {
         game.Call<SetMotionSpeed>({work}, {1.5});
         game.Call<RoarVoice>({work, 0, 0x21, 2});
         game.Call<TurnSetUp>({work, 0}, {1000.0});
-        game.Call<0x80130390>({work}); // f1 passes on
-        game.Call<0x80130450>({work});
+        game.Call<0x8016A588>({work}); // f1 passes on
+        game.Call<0x8016A668>({work});
         em.Count(0x14);
         break;
     case 1:
-        if ((game.Call<0x802AFCE8>() & 0xFF) == Memory::Read8(work + 0x1E1)) { // get_now_areano
+        if ((game.Call<0x8037D338>() & 0xFF) == Memory::Read8(work + 0x1E1)) { // get_now_areano
             game.Call<JointPosition>({work, 3, at});
-            game.Call<0x800DE360>({Memory::Read32(work + 0xB14), at, 8, Memory::Read16(work + 0x1A)}); // shell_se_req
+            game.Call<0x802B8708>({Memory::Read32(work + 0xB14), at, 8, Memory::Read16(work + 0x1A)}); // shell_se_req
         }
 
         if (Memory::Read8(work + 6) == 0 && game.Call<TurnStep>({work, 0, 0x40}) == 1)
             Memory::Write8(work + 6, 1);
 
         if (CountDown(em) && Memory::Read8(work + 6) == 1)
-            game.Call<0x80128158>({work});
+            game.Call<0x8015FF80>({work});
 
         break;
     }
@@ -5276,12 +5433,12 @@ void Em034Hop(CpuContext* ctx, bool back) {
     const Em::Enemy em{game, ctx->gpr[3]};
     const uint32_t work = em.work;
     const auto move = [&] {
-        game.Call<0x8013545C>({work});
-        game.Call<0x801356A8>({work, 0x805B2948});
+        game.Call<0x80170F64>({work});
+        game.Call<0x80171504>({work, 0x806A66C0});
         Memory::WriteFloat32(work + 0x314, game.F1());
 
         if (back) {
-            game.Call<0x801356A8>({work, 0x805B29A8});
+            game.Call<0x80171504>({work, 0x806A6720});
             Memory::WriteFloat32(work + 0x318, -game.F1());
         }
 
@@ -5293,7 +5450,7 @@ void Em034Hop(CpuContext* ctx, bool back) {
         em.State(1);
 
         if (back) {
-            game.Call<0x801302AC>({work}); // f1: the carried scale, for SetScale
+            game.Call<0x8016A47C>({work}); // f1: the carried scale, for SetScale
             game.Call<SetScale>({work});
         } else
             game.Call<Em::SetUp>({work, 0});
@@ -5302,13 +5459,13 @@ void Em034Hop(CpuContext* ctx, bool back) {
         break;
     case 1:
         if (back)
-            game.Call<0x801B7108>({work});
+            InlinedRotateOffset(game, work, 45.0f);
 
         if (em.At(6.0f, 1)) {
             em.NextState();
 
             if (!back) {
-                game.Call<0x801302AC>({work});
+                game.Call<0x8016A47C>({work});
                 game.Call<SetScale>({work});
             }
 
@@ -5323,13 +5480,13 @@ void Em034Hop(CpuContext* ctx, bool back) {
             em.NextState();
             em.SetMotion(1, 10, 0);
             em.Count(10);
-            game.Call<0x8013545C>({work});
+            game.Call<0x80170F64>({work});
         }
 
         break;
     case 3:
         if (CountDown(em))
-            game.Call<0x80128048>({work});
+            game.Call<0x8015FE74>({work});
 
         break;
     }
@@ -5364,7 +5521,7 @@ void Em007ChargePort(CpuContext* ctx) {
         em.SetMotion(0x16, 2, 0);
         game.Call<RoarVoice>({work, 0, enraged ? 0x25u : 4u, 0x88});
         game.Call<RoarVoice>({work, 1, 0x39, 0x18});
-        game.Call<0x80130D40>({work, uint32_t(-50)}); // stamina (+0x8A0) less 50
+        game.Call<0x8016B06C>({work, uint32_t(-50)}); // stamina (+0x8A0) less 50
         em.Count(1000);
         game.Call<TurnSetUp>({work, 0}, {0.0});
         break;
@@ -5442,7 +5599,7 @@ void Em024FlightPort(CpuContext* ctx) {
             em.SetMotion(0x14, 0xE, 0x30);
             game.Call<RoarVoice>({work, 0, 0x14, 0x88});
             game.Call<RoarVoice>({work, 1, 0x17, 0x10});
-        } else if (game.Call<0x8034F1C8>({work}) == 0) {
+        } else if (InlinedForwardHitCheck(game, work, 4, 115.0f, 550.0f, 500.0f, 170.0f) == 0) {
             game.Call<NextAction>({work, 1, 5});
         } else if (before > 0x14 && em.Count() <= 0x14) {
             game.Call<Mark>({work, 0x15, 3});
@@ -5451,7 +5608,7 @@ void Em024FlightPort(CpuContext* ctx) {
         break;
     }
     case 2:
-        if (game.Call<0x8012F990>({work, 0}, {54.0f, 0.0f}) == 1) { // em_after_frame_check: the advance just made
+        if (game.Call<0x80169AC8>({work, 0}, {54.0f, 0.0f}) == 1) { // em_after_frame_check: the advance just made
             Memory::WriteFloat32(at, 0.0f);
             Memory::WriteFloat32(at + 4, 50.0f);
             Memory::WriteFloat32(at + 8, 150.0f);
@@ -5536,7 +5693,7 @@ void Em015SparksPort(CpuContext* ctx) {
         }
 
         if (em.At(260.0f))
-            game.Call<0x8011D6F4>({work, 7, 3}, {1.0f});
+            game.Call<0x8005DC38>({work, 7, 3}, {1.0f});
 
         // The sparks: every 5 ticks while the motion is in [120, 230].
         if (em.At(120.0f, 3, 230.0f)) {
@@ -5561,7 +5718,7 @@ void Em015SparksPort(CpuContext* ctx) {
             Memory::WriteFloat32(at, 0.0f);
             Memory::WriteFloat32(at + 4, 150.0f);
             Memory::WriteFloat32(at + 8, 0.0f);
-            game.Call<0x801E2D68>({work, 3, 0x15, at, 0x35}, {1.0f});
+            game.Call<0x8006168C>({work, 3, 0x15, at, 0x35}, {1.0f});
         }
     }
 
@@ -5604,7 +5761,7 @@ void Em025RoarPort(CpuContext* ctx) {
     }
 
     if (ship)
-        game.Call<0x8019EC10>({work});
+        game.Call<0x80121CB4>({work});
 
     Memory::WriteFloat32(at, 0.0f);
     Memory::WriteFloat32(at + 4, 0.0f);
@@ -5645,7 +5802,7 @@ void Em024BurstsPort(CpuContext* ctx) {
         em.SetMotion(0x2E, 4, 0);
         game.Call<RoarVoice>({work, 0, 2, 8});
         game.Call<RoarVoice>({work, 1, 3, 0x10});
-        game.Call<0x80358854>({work, uint32_t(-20)});
+        game.Call<0x80121B2C>({work, uint32_t(-20)});
         return;
     }
 
@@ -5709,7 +5866,7 @@ void Em024ChargePort(CpuContext* ctx) {
     const Em::Enemy em{game, frame.Arg(3)};
     const uint32_t work = em.work, at = frame[0x08];
     const uint8_t kind = uint8_t(frame.Arg(4));
-    constexpr uint32_t kCurrentArea = 0x806BB806; // get_now_areano (0x802AFCE8, inlined)
+    constexpr uint32_t kCurrentArea = 0x80782E26; // get_now_areano (0x802AFCE8, inlined)
     constexpr uint32_t kSounds = 0xB14, kSoundId = 0x1A, kDrive = 0x324;
 
     const auto here = [&] { return Memory::Read8(work + 0x1E1) == Memory::Read8(kCurrentArea); };
@@ -5717,7 +5874,7 @@ void Em024ChargePort(CpuContext* ctx) {
     // The sound of a part of the body (shell_se_req 0x800DE360).
     const auto partSound = [&](uint32_t joint) {
         game.Call<JointPosition>({work, joint, at});
-        game.Call<0x800DE360>({Memory::Read32(work + kSounds), at, 0x1D, Memory::Read16(work + kSoundId)});
+        game.Call<0x802B8708>({Memory::Read32(work + kSounds), at, 0x1D, Memory::Read16(work + kSoundId)});
     };
 
     // The sparks: every 6 ticks (the original: every 6 calls, its count
@@ -5740,7 +5897,7 @@ void Em024ChargePort(CpuContext* ctx) {
             return true;
 
         game.Call<SetUpCarried>({work});
-        game.Call<0x80135664>({work, work + 0x1BC});
+        game.Call<0x801713B8>({work, work + 0x1BC});
         const float limit = kind == 2 ? 240.0f : 180.0f;
 
         if (limit < Memory::ReadFloat32(work + kSideSpeed)) {
@@ -5844,7 +6001,7 @@ void Em024ChargePort(CpuContext* ctx) {
     case 3:
         if (em.At(2.0f) && here()) {
             game.Call<JointPosition>({work, 3, at});
-            game.Call<0x800D9F0C>({Memory::Read32(work + kSounds), 0x91, 2, at}); // se_req_pos_ps
+            game.Call<0x802B1E60>({Memory::Read32(work + kSounds), 0x91, 2, at}); // se_req_pos_ps
         }
 
         if (em.At(10.0f)) {
@@ -5858,7 +6015,7 @@ void Em024ChargePort(CpuContext* ctx) {
         }
 
         if (em.Ended())
-            game.Call<0x80128110>({work}); // ActionDone with set-up 3
+            game.Call<0x8015FF38>({work}); // ActionDone with set-up 3
 
         break;
     }
@@ -5879,7 +6036,7 @@ void Em004AmbushPort(CpuContext* ctx) {
             Memory::Write16(work + kBurstHold, 2); // 0x80131F24, inlined
     };
 
-    game.Call<0x801C2C9C>({work});
+    game.Call<0x8008E730>({work});
     Memory::Write16(work + kMoveFlags, Memory::Read16(work + kMoveFlags) & 0x7FFF);
 
     switch (em.State()) {
@@ -5887,7 +6044,7 @@ void Em004AmbushPort(CpuContext* ctx) {
         em.State(1);
         game.Call<SetUpCarried>({work});
         game.Call<SetScale>({work}); // f1: SetUpCarried's
-        game.Call<0x80130724>({work, 2});
+        game.Call<0x8016A968>({work, 2});
         game.Call<SetMotionEx>({work, 0x40, 4, 0, 1});
         Memory::Write8(work + 0x8AE, 1); // 0x80132228, inlined
         break;
@@ -5915,7 +6072,7 @@ void Em004AmbushPort(CpuContext* ctx) {
 
         // The players (get_move_work_adrs / _max(2), inlined) in reach.
         game.Call<JointPosition>({work, 0x1C, at});
-        const uint32_t table = Memory::Read32(0x8065AB04);
+        const uint32_t table = Memory::Read32(0x80768B4C);
         uint32_t player = table ? Memory::Read32(table + 16 + 2 * 4) : 0;
         const uint32_t players = table ? Memory::Read16(table + 2 * 2) : 0;
         const uint32_t mask = Memory::Read8(work + kPlayerMask);
@@ -5926,14 +6083,14 @@ void Em004AmbushPort(CpuContext* ctx) {
             if ((mask & (1u << i)) == 0 || Memory::Read8(player) == 0)
                 continue;
 
-            game.Call<0x80050FAC>({player + 0x3C, at}); // calcDistanceSqXZ
+            game.Call<0x8028BBBC>({player + 0x3C, at}); // calcDistanceSqXZ
 
             if (game.F1() > 25600.0f)
                 continue;
 
-            if (game.Call<0x8012D2A0>({work, 1, i}) == 1)
+            if (game.Call<0x80165FF8>({work, 1, i}) == 1)
                 hits |= 1u << i;
-            else if (game.Call<0x8012D2A0>({work, 0, i}) == 1)
+            else if (game.Call<0x80165FF8>({work, 0, i}) == 1)
                 seen = true;
         }
 
@@ -5941,7 +6098,7 @@ void Em004AmbushPort(CpuContext* ctx) {
             if (em.Count() < 1 || !seen)
                 game.Call<NextAction>({work, 3, 0x21});
         } else {
-            game.Call<0x8012B3E4>({work, 1, 10});
+            game.Call<0x801640C0>({work, 1, 10});
             Memory::Write8(work + 0x1E7, 6);
             game.Call<NextAction>({work, 9, 0});
         }
@@ -5962,13 +6119,13 @@ void Em020DivePort(CpuContext* ctx) {
     Memory::Write8(work + 0x785, 1); // 0x80133CA0, inlined
 
     const auto burst = [&](float frameAt, float scale) {
-        if (game.Call<0x8012F990>({work, 0}, {frameAt, 0.0f}) != 1) // em_after_frame_check
+        if (game.Call<0x80169AC8>({work, 0}, {frameAt, 0.0f}) != 1) // em_after_frame_check
             return;
 
         Memory::WriteFloat32(at, 0.0f);
         Memory::WriteFloat32(at + 4, 0.0f);
         Memory::WriteFloat32(at + 8, 0.0f);
-        game.Call<0x801E2D68>({work, 0x17, 0x20, at, 100}, {scale});
+        game.Call<0x8006168C>({work, 0x17, 0x20, at, 100}, {scale});
     };
 
     const auto face = [&](float pitch) { game.Call<Em::SetAngles>({work}, {pitch, 0.0f, 0.0f}); };
@@ -5978,7 +6135,7 @@ void Em020DivePort(CpuContext* ctx) {
         em.State(1);
         game.Call<Em::SetUp>({work, 2});
         em.SetMotion(0x65, 0, 0);
-        game.Call<0x802BC82C>({0x3E, work});
+        game.Call<0x803747F4>({0x3E, work});
         game.Call<Em::SetPosition>({work}, {-4991.0f, -20390.0f, -3126.0f});
         face(0.0f);
         em.Count(0);
@@ -6028,908 +6185,956 @@ void Em020DivePort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_801C7570(CpuContext* ctx);
+extern "C" void func_80092D58(CpuContext* ctx);
 extern "C" void MH3_Em006Ambush(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Ambush", func_801C7570, Em004AmbushPort);
+    PortCheck::Call(ctx, "Em004Ambush", func_80092D58, Em004AmbushPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C7570, MH3_Em006Ambush, "Em004Ambush");
+REGISTER_NATIVE_FUNCTION_AS(0x80092D58, MH3_Em006Ambush, "Em004Ambush");
 
-extern "C" void func_80372994(CpuContext* ctx);
+extern "C" void func_8010A9A4(CpuContext* ctx);
 extern "C" void MH3_Em020Dive(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em020Dive", func_80372994, Em020DivePort);
+    PortCheck::Call(ctx, "Em020Dive", func_8010A9A4, Em020DivePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80372994, MH3_Em020Dive, "Em020Dive");
+REGISTER_NATIVE_FUNCTION_AS(0x8010A9A4, MH3_Em020Dive, "Em020Dive");
 
-extern "C" void func_8035455C(CpuContext* ctx);
+extern "C" void func_8011D1D8(CpuContext* ctx);
 extern "C" void MH3_Em024Charge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em024Charge", func_8035455C, Em024ChargePort);
+    PortCheck::Call(ctx, "Em024Charge", func_8011D1D8, Em024ChargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035455C, MH3_Em024Charge, "Em024Charge");
+REGISTER_NATIVE_FUNCTION_AS(0x8011D1D8, MH3_Em024Charge, "Em024Charge");
 
-extern "C" void func_8015611C(CpuContext* ctx);
+extern "C" void func_800869A0(CpuContext* ctx);
 extern "C" void MH3_Em005Stagger(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Stagger", func_8015611C, Em003StaggerPort);
+    PortCheck::Call(ctx, "Em003Stagger", func_800869A0, Em003StaggerPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015611C, MH3_Em005Stagger, "Em003Stagger");
+REGISTER_NATIVE_FUNCTION_AS(0x800869A0, MH3_Em005Stagger, "Em003Stagger");
 
-extern "C" void func_80168430(CpuContext* ctx);
+extern "C" void func_800C6030(CpuContext* ctx);
 extern "C" void MH3_Em012Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em010Turn", func_80168430, Em010TurnPort);
+    PortCheck::Call(ctx, "Em010Turn", func_800C6030, Em010TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80168430, MH3_Em012Turn, "Em010Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x800C6030, MH3_Em012Turn, "Em010Turn");
 
-extern "C" void func_8019474C(CpuContext* ctx);
+extern "C" void func_800F1EAC(CpuContext* ctx);
 extern "C" void MH3_Em018Lunge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Lunge", func_8019474C, Em018LungePort);
+    PortCheck::Call(ctx, "Em018Lunge", func_800F1EAC, Em018LungePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8019474C, MH3_Em018Lunge, "Em018Lunge");
+REGISTER_NATIVE_FUNCTION_AS(0x800F1EAC, MH3_Em018Lunge, "Em018Lunge");
 
-extern "C" void func_801ACA48(CpuContext* ctx);
+extern "C" void func_801330D8(CpuContext* ctx);
 extern "C" void MH3_Em027Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Rest", func_801ACA48, Em027RestPort);
+    PortCheck::Call(ctx, "Em027Rest", func_801330D8, Em027RestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801ACA48, MH3_Em027Rest, "Em027Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x801330D8, MH3_Em027Rest, "Em027Rest");
 
-extern "C" void func_801B2578(CpuContext* ctx);
+extern "C" void func_8013B9B4(CpuContext* ctx);
 extern "C" void MH3_Em029Charge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Charge", func_801B2578, Em030ChargePort);
+    PortCheck::Call(ctx, "Em030Charge", func_8013B9B4, Em030ChargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B2578, MH3_Em029Charge, "Em030Charge");
+REGISTER_NATIVE_FUNCTION_AS(0x8013B9B4, MH3_Em029Charge, "Em030Charge");
 
-extern "C" void func_801482AC(CpuContext* ctx);
+extern "C" void func_800789D4(CpuContext* ctx);
+static void Em001WaitDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em001WaitPort(ctx); else func_800789D4(ctx);
+}
 extern "C" void MH3_Em001Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Wait", func_801482AC, Em001WaitPort);
+    PortCheck::Call(ctx, "Em001Wait", func_800789D4, Em001WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801482AC, MH3_Em001Wait, "Em001Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x800789D4, MH3_Em001Wait, "Em001Wait");
 
-extern "C" void func_80159054(CpuContext* ctx);
+extern "C" void func_80089A10(CpuContext* ctx);
 extern "C" void MH3_Em003Move(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Move", func_80159054, Em003MovePort);
+    PortCheck::Call(ctx, "Em003Move", func_80089A10, Em003MovePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80159054, MH3_Em003Move, "Em003Move");
+REGISTER_NATIVE_FUNCTION_AS(0x80089A10, MH3_Em003Move, "Em003Move");
 
-extern "C" void func_8015898C(CpuContext* ctx);
+extern "C" void func_80089190(CpuContext* ctx);
 extern "C" void MH3_Em003Backstep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Backstep", func_8015898C, Em003BackstepPort);
+    PortCheck::Call(ctx, "Em003Backstep", func_80089190, Em003BackstepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015898C, MH3_Em003Backstep, "Em003Backstep");
+REGISTER_NATIVE_FUNCTION_AS(0x80089190, MH3_Em003Backstep, "Em003Backstep");
 
-extern "C" void func_801B795C(CpuContext* ctx);
+extern "C" void func_801499B8(CpuContext* ctx);
 extern "C" void MH3_Em034Hop(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Hop", func_801B795C, Em034HopPort);
+    PortCheck::Call(ctx, "Em034Hop", func_801499B8, Em034HopPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B795C, MH3_Em034Hop, "Em034Hop");
+REGISTER_NATIVE_FUNCTION_AS(0x801499B8, MH3_Em034Hop, "Em034Hop");
 
-extern "C" void func_801B867C(CpuContext* ctx);
+extern "C" void func_8014A8E0(CpuContext* ctx);
 extern "C" void MH3_Em034HopBack(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034HopBack", func_801B867C, Em034HopBackPort);
+    PortCheck::Call(ctx, "Em034HopBack", func_8014A8E0, Em034HopBackPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B867C, MH3_Em034HopBack, "Em034HopBack");
+REGISTER_NATIVE_FUNCTION_AS(0x8014A8E0, MH3_Em034HopBack, "Em034HopBack");
 
-extern "C" void func_80171B7C(CpuContext* ctx);
+extern "C" void func_800CF74C(CpuContext* ctx);
 extern "C" void MH3_Em012Retreat(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Retreat", func_80171B7C, Em012RetreatPort);
+    PortCheck::Call(ctx, "Em012Retreat", func_800CF74C, Em012RetreatPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80171B7C, MH3_Em012Retreat, "Em012Retreat");
+REGISTER_NATIVE_FUNCTION_AS(0x800CF74C, MH3_Em012Retreat, "Em012Retreat");
 
-extern "C" void func_801B1228(CpuContext* ctx);
+extern "C" void func_8013A35C(CpuContext* ctx);
 extern "C" void MH3_Em030Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Rest", func_801B1228, Em030RestPort);
+    PortCheck::Call(ctx, "Em030Rest", func_8013A35C, Em030RestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1228, MH3_Em030Rest, "Em030Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x8013A35C, MH3_Em030Rest, "Em030Rest");
 
-extern "C" void func_801B1708(CpuContext* ctx);
+extern "C" void func_8013AB30(CpuContext* ctx);
 extern "C" void MH3_Em030Run(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Run", func_801B1708, Em030RunPort);
+    PortCheck::Call(ctx, "Em030Run", func_8013AB30, Em030RunPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1708, MH3_Em030Run, "Em030Run");
+REGISTER_NATIVE_FUNCTION_AS(0x8013AB30, MH3_Em030Run, "Em030Run");
 
-extern "C" void func_80148ED0(CpuContext* ctx);
+extern "C" void func_800793D0(CpuContext* ctx);
 extern "C" void MH3_Em001Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Sleep", func_80148ED0, Em001SleepPort);
+    PortCheck::Call(ctx, "Em001Sleep", func_800793D0, Em001SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80148ED0, MH3_Em001Sleep, "Em001Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800793D0, MH3_Em001Sleep, "Em001Sleep");
 
-extern "C" void func_80155EBC(CpuContext* ctx);
+extern "C" void func_80086744(CpuContext* ctx);
 extern "C" void MH3_Em003Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Sleep", func_80155EBC, Em003SleepPort);
+    PortCheck::Call(ctx, "Em003Sleep", func_80086744, Em003SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80155EBC, MH3_Em003Sleep, "Em003Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x80086744, MH3_Em003Sleep, "Em003Sleep");
 
-extern "C" void func_8015E39C(CpuContext* ctx);
+extern "C" void func_800B36CC(CpuContext* ctx);
 extern "C" void MH3_Em008Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Sleep", func_8015E39C, Em008SleepPort);
+    PortCheck::Call(ctx, "Em008Sleep", func_800B36CC, Em008SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015E39C, MH3_Em008Sleep, "Em008Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800B36CC, MH3_Em008Sleep, "Em008Sleep");
 
-extern "C" void func_80170BB0(CpuContext* ctx);
+extern "C" void func_800CE8A4(CpuContext* ctx);
 extern "C" void MH3_Em012Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Sleep", func_80170BB0, Em012SleepPort);
+    PortCheck::Call(ctx, "Em012Sleep", func_800CE8A4, Em012SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80170BB0, MH3_Em012Sleep, "Em012Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800CE8A4, MH3_Em012Sleep, "Em012Sleep");
 
-extern "C" void func_801777D8(CpuContext* ctx);
+extern "C" void func_800D5230(CpuContext* ctx);
 extern "C" void MH3_Em015Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Sleep", func_801777D8, Em015SleepPort);
+    PortCheck::Call(ctx, "Em015Sleep", func_800D5230, Em015SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801777D8, MH3_Em015Sleep, "Em015Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800D5230, MH3_Em015Sleep, "Em015Sleep");
 
-extern "C" void func_80183F00(CpuContext* ctx);
+extern "C" void func_800E16CC(CpuContext* ctx);
 extern "C" void MH3_Em016Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em016Sleep", func_80183F00, Em016SleepPort);
+    PortCheck::Call(ctx, "Em016Sleep", func_800E16CC, Em016SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80183F00, MH3_Em016Sleep, "Em016Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800E16CC, MH3_Em016Sleep, "Em016Sleep");
 
-extern "C" void func_801BC230(CpuContext* ctx);
+extern "C" void func_800A32E8(CpuContext* ctx);
 extern "C" void MH3_Em006Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Sleep", func_801BC230, Em006SleepPort);
+    PortCheck::Call(ctx, "Em006Sleep", func_800A32E8, Em006SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BC230, MH3_Em006Sleep, "Em006Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800A32E8, MH3_Em006Sleep, "Em006Sleep");
 
-extern "C" void func_801CB6F8(CpuContext* ctx);
+extern "C" void func_800968F8(CpuContext* ctx);
 extern "C" void MH3_Em005Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Sleep", func_801CB6F8, Em005SleepPort);
+    PortCheck::Call(ctx, "Em005Sleep", func_800968F8, Em005SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801CB6F8, MH3_Em005Sleep, "Em005Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800968F8, MH3_Em005Sleep, "Em005Sleep");
 
-extern "C" void func_80379A0C(CpuContext* ctx);
+extern "C" void func_800FC924(CpuContext* ctx);
 extern "C" void MH3_Em019Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Sleep", func_80379A0C, Em019SleepPort);
+    PortCheck::Call(ctx, "Em019Sleep", func_800FC924, Em019SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80379A0C, MH3_Em019Sleep, "Em019Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800FC924, MH3_Em019Sleep, "Em019Sleep");
 
-extern "C" void func_801D7C5C(CpuContext* ctx);
+extern "C" void func_800AA6D0(CpuContext* ctx);
 extern "C" void MH3_Em007Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em007Sleep", func_801D7C5C, Em007SleepPort);
+    PortCheck::Call(ctx, "Em007Sleep", func_800AA6D0, Em007SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D7C5C, MH3_Em007Sleep, "Em007Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800AA6D0, MH3_Em007Sleep, "Em007Sleep");
 
-extern "C" void func_80195DE4(CpuContext* ctx);
+extern "C" void func_800F3710(CpuContext* ctx);
 extern "C" void MH3_Em018Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Sleep", func_80195DE4, Em018SleepPort);
+    PortCheck::Call(ctx, "Em018Sleep", func_800F3710, Em018SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80195DE4, MH3_Em018Sleep, "Em018Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800F3710, MH3_Em018Sleep, "Em018Sleep");
 
-extern "C" void func_801C6014(CpuContext* ctx);
+extern "C" void func_80090F54(CpuContext* ctx);
 extern "C" void MH3_Em004Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Sleep", func_801C6014, Em004SleepPort);
+    PortCheck::Call(ctx, "Em004Sleep", func_80090F54, Em004SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C6014, MH3_Em004Sleep, "Em004Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x80090F54, MH3_Em004Sleep, "Em004Sleep");
 
-extern "C" void func_8014888C(CpuContext* ctx);
+extern "C" void func_80078DD4(CpuContext* ctx);
 extern "C" void MH3_Em001Walk(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Walk", func_8014888C, Em001WalkPort);
+    PortCheck::Call(ctx, "Em001Walk", func_80078DD4, Em001WalkPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014888C, MH3_Em001Walk, "Em001Walk");
+REGISTER_NATIVE_FUNCTION_AS(0x80078DD4, MH3_Em001Walk, "Em001Walk");
 
-extern "C" void func_8014A8C4(CpuContext* ctx);
+extern "C" void func_8007B078(CpuContext* ctx);
+static void Em001HoverDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 11) Em001HoverPort(ctx); else func_8007B078(ctx);
+}
 extern "C" void MH3_Em001Hover(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Hover", func_8014A8C4, Em001HoverPort);
+    PortCheck::Call(ctx, "Em001Hover", func_8007B078, Em001HoverDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014A8C4, MH3_Em001Hover, "Em001Hover");
+REGISTER_NATIVE_FUNCTION_AS(0x8007B078, MH3_Em001Hover, "Em001Hover");
 
-extern "C" void func_80184DFC(CpuContext* ctx);
+extern "C" void func_800E23B8(CpuContext* ctx);
 extern "C" void MH3_Em016Swim(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em016Swim", func_80184DFC, Em016SwimPort);
+    PortCheck::Call(ctx, "Em016Swim", func_800E23B8, Em016SwimPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80184DFC, MH3_Em016Swim, "Em016Swim");
+REGISTER_NATIVE_FUNCTION_AS(0x800E23B8, MH3_Em016Swim, "Em016Swim");
 
-extern "C" void func_8018599C(CpuContext* ctx);
+extern "C" void func_800E2CB0(CpuContext* ctx);
 extern "C" void MH3_Em016Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em016Rest", func_8018599C, Em016RestPort);
+    PortCheck::Call(ctx, "Em016Rest", func_800E2CB0, Em016RestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8018599C, MH3_Em016Rest, "Em016Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x800E2CB0, MH3_Em016Rest, "Em016Rest");
 
-extern "C" void func_80177A00(CpuContext* ctx);
+extern "C" void func_800D534C(CpuContext* ctx);
+static void Em015PauseDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em015PausePort(ctx); else func_800D534C(ctx);
+}
 extern "C" void MH3_Em015Pause(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Pause", func_80177A00, Em015PausePort);
+    PortCheck::Call(ctx, "Em015Pause", func_800D534C, Em015PauseDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80177A00, MH3_Em015Pause, "Em015Pause");
+REGISTER_NATIVE_FUNCTION_AS(0x800D534C, MH3_Em015Pause, "Em015Pause");
 
-extern "C" void func_80379C34(CpuContext* ctx);
+extern "C" void func_800FCA40(CpuContext* ctx);
+static void Em019PauseDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em019PausePort(ctx); else func_800FCA40(ctx);
+}
 extern "C" void MH3_Em019Pause(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Pause", func_80379C34, Em019PausePort);
+    PortCheck::Call(ctx, "Em019Pause", func_800FCA40, Em019PauseDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80379C34, MH3_Em019Pause, "Em019Pause");
+REGISTER_NATIVE_FUNCTION_AS(0x800FCA40, MH3_Em019Pause, "Em019Pause");
 
-extern "C" void func_8037F414(CpuContext* ctx);
+extern "C" void func_8010223C(CpuContext* ctx);
+static void Em019Pause2DispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 7) Em019Pause2Port(ctx); else func_8010223C(ctx);
+}
 extern "C" void MH3_Em019Pause2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Pause2", func_8037F414, Em019Pause2Port);
+    PortCheck::Call(ctx, "Em019Pause2", func_8010223C, Em019Pause2DispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8037F414, MH3_Em019Pause2, "Em019Pause2");
+REGISTER_NATIVE_FUNCTION_AS(0x8010223C, MH3_Em019Pause2, "Em019Pause2");
 
-extern "C" void func_801AD4FC(CpuContext* ctx);
+extern "C" void func_80135340(CpuContext* ctx);
+static void Em027GrazeDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    const uint8_t s5 = Memory::Read8(w + 0x1E5), s6 = Memory::Read8(w + 0x1E6);
+    if (s5 == 12 && s6 == 0) Em027GrazePort(ctx);
+    else if (s5 == 12 && s6 == 1) Em027Graze2Port(ctx);
+    else func_80135340(ctx);
+}
 extern "C" void MH3_Em027Graze(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Graze", func_801AD4FC, Em027GrazePort);
+    PortCheck::Call(ctx, "Em027Graze", func_80135340, Em027GrazeDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801AD4FC, MH3_Em027Graze, "Em027Graze");
+REGISTER_NATIVE_FUNCTION_AS(0x80135340, MH3_Em027Graze, "Em027Graze");
 
-extern "C" void func_801AD58C(CpuContext* ctx);
-extern "C" void MH3_Em027Graze2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Graze2", func_801AD58C, Em027Graze2Port);
+extern "C" void func_8013A650(CpuContext* ctx);
+static void Em030IdleDispatchPort(CpuContext* ctx) {
+    const uint8_t s6 = Memory::Read8(ctx->gpr[3] + 0x1E6);
+    if (s6 == 3 || s6 == 16) Em030Idle3Port(ctx);
+    else if (s6 == 4) Em030Idle4Port(ctx);
+    else if (s6 == 5) Em030Idle5Port(ctx);
+    else if (s6 == 8) Em030IdlePort(ctx);
+    else if (s6 == 12) Em030Idle2Port(ctx);
+    else func_8013A650(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801AD58C, MH3_Em027Graze2, "Em027Graze2");
-
-extern "C" void func_801B1198(CpuContext* ctx);
 extern "C" void MH3_Em030Idle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Idle", func_801B1198, Em030IdlePort);
+    PortCheck::Call(ctx, "Em030Idle", func_8013A650, Em030IdleDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1198, MH3_Em030Idle, "Em030Idle");
+REGISTER_NATIVE_FUNCTION_AS(0x8013A650, MH3_Em030Idle, "Em030Idle");
 
-extern "C" void func_801B1378(CpuContext* ctx);
-extern "C" void MH3_Em030Idle2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Idle2", func_801B1378, Em030Idle2Port);
+extern "C" void func_80088B78(CpuContext* ctx);
+static void Em003HoverDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 11) Em003HoverPort(ctx); else func_80088B78(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1378, MH3_Em030Idle2, "Em030Idle2");
-
-extern "C" void func_80157FA8(CpuContext* ctx);
 extern "C" void MH3_Em003Hover(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Hover", func_80157FA8, Em003HoverPort);
+    PortCheck::Call(ctx, "Em003Hover", func_80088B78, Em003HoverDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80157FA8, MH3_Em003Hover, "Em003Hover");
+REGISTER_NATIVE_FUNCTION_AS(0x80088B78, MH3_Em003Hover, "Em003Hover");
 
-extern "C" void func_801BC10C(CpuContext* ctx);
+extern "C" void func_800A36B0(CpuContext* ctx);
+static void Em006WalkDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 3) Em006WalkPort(ctx); else func_800A36B0(ctx);
+}
 extern "C" void MH3_Em006Walk(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Walk", func_801BC10C, Em006WalkPort);
+    PortCheck::Call(ctx, "Em006Walk", func_800A36B0, Em006WalkDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BC10C, MH3_Em006Walk, "Em006Walk");
+REGISTER_NATIVE_FUNCTION_AS(0x800A36B0, MH3_Em006Walk, "Em006Walk");
 
-extern "C" void func_801CB5E0(CpuContext* ctx);
+extern "C" void func_80096A14(CpuContext* ctx);
+static void Em005WalkDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 2) Em005WalkPort(ctx); else func_80096A14(ctx);
+}
 extern "C" void MH3_Em005Walk(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Walk", func_801CB5E0, Em005WalkPort);
+    PortCheck::Call(ctx, "Em005Walk", func_80096A14, Em005WalkDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801CB5E0, MH3_Em005Walk, "Em005Walk");
+REGISTER_NATIVE_FUNCTION_AS(0x80096A14, MH3_Em005Walk, "Em005Walk");
 
-extern "C" void func_80388D80(CpuContext* ctx);
+extern "C" void func_800BE9E4(CpuContext* ctx);
+static void Em009BuriedDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 1) Em009BuriedPort(ctx); else func_800BE9E4(ctx);
+}
 extern "C" void MH3_Em009Buried(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em009Buried", func_80388D80, Em009BuriedPort);
+    PortCheck::Call(ctx, "Em009Buried", func_800BE9E4, Em009BuriedDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80388D80, MH3_Em009Buried, "Em009Buried");
+REGISTER_NATIVE_FUNCTION_AS(0x800BE9E4, MH3_Em009Buried, "Em009Buried");
 
-extern "C" void func_80387D08(CpuContext* ctx);
+extern "C" void func_800BD134(CpuContext* ctx);
 extern "C" void MH3_Em009Doze(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em009Doze", func_80387D08, Em009DozePort);
+    PortCheck::Call(ctx, "Em009Doze", func_800BD134, Em009DozePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80387D08, MH3_Em009Doze, "Em009Doze");
+REGISTER_NATIVE_FUNCTION_AS(0x800BD134, MH3_Em009Doze, "Em009Doze");
 
-extern "C" void func_803878A8(CpuContext* ctx);
+extern "C" void func_800BCD58(CpuContext* ctx);
 extern "C" void MH3_Em009Sleep(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em009Sleep", func_803878A8, Em009SleepPort);
+    PortCheck::Call(ctx, "Em009Sleep", func_800BCD58, Em009SleepPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803878A8, MH3_Em009Sleep, "Em009Sleep");
+REGISTER_NATIVE_FUNCTION_AS(0x800BCD58, MH3_Em009Sleep, "Em009Sleep");
 
-extern "C" void func_801AC888(CpuContext* ctx);
-extern "C" void MH3_Em027Trot(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Trot", func_801AC888, Em027TrotPort);
+extern "C" void func_80091080(CpuContext* ctx);
+static void Em004WaitDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em004WaitPort(ctx); else func_80091080(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801AC888, MH3_Em027Trot, "Em027Trot");
-
-extern "C" void func_801C40B0(CpuContext* ctx);
 extern "C" void MH3_Em004Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Wait", func_801C40B0, Em004WaitPort);
+    PortCheck::Call(ctx, "Em004Wait", func_80091080, Em004WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C40B0, MH3_Em004Wait, "Em004Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x80091080, MH3_Em004Wait, "Em004Wait");
 
-extern "C" void func_801CDDF8(CpuContext* ctx);
+extern "C" void func_80099ABC(CpuContext* ctx);
+static void Em005WaitDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 11) Em005WaitPort(ctx); else func_80099ABC(ctx);
+}
 extern "C" void MH3_Em005Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Wait", func_801CDDF8, Em005WaitPort);
+    PortCheck::Call(ctx, "Em005Wait", func_80099ABC, Em005WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801CDDF8, MH3_Em005Wait, "Em005Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x80099ABC, MH3_Em005Wait, "Em005Wait");
 
-extern "C" void func_80194D2C(CpuContext* ctx);
+extern "C" void func_800F273C(CpuContext* ctx);
+static void Em018WaitDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 31) Em018WaitPort(ctx); else func_800F273C(ctx);
+}
 extern "C" void MH3_Em018Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Wait", func_80194D2C, Em018WaitPort);
+    PortCheck::Call(ctx, "Em018Wait", func_800F273C, Em018WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80194D2C, MH3_Em018Wait, "Em018Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x800F273C, MH3_Em018Wait, "Em018Wait");
 
-extern "C" void func_8035DA78(CpuContext* ctx);
+extern "C" void func_80144564(CpuContext* ctx);
+static void Em033WaitDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    if (Memory::Read8(w + 0x1E5) == 12 && Memory::Read8(w + 0x1E6) == 1) Em033WaitPort(ctx);
+    else func_80144564(ctx);
+}
 extern "C" void MH3_Em033Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Wait", func_8035DA78, Em033WaitPort);
+    PortCheck::Call(ctx, "Em033Wait", func_80144564, Em033WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035DA78, MH3_Em033Wait, "Em033Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x80144564, MH3_Em033Wait, "Em033Wait");
 
-extern "C" void func_80170CCC(CpuContext* ctx);
+extern "C" void func_800CE9C0(CpuContext* ctx);
+static void Em012PauseDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em012PausePort(ctx); else func_800CE9C0(ctx);
+}
 extern "C" void MH3_Em012Pause(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em012Pause", func_80170CCC, Em012PausePort);
+    PortCheck::Call(ctx, "Em012Pause", func_800CE9C0, Em012PauseDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80170CCC, MH3_Em012Pause, "Em012Pause");
+REGISTER_NATIVE_FUNCTION_AS(0x800CE9C0, MH3_Em012Pause, "Em012Pause");
 
-extern "C" void func_801A14B8(CpuContext* ctx);
+extern "C" void func_8012415C(CpuContext* ctx);
+static void Em025RestDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 16) Em025RestPort(ctx); else func_8012415C(ctx);
+}
 extern "C" void MH3_Em025Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Rest", func_801A14B8, Em025RestPort);
+    PortCheck::Call(ctx, "Em025Rest", func_8012415C, Em025RestDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801A14B8, MH3_Em025Rest, "Em025Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x8012415C, MH3_Em025Rest, "Em025Rest");
 
-extern "C" void func_80167904(CpuContext* ctx);
+extern "C" void func_800C54C8(CpuContext* ctx);
+static void Em010BackDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 8) Em010BackPort(ctx); else func_800C54C8(ctx);
+}
 extern "C" void MH3_Em010Back(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em010Back", func_80167904, Em010BackPort);
+    PortCheck::Call(ctx, "Em010Back", func_800C54C8, Em010BackDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80167904, MH3_Em010Back, "Em010Back");
+REGISTER_NATIVE_FUNCTION_AS(0x800C54C8, MH3_Em010Back, "Em010Back");
 
-extern "C" void func_8016DB84(CpuContext* ctx);
+extern "C" void func_800CB390(CpuContext* ctx);
+static void Em011BackDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 11) Em011BackPort(ctx); else func_800CB390(ctx);
+}
 extern "C" void MH3_Em011Back(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em011Back", func_8016DB84, Em011BackPort);
+    PortCheck::Call(ctx, "Em011Back", func_800CB390, Em011BackDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8016DB84, MH3_Em011Back, "Em011Back");
+REGISTER_NATIVE_FUNCTION_AS(0x800CB390, MH3_Em011Back, "Em011Back");
 
-extern "C" void func_8015FB24(CpuContext* ctx);
+extern "C" void func_800B4CDC(CpuContext* ctx);
 extern "C" void MH3_Em008Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Wait", func_8015FB24, Em008WaitPort);
+    PortCheck::Call(ctx, "Em008Wait", func_800B4CDC, Em008WaitPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015FB24, MH3_Em008Wait, "Em008Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x800B4CDC, MH3_Em008Wait, "Em008Wait");
 
-extern "C" void func_801D8B28(CpuContext* ctx);
+extern "C" void func_800ADEF0(CpuContext* ctx);
+static void Em007BuriedDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    if (Memory::Read8(w + 0x1E5) == 6 && Memory::Read8(w + 0x1E6) == 1) {
+        Em007BuriedPort(ctx);
+        if (Memory::Read8(w + 0x1E2) == 4) { GuestCall g{ctx}; g.Call<0x8016C528>({w}); }
+    } else func_800ADEF0(ctx);
+}
 extern "C" void MH3_Em007Buried(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em007Buried", func_801D8B28, Em007BuriedPort);
+    PortCheck::Call(ctx, "Em007Buried", func_800ADEF0, Em007BuriedDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D8B28, MH3_Em007Buried, "Em007Buried");
+REGISTER_NATIVE_FUNCTION_AS(0x800ADEF0, MH3_Em007Buried, "Em007Buried");
 
-extern "C" void func_8015F400(CpuContext* ctx);
+extern "C" void func_800B4FC0(CpuContext* ctx);
+static void Em008BuriedDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 1) Em008BuriedPort(ctx); else func_800B4FC0(ctx);
+}
 extern "C" void MH3_Em008Buried(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Buried", func_8015F400, Em008BuriedPort);
+    PortCheck::Call(ctx, "Em008Buried", func_800B4FC0, Em008BuriedDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015F400, MH3_Em008Buried, "Em008Buried");
+REGISTER_NATIVE_FUNCTION_AS(0x800B4FC0, MH3_Em008Buried, "Em008Buried");
 
-extern "C" void func_801BD2F0(CpuContext* ctx);
+extern "C" void func_800A4AE8(CpuContext* ctx);
+static void Em006UnderDispatchPort(CpuContext* ctx) {
+    const uint8_t s6 = Memory::Read8(ctx->gpr[3] + 0x1E6);
+    if (s6 == 1) Em006UnderRun(ctx, false);
+    else if (s6 == 19) Em006UnderRun(ctx, true);
+    else func_800A4AE8(ctx);
+}
 extern "C" void MH3_Em006Under(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Under", func_801BD2F0, Em006UnderPort);
+    PortCheck::Call(ctx, "Em006Under", func_800A4AE8, Em006UnderDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BD2F0, MH3_Em006Under, "Em006Under");
+REGISTER_NATIVE_FUNCTION_AS(0x800A4AE8, MH3_Em006Under, "Em006Under");
 
-extern "C" void func_801BC4D8(CpuContext* ctx);
+extern "C" void func_800A3508(CpuContext* ctx);
 extern "C" void MH3_Em006Sink(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Sink", func_801BC4D8, Em006SinkPort);
+    PortCheck::Call(ctx, "Em006Sink", func_800A3508, Em006SinkPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BC4D8, MH3_Em006Sink, "Em006Sink");
+REGISTER_NATIVE_FUNCTION_AS(0x800A3508, MH3_Em006Sink, "Em006Sink");
 
-extern "C" void func_80195004(CpuContext* ctx);
+extern "C" void func_800F2514(CpuContext* ctx);
 extern "C" void MH3_Em018Lurk(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Lurk", func_80195004, Em018LurkPort);
+    PortCheck::Call(ctx, "Em018Lurk", func_800F2514, Em018LurkPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80195004, MH3_Em018Lurk, "Em018Lurk");
+REGISTER_NATIVE_FUNCTION_AS(0x800F2514, MH3_Em018Lurk, "Em018Lurk");
 
-extern "C" void func_80195278(CpuContext* ctx);
+extern "C" void func_800F2610(CpuContext* ctx);
 extern "C" void MH3_Em018Gape(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Gape", func_80195278, Em018GapePort);
+    PortCheck::Call(ctx, "Em018Gape", func_800F2610, Em018GapePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80195278, MH3_Em018Gape, "Em018Gape");
+REGISTER_NATIVE_FUNCTION_AS(0x800F2610, MH3_Em018Gape, "Em018Gape");
 
-extern "C" void func_80194B48(CpuContext* ctx);
+extern "C" void func_800F2100(CpuContext* ctx);
 extern "C" void MH3_Em018Bite(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Bite", func_80194B48, Em018BitePort);
+    PortCheck::Call(ctx, "Em018Bite", func_800F2100, Em018BitePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80194B48, MH3_Em018Bite, "Em018Bite");
+REGISTER_NATIVE_FUNCTION_AS(0x800F2100, MH3_Em018Bite, "Em018Bite");
 
-extern "C" void func_801958C4(CpuContext* ctx);
+extern "C" void func_800F31E8(CpuContext* ctx);
 extern "C" void MH3_Em018Ambush(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Ambush", func_801958C4, Em018AmbushPort);
+    PortCheck::Call(ctx, "Em018Ambush", func_800F31E8, Em018AmbushPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801958C4, MH3_Em018Ambush, "Em018Ambush");
+REGISTER_NATIVE_FUNCTION_AS(0x800F31E8, MH3_Em018Ambush, "Em018Ambush");
 
-extern "C" void func_8019771C(CpuContext* ctx);
+extern "C" void func_800F5150(CpuContext* ctx);
 extern "C" void MH3_Em018Leap(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Leap", func_8019771C, Em018LeapPort);
+    PortCheck::Call(ctx, "Em018Leap", func_800F5150, Em018LeapPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8019771C, MH3_Em018Leap, "Em018Leap");
+REGISTER_NATIVE_FUNCTION_AS(0x800F5150, MH3_Em018Leap, "Em018Leap");
 
-extern "C" void func_80197F68(CpuContext* ctx);
+extern "C" void func_800F5890(CpuContext* ctx);
 extern "C" void MH3_Em018Hop(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018Hop", func_80197F68, Em018HopPort);
+    PortCheck::Call(ctx, "Em018Hop", func_800F5890, Em018HopPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80197F68, MH3_Em018Hop, "Em018Hop");
+REGISTER_NATIVE_FUNCTION_AS(0x800F5890, MH3_Em018Hop, "Em018Hop");
 
-extern "C" void func_8019F5D0(CpuContext* ctx);
+extern "C" void func_80126B78(CpuContext* ctx);
+static void Em025WaitDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    if (Memory::Read8(w + 0x1E5) == 1 && Memory::Read8(w + 0x1E6) == 3) {
+        Em025WaitPort(ctx);
+        if (Memory::Read8(w + 0x1E2) == 4) { GuestCall g{ctx}; g.Call<0x80172CC4>({w}); }
+    } else func_80126B78(ctx);
+}
 extern "C" void MH3_Em025Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Wait", func_8019F5D0, Em025WaitPort);
+    PortCheck::Call(ctx, "Em025Wait", func_80126B78, Em025WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8019F5D0, MH3_Em025Wait, "Em025Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x80126B78, MH3_Em025Wait, "Em025Wait");
 
-extern "C" void func_801A13E8(CpuContext* ctx);
+extern "C" void func_80123E44(CpuContext* ctx);
 extern "C" void MH3_Em025Rest2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Rest2", func_801A13E8, Em025Rest2Port);
+    PortCheck::Call(ctx, "Em025Rest2", func_80123E44, Em025Rest2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801A13E8, MH3_Em025Rest2, "Em025Rest2");
+REGISTER_NATIVE_FUNCTION_AS(0x80123E44, MH3_Em025Rest2, "Em025Rest2");
 
-extern "C" void func_8032D89C(CpuContext* ctx);
+extern "C" void func_8012FDA0(CpuContext* ctx);
+static void Em026WaitDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    const uint8_t s5 = Memory::Read8(w + 0x1E5), s6 = Memory::Read8(w + 0x1E6);
+    if (s5 == 2 && s6 == 0) Em026CrawlPort(ctx);
+    else if (s5 == 2 && s6 == 1) Em026Crawl2Port(ctx);
+    else if (s5 == 2 && s6 == 5) Em026WaitPort(ctx);
+    else func_8012FDA0(ctx);
+}
 extern "C" void MH3_Em026Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Wait", func_8032D89C, Em026WaitPort);
+    PortCheck::Call(ctx, "Em026Wait", func_8012FDA0, Em026WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032D89C, MH3_Em026Wait, "Em026Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x8012FDA0, MH3_Em026Wait, "Em026Wait");
 
-extern "C" void func_8032D53C(CpuContext* ctx);
-extern "C" void MH3_Em026Crawl(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Crawl", func_8032D53C, Em026CrawlPort);
+extern "C" void func_8012E6A8(CpuContext* ctx);
+static void Em026TurnDispatchPort(CpuContext* ctx) {
+    if (Memory::Read8(ctx->gpr[3] + 0x1E6) == 4) Em026TurnPort(ctx); else func_8012E6A8(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032D53C, MH3_Em026Crawl, "Em026Crawl");
-
-extern "C" void func_8032D628(CpuContext* ctx);
-extern "C" void MH3_Em026Crawl2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Crawl2", func_8032D628, Em026Crawl2Port);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8032D628, MH3_Em026Crawl2, "Em026Crawl2");
-
-extern "C" void func_8032DC10(CpuContext* ctx);
 extern "C" void MH3_Em026Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Turn", func_8032DC10, Em026TurnPort);
+    PortCheck::Call(ctx, "Em026Turn", func_8012E6A8, Em026TurnDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032DC10, MH3_Em026Turn, "Em026Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x8012E6A8, MH3_Em026Turn, "Em026Turn");
 
-extern "C" void func_8035C620(CpuContext* ctx);
-extern "C" void MH3_Em033Back(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Back", func_8035C620, Em033BackPort);
+extern "C" void func_80142B64(CpuContext* ctx);
+static void Em033PauseDispatchPort(CpuContext* ctx) {
+    const uint8_t s6 = Memory::Read8(ctx->gpr[3] + 0x1E6);
+    if (s6 == 2) Em033PauseRun(ctx, false);
+    else if (s6 == 3) Em033PauseRun(ctx, true);
+    else if (s6 == 13) Em033BackPort(ctx);
+    else func_80142B64(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035C620, MH3_Em033Back, "Em033Back");
-
-extern "C" void func_8035C410(CpuContext* ctx);
 extern "C" void MH3_Em033Pause(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Pause", func_8035C410, Em033PausePort);
+    PortCheck::Call(ctx, "Em033Pause", func_80142B64, Em033PauseDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035C410, MH3_Em033Pause, "Em033Pause");
+REGISTER_NATIVE_FUNCTION_AS(0x80142B64, MH3_Em033Pause, "Em033Pause");
 
-extern "C" void func_8035F400(CpuContext* ctx);
-extern "C" void MH3_Em035Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em035Rest", func_8035F400, Em035RestPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8035F400, MH3_Em035Rest, "Em035Rest");
-
-extern "C" void func_8035F6A8(CpuContext* ctx);
-extern "C" void MH3_Em035Rest2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em035Rest2", func_8035F6A8, Em035Rest2Port);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x8035F6A8, MH3_Em035Rest2, "Em035Rest2");
-
-extern "C" void func_803796F8(CpuContext* ctx);
+extern "C" void func_800FC6E8(CpuContext* ctx);
 extern "C" void MH3_Em019Lava(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Lava", func_803796F8, Em019LavaPort);
+    PortCheck::Call(ctx, "Em019Lava", func_800FC6E8, Em019LavaPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803796F8, MH3_Em019Lava, "Em019Lava");
+REGISTER_NATIVE_FUNCTION_AS(0x800FC6E8, MH3_Em019Lava, "Em019Lava");
 
-extern "C" void func_8037A56C(CpuContext* ctx);
+extern "C" void func_800FD408(CpuContext* ctx);
 extern "C" void MH3_Em019Lava2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Lava2", func_8037A56C, Em019Lava2Port);
+    PortCheck::Call(ctx, "Em019Lava2", func_800FD408, Em019Lava2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8037A56C, MH3_Em019Lava2, "Em019Lava2");
+REGISTER_NATIVE_FUNCTION_AS(0x800FD408, MH3_Em019Lava2, "Em019Lava2");
 
-extern "C" void func_801AC714(CpuContext* ctx);
-extern "C" void MH3_Em027Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Turn", func_801AC714, Em027TurnPort);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801AC714, MH3_Em027Turn, "Em027Turn");
-
-extern "C" void func_801AC930(CpuContext* ctx);
+extern "C" void func_80132FAC(CpuContext* ctx);
 extern "C" void MH3_Em027Turn2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Turn2", func_801AC930, Em027Turn2Port);
+    PortCheck::Call(ctx, "Em027Turn2", func_80132FAC, Em027Turn2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801AC930, MH3_Em027Turn2, "Em027Turn2");
+REGISTER_NATIVE_FUNCTION_AS(0x80132FAC, MH3_Em027Turn2, "Em027Turn2");
 
-extern "C" void func_801B0F64(CpuContext* ctx);
-extern "C" void MH3_Em030Idle3(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Idle3", func_801B0F64, Em030Idle3Port);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801B0F64, MH3_Em030Idle3, "Em030Idle3");
-
-extern "C" void func_801B1020(CpuContext* ctx);
-extern "C" void MH3_Em030Idle4(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Idle4", func_801B1020, Em030Idle4Port);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801B1020, MH3_Em030Idle4, "Em030Idle4");
-
-extern "C" void func_801B10DC(CpuContext* ctx);
-extern "C" void MH3_Em030Idle5(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Idle5", func_801B10DC, Em030Idle5Port);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801B10DC, MH3_Em030Idle5, "Em030Idle5");
-
-extern "C" void func_801B19BC(CpuContext* ctx);
+extern "C" void func_8013ADD8(CpuContext* ctx);
 extern "C" void MH3_Em030Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Turn", func_801B19BC, Em030TurnPort);
+    PortCheck::Call(ctx, "Em030Turn", func_8013ADD8, Em030TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B19BC, MH3_Em030Turn, "Em030Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x8013ADD8, MH3_Em030Turn, "Em030Turn");
 
-extern "C" void func_801685D8(CpuContext* ctx);
+extern "C" void func_800C61D4(CpuContext* ctx);
 extern "C" void MH3_Em010Turn2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em010Turn2", func_801685D8, Em010Turn2Port);
+    PortCheck::Call(ctx, "Em010Turn2", func_800C61D4, Em010Turn2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801685D8, MH3_Em010Turn2, "Em010Turn2");
+REGISTER_NATIVE_FUNCTION_AS(0x800C61D4, MH3_Em010Turn2, "Em010Turn2");
 
-extern "C" void func_801B27F0(CpuContext* ctx);
+extern "C" void func_8013BC2C(CpuContext* ctx);
 extern "C" void MH3_Em030Charge2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Charge2", func_801B27F0, Em030Charge2Port);
+    PortCheck::Call(ctx, "Em030Charge2", func_8013BC2C, Em030Charge2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B27F0, MH3_Em030Charge2, "Em030Charge2");
+REGISTER_NATIVE_FUNCTION_AS(0x8013BC2C, MH3_Em030Charge2, "Em030Charge2");
 
-extern "C" void func_8015FA60(CpuContext* ctx);
+extern "C" void func_800B4B98(CpuContext* ctx);
 extern "C" void MH3_Em008Track(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Track", func_8015FA60, Em008TrackPort);
+    PortCheck::Call(ctx, "Em008Track", func_800B4B98, Em008TrackPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015FA60, MH3_Em008Track, "Em008Track");
+REGISTER_NATIVE_FUNCTION_AS(0x800B4B98, MH3_Em008Track, "Em008Track");
 
-extern "C" void func_8015814C(CpuContext* ctx);
+extern "C" void func_80088A70(CpuContext* ctx);
 extern "C" void MH3_Em003Settle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Settle", func_8015814C, Em003SettlePort);
+    PortCheck::Call(ctx, "Em003Settle", func_80088A70, Em003SettlePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015814C, MH3_Em003Settle, "Em003Settle");
+REGISTER_NATIVE_FUNCTION_AS(0x80088A70, MH3_Em003Settle, "Em003Settle");
 
-extern "C" void func_801B7C40(CpuContext* ctx);
+extern "C" void func_80149CE4(CpuContext* ctx);
 extern "C" void MH3_Em034HopAway(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034HopAway", func_801B7C40, Em034HopAwayPort);
+    PortCheck::Call(ctx, "Em034HopAway", func_80149CE4, Em034HopAwayPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B7C40, MH3_Em034HopAway, "Em034HopAway");
+REGISTER_NATIVE_FUNCTION_AS(0x80149CE4, MH3_Em034HopAway, "Em034HopAway");
 
-extern "C" void func_801B81F0(CpuContext* ctx);
+extern "C" void func_8014A324(CpuContext* ctx);
 extern "C" void MH3_Em034LeapTo(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034LeapTo", func_801B81F0, Em034LeapToPort);
+    PortCheck::Call(ctx, "Em034LeapTo", func_8014A324, Em034LeapToPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B81F0, MH3_Em034LeapTo, "Em034LeapTo");
+REGISTER_NATIVE_FUNCTION_AS(0x8014A324, MH3_Em034LeapTo, "Em034LeapTo");
 
-extern "C" void func_801B5D88(CpuContext* ctx);
+extern "C" void func_801473B0(CpuContext* ctx);
 extern "C" void MH3_Em034Graze(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Graze", func_801B5D88, Em034GrazePort);
+    PortCheck::Call(ctx, "Em034Graze", func_801473B0, Em034GrazePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B5D88, MH3_Em034Graze, "Em034Graze");
+REGISTER_NATIVE_FUNCTION_AS(0x801473B0, MH3_Em034Graze, "Em034Graze");
 
-extern "C" void func_8015F948(CpuContext* ctx);
+extern "C" void func_800B4A20(CpuContext* ctx);
 extern "C" void MH3_Em008Hold(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em008Hold", func_8015F948, Em008HoldPort);
+    PortCheck::Call(ctx, "Em008Hold", func_800B4A20, Em008HoldPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8015F948, MH3_Em008Hold, "Em008Hold");
+REGISTER_NATIVE_FUNCTION_AS(0x800B4A20, MH3_Em008Hold, "Em008Hold");
 
-extern "C" void func_801B1AA4(CpuContext* ctx);
+extern "C" void func_8013AEC4(CpuContext* ctx);
 extern "C" void MH3_Em030Look(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Look", func_801B1AA4, Em030LookPort);
+    PortCheck::Call(ctx, "Em030Look", func_8013AEC4, Em030LookPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1AA4, MH3_Em030Look, "Em030Look");
+REGISTER_NATIVE_FUNCTION_AS(0x8013AEC4, MH3_Em030Look, "Em030Look");
 
-extern "C" void func_801B1878(CpuContext* ctx);
+extern "C" void func_8013AC94(CpuContext* ctx);
 extern "C" void MH3_Em030Turn2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Turn2", func_801B1878, Em030Turn2Port);
+    PortCheck::Call(ctx, "Em030Turn2", func_8013AC94, Em030Turn2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1878, MH3_Em030Turn2, "Em030Turn2");
+REGISTER_NATIVE_FUNCTION_AS(0x8013AC94, MH3_Em030Turn2, "Em030Turn2");
 
-extern "C" void func_8032D304(CpuContext* ctx);
+extern "C" void func_8012DE04(CpuContext* ctx);
 extern "C" void MH3_Em026Hang(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Hang", func_8032D304, Em026HangPort);
+    PortCheck::Call(ctx, "Em026Hang", func_8012DE04, Em026HangPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032D304, MH3_Em026Hang, "Em026Hang");
+REGISTER_NATIVE_FUNCTION_AS(0x8012DE04, MH3_Em026Hang, "Em026Hang");
 
-extern "C" void func_80155FD8(CpuContext* ctx);
+extern "C" void func_80086860(CpuContext* ctx);
 extern "C" void MH3_Em003Stagger2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Stagger2", func_80155FD8, Em003Stagger2Port);
+    PortCheck::Call(ctx, "Em003Stagger2", func_80086860, Em003Stagger2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80155FD8, MH3_Em003Stagger2, "Em003Stagger2");
+REGISTER_NATIVE_FUNCTION_AS(0x80086860, MH3_Em003Stagger2, "Em003Stagger2");
 
-extern "C" void func_801B7E98(CpuContext* ctx);
+extern "C" void func_80149EE8(CpuContext* ctx);
 extern "C" void MH3_Em034Jump(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Jump", func_801B7E98, Em034JumpPort);
+    PortCheck::Call(ctx, "Em034Jump", func_80149EE8, Em034JumpPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B7E98, MH3_Em034Jump, "Em034Jump");
+REGISTER_NATIVE_FUNCTION_AS(0x80149EE8, MH3_Em034Jump, "Em034Jump");
 
-extern "C" void func_801B82F4(CpuContext* ctx);
+extern "C" void func_8014A490(CpuContext* ctx);
 extern "C" void MH3_Em034LookUp(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034LookUp", func_801B82F4, Em034LookUpPort);
+    PortCheck::Call(ctx, "Em034LookUp", func_8014A490, Em034LookUpPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B82F4, MH3_Em034LookUp, "Em034LookUp");
+REGISTER_NATIVE_FUNCTION_AS(0x8014A490, MH3_Em034LookUp, "Em034LookUp");
 
-extern "C" void func_801783DC(CpuContext* ctx);
+extern "C" void func_800D5D64(CpuContext* ctx);
 extern "C" void MH3_Em015Path(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Path", func_801783DC, Em015PathPort);
+    PortCheck::Call(ctx, "Em015Path", func_800D5D64, Em015PathPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801783DC, MH3_Em015Path, "Em015Path");
+REGISTER_NATIVE_FUNCTION_AS(0x800D5D64, MH3_Em015Path, "Em015Path");
 
-extern "C" void func_801849A0(CpuContext* ctx);
+extern "C" void func_800E1CF0(CpuContext* ctx);
 extern "C" void MH3_Em016Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em016Turn", func_801849A0, Em016TurnPort);
+    PortCheck::Call(ctx, "Em016Turn", func_800E1CF0, Em016TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801849A0, MH3_Em016Turn, "Em016Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x800E1CF0, MH3_Em016Turn, "Em016Turn");
 
-extern "C" void func_8032E038(CpuContext* ctx);
+extern "C" void func_8012E578(CpuContext* ctx);
 extern "C" void MH3_Em026WaitNear(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026WaitNear", func_8032E038, Em026WaitNearPort);
+    PortCheck::Call(ctx, "Em026WaitNear", func_8012E578, Em026WaitNearPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032E038, MH3_Em026WaitNear, "Em026WaitNear");
+REGISTER_NATIVE_FUNCTION_AS(0x8012E578, MH3_Em026WaitNear, "Em026WaitNear");
 
-extern "C" void func_801B7ACC(CpuContext* ctx);
+extern "C" void func_80149B14(CpuContext* ctx);
 extern "C" void MH3_Em034JumpTurn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034JumpTurn", func_801B7ACC, Em034JumpTurnPort);
+    PortCheck::Call(ctx, "Em034JumpTurn", func_80149B14, Em034JumpTurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B7ACC, MH3_Em034JumpTurn, "Em034JumpTurn");
+REGISTER_NATIVE_FUNCTION_AS(0x80149B14, MH3_Em034JumpTurn, "Em034JumpTurn");
 
-extern "C" void func_8036E928(CpuContext* ctx);
+extern "C" void func_8010683C(CpuContext* ctx);
 extern "C" void MH3_Em020Path(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em020Path", func_8036E928, Em020PathPort);
+    PortCheck::Call(ctx, "Em020Path", func_8010683C, Em020PathPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8036E928, MH3_Em020Path, "Em020Path");
+REGISTER_NATIVE_FUNCTION_AS(0x8010683C, MH3_Em020Path, "Em020Path");
 
-extern "C" void func_8032DA08(CpuContext* ctx);
+extern "C" void func_8012E10C(CpuContext* ctx);
 extern "C" void MH3_Em026HoldNear(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026HoldNear", func_8032DA08, Em026HoldNearPort);
+    PortCheck::Call(ctx, "Em026HoldNear", func_8012E10C, Em026HoldNearPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032DA08, MH3_Em026HoldNear, "Em026HoldNear");
+REGISTER_NATIVE_FUNCTION_AS(0x8012E10C, MH3_Em026HoldNear, "Em026HoldNear");
 
-extern "C" void func_8035C988(CpuContext* ctx);
+extern "C" void func_80143248(CpuContext* ctx);
 extern "C" void MH3_Em033Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Turn", func_8035C988, Em033TurnPort);
+    PortCheck::Call(ctx, "Em033Turn", func_80143248, Em033TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035C988, MH3_Em033Turn, "Em033Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x80143248, MH3_Em033Turn, "Em033Turn");
 
-extern "C" void func_8035C6E8(CpuContext* ctx);
+extern "C" void func_80142A2C(CpuContext* ctx);
 extern "C" void MH3_Em033Rise(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Rise", func_8035C6E8, Em033RisePort);
+    PortCheck::Call(ctx, "Em033Rise", func_80142A2C, Em033RisePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035C6E8, MH3_Em033Rise, "Em033Rise");
+REGISTER_NATIVE_FUNCTION_AS(0x80142A2C, MH3_Em033Rise, "Em033Rise");
 
-extern "C" void func_8014F654(CpuContext* ctx);
+extern "C" void func_8007FF44(CpuContext* ctx);
 extern "C" void MH3_Em001Rise(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Rise", func_8014F654, Em001RisePort);
+    PortCheck::Call(ctx, "Em001Rise", func_8007FF44, Em001RisePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014F654, MH3_Em001Rise, "Em001Rise");
+REGISTER_NATIVE_FUNCTION_AS(0x8007FF44, MH3_Em001Rise, "Em001Rise");
 
-extern "C" void func_801A0B34(CpuContext* ctx);
+extern "C" void func_80123674(CpuContext* ctx);
 extern "C" void MH3_Em025Hold(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Hold", func_801A0B34, Em025HoldPort);
+    PortCheck::Call(ctx, "Em025Hold", func_80123674, Em025HoldPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801A0B34, MH3_Em025Hold, "Em025Hold");
+REGISTER_NATIVE_FUNCTION_AS(0x80123674, MH3_Em025Hold, "Em025Hold");
 
-extern "C" void func_801B1408(CpuContext* ctx);
+extern "C" void func_8013A4A4(CpuContext* ctx);
 extern "C" void MH3_Em030Nap(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Nap", func_801B1408, Em030NapPort);
+    PortCheck::Call(ctx, "Em030Nap", func_8013A4A4, Em030NapPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1408, MH3_Em030Nap, "Em030Nap");
+REGISTER_NATIVE_FUNCTION_AS(0x8013A4A4, MH3_Em030Nap, "Em030Nap");
 
-extern "C" void func_801B1D58(CpuContext* ctx);
+extern "C" void func_8013AFB4(CpuContext* ctx);
 extern "C" void MH3_Em030Circle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Circle", func_801B1D58, Em030CirclePort);
+    PortCheck::Call(ctx, "Em030Circle", func_8013AFB4, Em030CirclePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B1D58, MH3_Em030Circle, "Em030Circle");
+REGISTER_NATIVE_FUNCTION_AS(0x8013AFB4, MH3_Em030Circle, "Em030Circle");
 
-extern "C" void func_80350B34(CpuContext* ctx);
+extern "C" void func_80119500(CpuContext* ctx);
 extern "C" void MH3_Em024Land(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em024Land", func_80350B34, Em024LandPort);
+    PortCheck::Call(ctx, "Em024Land", func_80119500, Em024LandPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80350B34, MH3_Em024Land, "Em024Land");
+REGISTER_NATIVE_FUNCTION_AS(0x80119500, MH3_Em024Land, "Em024Land");
 
-extern "C" void func_80155C0C(CpuContext* ctx);
+extern "C" void func_80086534(CpuContext* ctx);
 extern "C" void MH3_Em003Display(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Display", func_80155C0C, Em003DisplayPort);
+    PortCheck::Call(ctx, "Em003Display", func_80086534, Em003DisplayPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80155C0C, MH3_Em003Display, "Em003Display");
+REGISTER_NATIVE_FUNCTION_AS(0x80086534, MH3_Em003Display, "Em003Display");
 
-extern "C" void func_801C67AC(CpuContext* ctx);
+extern "C" void func_80091ED8(CpuContext* ctx);
 extern "C" void MH3_Em004Gas(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Gas", func_801C67AC, Em004GasPort);
+    PortCheck::Call(ctx, "Em004Gas", func_80091ED8, Em004GasPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C67AC, MH3_Em004Gas, "Em004Gas");
+REGISTER_NATIVE_FUNCTION_AS(0x80091ED8, MH3_Em004Gas, "Em004Gas");
 
-extern "C" void func_801C432C(CpuContext* ctx);
+extern "C" void func_8008FAEC(CpuContext* ctx);
 extern "C" void MH3_Em004Drop(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Drop", func_801C432C, Em004DropPort);
+    PortCheck::Call(ctx, "Em004Drop", func_8008FAEC, Em004DropPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C432C, MH3_Em004Drop, "Em004Drop");
+REGISTER_NATIVE_FUNCTION_AS(0x8008FAEC, MH3_Em004Drop, "Em004Drop");
 
-extern "C" void func_8032EA58(CpuContext* ctx);
+extern "C" void func_8012F210(CpuContext* ctx);
 extern "C" void MH3_Em026Latch(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Latch", func_8032EA58, Em026LatchPort);
+    PortCheck::Call(ctx, "Em026Latch", func_8012F210, Em026LatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032EA58, MH3_Em026Latch, "Em026Latch");
+REGISTER_NATIVE_FUNCTION_AS(0x8012F210, MH3_Em026Latch, "Em026Latch");
 
-extern "C" void func_80179660(CpuContext* ctx);
+extern "C" void func_800D6EBC(CpuContext* ctx);
 extern "C" void MH3_Em015Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Rest", func_80179660, Em015RestPort);
+    PortCheck::Call(ctx, "Em015Rest", func_800D6EBC, Em015RestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80179660, MH3_Em015Rest, "Em015Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x800D6EBC, MH3_Em015Rest, "Em015Rest");
 
-extern "C" void func_801562BC(CpuContext* ctx);
+extern "C" void func_80086B3C(CpuContext* ctx);
 extern "C" void MH3_Em003Stagger3(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em003Stagger3", func_801562BC, Em003Stagger3Port);
+    PortCheck::Call(ctx, "Em003Stagger3", func_80086B3C, Em003Stagger3Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801562BC, MH3_Em003Stagger3, "Em003Stagger3");
+REGISTER_NATIVE_FUNCTION_AS(0x80086B3C, MH3_Em003Stagger3, "Em003Stagger3");
 
-extern "C" void func_801C56F0(CpuContext* ctx);
+extern "C" void func_800908F4(CpuContext* ctx);
 extern "C" void MH3_Em004Leap(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Leap", func_801C56F0, Em004LeapPort);
+    PortCheck::Call(ctx, "Em004Leap", func_800908F4, Em004LeapPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C56F0, MH3_Em004Leap, "Em004Leap");
+REGISTER_NATIVE_FUNCTION_AS(0x800908F4, MH3_Em004Leap, "Em004Leap");
 
-extern "C" void func_8017E000(CpuContext* ctx);
+extern "C" void func_800DB69C(CpuContext* ctx);
 extern "C" void MH3_Em015SwimTo(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015SwimTo", func_8017E000, Em015SwimToPort);
+    PortCheck::Call(ctx, "Em015SwimTo", func_800DB69C, Em015SwimToPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017E000, MH3_Em015SwimTo, "Em015SwimTo");
+REGISTER_NATIVE_FUNCTION_AS(0x800DB69C, MH3_Em015SwimTo, "Em015SwimTo");
 
-extern "C" void func_80199248(CpuContext* ctx);
+extern "C" void func_800F6C6C(CpuContext* ctx);
 extern "C" void MH3_Em018SwimTo(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em018SwimTo", func_80199248, Em018SwimToPort);
+    PortCheck::Call(ctx, "Em018SwimTo", func_800F6C6C, Em018SwimToPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80199248, MH3_Em018SwimTo, "Em018SwimTo");
+REGISTER_NATIVE_FUNCTION_AS(0x800F6C6C, MH3_Em018SwimTo, "Em018SwimTo");
 
-extern "C" void func_8035DB1C(CpuContext* ctx);
+extern "C" void func_8014437C(CpuContext* ctx);
 extern "C" void MH3_Em033Climb(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033Climb", func_8035DB1C, Em033ClimbPort);
+    PortCheck::Call(ctx, "Em033Climb", func_8014437C, Em033ClimbPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035DB1C, MH3_Em033Climb, "Em033Climb");
+REGISTER_NATIVE_FUNCTION_AS(0x8014437C, MH3_Em033Climb, "Em033Climb");
 
-extern "C" void func_801C72D8(CpuContext* ctx);
+extern "C" void func_800928F4(CpuContext* ctx);
 extern "C" void MH3_Em004Spin(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em004Spin", func_801C72D8, Em004SpinPort);
+    PortCheck::Call(ctx, "Em004Spin", func_800928F4, Em004SpinPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801C72D8, MH3_Em004Spin, "Em004Spin");
+REGISTER_NATIVE_FUNCTION_AS(0x800928F4, MH3_Em004Spin, "Em004Spin");
 
-extern "C" void func_80169528(CpuContext* ctx);
+extern "C" void func_800C71D8(CpuContext* ctx);
 extern "C" void MH3_Em010Wander(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em010Wander", func_80169528, Em010WanderPort);
+    PortCheck::Call(ctx, "Em010Wander", func_800C71D8, Em010WanderPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80169528, MH3_Em010Wander, "Em010Wander");
+REGISTER_NATIVE_FUNCTION_AS(0x800C71D8, MH3_Em010Wander, "Em010Wander");
 
-extern "C" void func_801B7FDC(CpuContext* ctx);
+extern "C" void func_8014A084(CpuContext* ctx);
 extern "C" void MH3_Em034Skip(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Skip", func_801B7FDC, Em034SkipPort);
+    PortCheck::Call(ctx, "Em034Skip", func_8014A084, Em034SkipPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B7FDC, MH3_Em034Skip, "Em034Skip");
+REGISTER_NATIVE_FUNCTION_AS(0x8014A084, MH3_Em034Skip, "Em034Skip");
 
-extern "C" void func_801B8468(CpuContext* ctx);
+extern "C" void func_8014A640(CpuContext* ctx);
 extern "C" void MH3_Em034Skip2(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Skip2", func_801B8468, Em034Skip2Port);
+    PortCheck::Call(ctx, "Em034Skip2", func_8014A640, Em034Skip2Port);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B8468, MH3_Em034Skip2, "Em034Skip2");
+REGISTER_NATIVE_FUNCTION_AS(0x8014A640, MH3_Em034Skip2, "Em034Skip2");
 
-extern "C" void func_801B8884(CpuContext* ctx);
+extern "C" void func_8014AAA8(CpuContext* ctx);
 extern "C" void MH3_Em034Climb(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em034Climb", func_801B8884, Em034ClimbPort);
+    PortCheck::Call(ctx, "Em034Climb", func_8014AAA8, Em034ClimbPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B8884, MH3_Em034Climb, "Em034Climb");
+REGISTER_NATIVE_FUNCTION_AS(0x8014AAA8, MH3_Em034Climb, "Em034Climb");
 
-extern "C" void func_801B22FC(CpuContext* ctx);
+extern "C" void func_8013B73C(CpuContext* ctx);
 extern "C" void MH3_Em030Face(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em030Face", func_801B22FC, Em030FacePort);
+    PortCheck::Call(ctx, "Em030Face", func_8013B73C, Em030FacePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801B22FC, MH3_Em030Face, "Em030Face");
+REGISTER_NATIVE_FUNCTION_AS(0x8013B73C, MH3_Em030Face, "Em030Face");
 
-extern "C" void func_8032E5B0(CpuContext* ctx);
+extern "C" void func_8012ECEC(CpuContext* ctx);
 extern "C" void MH3_Em026Pounce(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Pounce", func_8032E5B0, Em026PouncePort);
+    PortCheck::Call(ctx, "Em026Pounce", func_8012ECEC, Em026PouncePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032E5B0, MH3_Em026Pounce, "Em026Pounce");
+REGISTER_NATIVE_FUNCTION_AS(0x8012ECEC, MH3_Em026Pounce, "Em026Pounce");
 
-extern "C" void func_8014C1D0(CpuContext* ctx);
+extern "C" void func_8007C850(CpuContext* ctx);
 extern "C" void MH3_Em001Turn(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Turn", func_8014C1D0, Em001TurnPort);
+    PortCheck::Call(ctx, "Em001Turn", func_8007C850, Em001TurnPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014C1D0, MH3_Em001Turn, "Em001Turn");
+REGISTER_NATIVE_FUNCTION_AS(0x8007C850, MH3_Em001Turn, "Em001Turn");
 
-extern "C" void func_80178534(CpuContext* ctx);
+extern "C" void func_800D5EB8(CpuContext* ctx);
 extern "C" void MH3_Em015Surface(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Surface", func_80178534, Em015SurfacePort);
+    PortCheck::Call(ctx, "Em015Surface", func_800D5EB8, Em015SurfacePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80178534, MH3_Em015Surface, "Em015Surface");
+REGISTER_NATIVE_FUNCTION_AS(0x800D5EB8, MH3_Em015Surface, "Em015Surface");
 
-extern "C" void func_80178900(CpuContext* ctx);
+extern "C" void func_800D614C(CpuContext* ctx);
 extern "C" void MH3_Em015Circle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Circle", func_80178900, Em015CirclePort);
+    PortCheck::Call(ctx, "Em015Circle", func_800D614C, Em015CirclePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80178900, MH3_Em015Circle, "Em015Circle");
+REGISTER_NATIVE_FUNCTION_AS(0x800D614C, MH3_Em015Circle, "Em015Circle");
 
-extern "C" void func_801DA578(CpuContext* ctx);
+extern "C" void func_800ACE88(CpuContext* ctx);
 extern "C" void MH3_Em007Ledge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em007Ledge", func_801DA578, Em007LedgePort);
+    PortCheck::Call(ctx, "Em007Ledge", func_800ACE88, Em007LedgePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801DA578, MH3_Em007Ledge, "Em007Ledge");
+REGISTER_NATIVE_FUNCTION_AS(0x800ACE88, MH3_Em007Ledge, "Em007Ledge");
 
-extern "C" void func_8032DD68(CpuContext* ctx);
+extern "C" void func_8012E30C(CpuContext* ctx);
 extern "C" void MH3_Em026Ceiling(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em026Ceiling", func_8032DD68, Em026CeilingPort);
+    PortCheck::Call(ctx, "Em026Ceiling", func_8012E30C, Em026CeilingPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8032DD68, MH3_Em026Ceiling, "Em026Ceiling");
+REGISTER_NATIVE_FUNCTION_AS(0x8012E30C, MH3_Em026Ceiling, "Em026Ceiling");
 
-extern "C" void func_8014E7D8(CpuContext* ctx);
+extern "C" void func_8007EF34(CpuContext* ctx);
 extern "C" void MH3_Em001Ledge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Ledge", func_8014E7D8, Em001LedgePort);
+    PortCheck::Call(ctx, "Em001Ledge", func_8007EF34, Em001LedgePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014E7D8, MH3_Em001Ledge, "Em001Ledge");
+REGISTER_NATIVE_FUNCTION_AS(0x8007EF34, MH3_Em001Ledge, "Em001Ledge");
 
-extern "C" void func_801D2F34(CpuContext* ctx);
+extern "C" void func_8009E6CC(CpuContext* ctx);
 extern "C" void MH3_Em005Climb(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Climb", func_801D2F34, Em005ClimbPort);
+    PortCheck::Call(ctx, "Em005Climb", func_8009E6CC, Em005ClimbPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D2F34, MH3_Em005Climb, "Em005Climb");
+REGISTER_NATIVE_FUNCTION_AS(0x8009E6CC, MH3_Em005Climb, "Em005Climb");
 
-extern "C" void func_8014B730(CpuContext* ctx);
+extern "C" void func_8007BDE0(CpuContext* ctx);
 extern "C" void MH3_Em001Land(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em001Land", func_8014B730, Em001LandPort);
+    PortCheck::Call(ctx, "Em001Land", func_8007BDE0, Em001LandPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8014B730, MH3_Em001Land, "Em001Land");
+REGISTER_NATIVE_FUNCTION_AS(0x8007BDE0, MH3_Em001Land, "Em001Land");
 
-extern "C" void func_801D1174(CpuContext* ctx);
+extern "C" void func_8009C8D0(CpuContext* ctx);
 extern "C" void MH3_Em005Pounce(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em005Pounce", func_801D1174, Em005PouncePort);
+    PortCheck::Call(ctx, "Em005Pounce", func_8009C8D0, Em005PouncePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D1174, MH3_Em005Pounce, "Em005Pounce");
+REGISTER_NATIVE_FUNCTION_AS(0x8009C8D0, MH3_Em005Pounce, "Em005Pounce");
 
-extern "C" void func_8036EC58(CpuContext* ctx);
+extern "C" void func_80106AF8(CpuContext* ctx);
 extern "C" void MH3_Em020Circle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em020Circle", func_8036EC58, Em020CirclePort);
+    PortCheck::Call(ctx, "Em020Circle", func_80106AF8, Em020CirclePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8036EC58, MH3_Em020Circle, "Em020Circle");
+REGISTER_NATIVE_FUNCTION_AS(0x80106AF8, MH3_Em020Circle, "Em020Circle");
 
-extern "C" void func_8035CC3C(CpuContext* ctx);
+extern "C" void func_801434F8(CpuContext* ctx);
 extern "C" void MH3_Em033ClimbOut(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em033ClimbOut", func_8035CC3C, Em033ClimbOutPort);
+    PortCheck::Call(ctx, "Em033ClimbOut", func_801434F8, Em033ClimbOutPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035CC3C, MH3_Em033ClimbOut, "Em033ClimbOut");
+REGISTER_NATIVE_FUNCTION_AS(0x801434F8, MH3_Em033ClimbOut, "Em033ClimbOut");
 
-extern "C" void func_801A314C(CpuContext* ctx);
+extern "C" void func_80125EC0(CpuContext* ctx);
 extern "C" void MH3_Em025Breach(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Breach", func_801A314C, Em025BreachPort);
+    PortCheck::Call(ctx, "Em025Breach", func_80125EC0, Em025BreachPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801A314C, MH3_Em025Breach, "Em025Breach");
+REGISTER_NATIVE_FUNCTION_AS(0x80125EC0, MH3_Em025Breach, "Em025Breach");
 
-extern "C" void func_8035F378(CpuContext* ctx);
+extern "C" void func_80148DFC(CpuContext* ctx);
+static void Em035WaitDispatchPort(CpuContext* ctx) {
+    const uint32_t w = ctx->gpr[3];
+    const uint8_t s5 = Memory::Read8(w + 0x1E5), s6 = Memory::Read8(w + 0x1E6);
+    if (s5 == 0 && s6 <= 2) Em035WaitPort(ctx);
+    else if (s5 == 0 && s6 == 3) Em035RestPort(ctx);
+    else if (s5 == 1 && s6 == 1) Em035HoverPort(ctx);
+    else if (s5 == 3 && s6 == 1) Em035Rest2Port(ctx);
+    else func_80148DFC(ctx);
+}
 extern "C" void MH3_Em035Wait(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em035Wait", func_8035F378, Em035WaitPort);
+    PortCheck::Call(ctx, "Em035Wait", func_80148DFC, Em035WaitDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035F378, MH3_Em035Wait, "Em035Wait");
+REGISTER_NATIVE_FUNCTION_AS(0x80148DFC, MH3_Em035Wait, "Em035Wait");
 
-extern "C" void func_8035F560(CpuContext* ctx);
-extern "C" void MH3_Em035Hover(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em035Hover", func_8035F560, Em035HoverPort);
+extern "C" void func_801334A8(CpuContext* ctx);
+static void Em027WalkDispatchPort(CpuContext* ctx) {
+    const uint8_t s6 = Memory::Read8(ctx->gpr[3] + 0x1E6);
+    if (s6 == 8) Em027WalkPort(ctx);
+    else if (s6 == 10) Em027TurnPort(ctx);
+    else if (s6 == 12) Em027TrotPort(ctx);
+    else func_801334A8(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8035F560, MH3_Em035Hover, "Em035Hover");
-
-extern "C" void func_801AC674(CpuContext* ctx);
 extern "C" void MH3_Em027Walk(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em027Walk", func_801AC674, Em027WalkPort);
+    PortCheck::Call(ctx, "Em027Walk", func_801334A8, Em027WalkDispatchPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801AC674, MH3_Em027Walk, "Em027Walk");
+REGISTER_NATIVE_FUNCTION_AS(0x801334A8, MH3_Em027Walk, "Em027Walk");
 
-extern "C" void func_8037A8AC(CpuContext* ctx);
+extern "C" void func_800FD794(CpuContext* ctx);
 extern "C" void MH3_Em019Buried(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em019Buried", func_8037A8AC, Em019BuriedPort);
+    PortCheck::Call(ctx, "Em019Buried", func_800FD794, Em019BuriedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8037A8AC, MH3_Em019Buried, "Em019Buried");
+REGISTER_NATIVE_FUNCTION_AS(0x800FD794, MH3_Em019Buried, "Em019Buried");
 
-extern "C" void func_801BD724(CpuContext* ctx);
+extern "C" void func_800A4838(CpuContext* ctx);
 extern "C" void MH3_Em006Buried(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Buried", func_801BD724, Em006BuriedPort);
+    PortCheck::Call(ctx, "Em006Buried", func_800A4838, Em006BuriedPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BD724, MH3_Em006Buried, "Em006Buried");
+REGISTER_NATIVE_FUNCTION_AS(0x800A4838, MH3_Em006Buried, "Em006Buried");
 
-extern "C" void func_801BD89C(CpuContext* ctx);
+extern "C" void func_800A499C(CpuContext* ctx);
 extern "C" void MH3_Em006Burrow(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em006Burrow", func_801BD89C, Em006BurrowPort);
+    PortCheck::Call(ctx, "Em006Burrow", func_800A499C, Em006BurrowPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801BD89C, MH3_Em006Burrow, "Em006Burrow");
+REGISTER_NATIVE_FUNCTION_AS(0x800A499C, MH3_Em006Burrow, "Em006Burrow");
 
-extern "C" void func_801D91B4(CpuContext* ctx);
+extern "C" void func_800ABA44(CpuContext* ctx);
 extern "C" void MH3_Em007Charge(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em007Charge", func_801D91B4, Em007ChargePort);
+    PortCheck::Call(ctx, "Em007Charge", func_800ABA44, Em007ChargePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801D91B4, MH3_Em007Charge, "Em007Charge");
+REGISTER_NATIVE_FUNCTION_AS(0x800ABA44, MH3_Em007Charge, "Em007Charge");
 
-extern "C" void func_8034FA1C(CpuContext* ctx);
+extern "C" void func_80118960(CpuContext* ctx);
 extern "C" void MH3_Em024Flight(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em024Flight", func_8034FA1C, Em024FlightPort);
+    PortCheck::Call(ctx, "Em024Flight", func_80118960, Em024FlightPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8034FA1C, MH3_Em024Flight, "Em024Flight");
+REGISTER_NATIVE_FUNCTION_AS(0x80118960, MH3_Em024Flight, "Em024Flight");
 
-extern "C" void func_8039E9EC(CpuContext* ctx);
+extern "C" void func_80136D60(CpuContext* ctx);
 extern "C" void MH3_Em028Rest(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em028Rest", func_8039E9EC, Em028RestPort);
+    PortCheck::Call(ctx, "Em028Rest", func_80136D60, Em028RestPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8039E9EC, MH3_Em028Rest, "Em028Rest");
+REGISTER_NATIVE_FUNCTION_AS(0x80136D60, MH3_Em028Rest, "Em028Rest");
 
-extern "C" void func_8017AA5C(CpuContext* ctx);
+extern "C" void func_800D832C(CpuContext* ctx);
 extern "C" void MH3_Em015Sparks(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em015Sparks", func_8017AA5C, Em015SparksPort);
+    PortCheck::Call(ctx, "Em015Sparks", func_800D832C, Em015SparksPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017AA5C, MH3_Em015Sparks, "Em015Sparks");
+REGISTER_NATIVE_FUNCTION_AS(0x800D832C, MH3_Em015Sparks, "Em015Sparks");
 
-extern "C" void func_8019F3DC(CpuContext* ctx);
+extern "C" void func_80122354(CpuContext* ctx);
 extern "C" void MH3_Em025Roar(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em025Roar", func_8019F3DC, Em025RoarPort);
+    PortCheck::Call(ctx, "Em025Roar", func_80122354, Em025RoarPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8019F3DC, MH3_Em025Roar, "Em025Roar");
+REGISTER_NATIVE_FUNCTION_AS(0x80122354, MH3_Em025Roar, "Em025Roar");
 
-extern "C" void func_803519B8(CpuContext* ctx);
+extern "C" void func_8011A5EC(CpuContext* ctx);
 extern "C" void MH3_Em024Bursts(CpuContext* ctx) {
-    PortCheck::Call(ctx, "Em024Bursts", func_803519B8, Em024BurstsPort);
+    PortCheck::Call(ctx, "Em024Bursts", func_8011A5EC, Em024BurstsPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803519B8, MH3_Em024Bursts, "Em024Bursts");
+REGISTER_NATIVE_FUNCTION_AS(0x8011A5EC, MH3_Em024Bursts, "Em024Bursts");

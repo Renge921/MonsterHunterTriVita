@@ -150,7 +150,7 @@ static uint32_t PartShapeChecked(uint32_t r1, uint32_t r3, uint32_t r4, uint32_t
 extern "C" void MH3_EnemyPartShape(CpuContext* ctx) {
     ctx->gpr[3] = PartShapeChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5], ctx->gpr[6]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8029D8F8, MH3_EnemyPartShape, "EnemyPartShape");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8029D8F8, MH3_EnemyPartShape, "EnemyPartShape");
 
 // CharJointMtx (r3 ch, r4 joint, r5 out) and the monster's wrapper.
 extern "C" void func_800E0A78(CpuContext* ctx);
@@ -176,12 +176,12 @@ static void JointMtxChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t 
 extern "C" void MH3_CharJointMtx(CpuContext* ctx) {
     JointMtxChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E0A78, MH3_CharJointMtx, "CharJointMtx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800E0A78, MH3_CharJointMtx, "CharJointMtx");
 
 extern "C" void MH3_EnemyJointMtx(CpuContext* ctx) {
     JointMtxChecked(ctx->gpr[1], ctx->gpr[3] + 0x24, ctx->gpr[4], ctx->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80135994, MH3_EnemyJointMtx, "EnemyJointMtx");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80135994, MH3_EnemyJointMtx, "EnemyJointMtx");
 
 // mulVecMat (r3 v, r4 m); its copy of v below the stack pointer, as the
 // original's frame keeps it.
@@ -207,4 +207,4 @@ static void MulVecMatChecked(uint32_t r1, uint32_t r3, uint32_t r4) {
 extern "C" void MH3_MulVecMat(CpuContext* ctx) {
     MulVecMatChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800514A4, MH3_MulVecMat, "MulVecMat");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800514A4, MH3_MulVecMat, "MulVecMat");

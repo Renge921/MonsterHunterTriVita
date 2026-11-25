@@ -411,7 +411,8 @@ inline std::vector<std::string> SourceNames(const std::vector<std::string>& file
             const auto leaf = file.substr(slash == file.npos ? 0 : slash + 1);
 
             if (file == "11/efm/com/efm_com.bin" || file == "11/efm/com/efm_lc_com.bin" ||
-                (file.starts_with("15/") && leaf.size() == 13 && leaf.starts_with("efm_map") && leaf[7] >= '0' && leaf[7] <= '9' && leaf[8] >= '0' && leaf[8] <= '9' && leaf.ends_with(".bin")))
+                file == "effect/efm/com/efm_com.bin" || file == "effect/efm/com/efm_lc_com.bin" ||
+                ((file.starts_with("15/") || file.starts_with("stage/")) && leaf.size() == 13 && leaf.starts_with("efm_map") && leaf[7] >= '0' && leaf[7] <= '9' && leaf[8] >= '0' && leaf[8] <= '9' && leaf.ends_with(".bin")))
                 archives.push_back(file);
         }
     }

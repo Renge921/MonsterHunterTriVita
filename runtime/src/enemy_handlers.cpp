@@ -41,17 +41,17 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    MapKind = 0x802B06CC,
-    IconOf = 0x80343A38,
-    SlotOf = 0x80343948,
-    MoveWork = 0x800CFAF4,
-    MoveCount = 0x800CFB34,
-    Rand = 0x800CEF20,
-    Shortcut = 0x8012ED54,
-    Vec3Set = 0x8005000C,
+    MapKind = 0x8037DEF0,
+    IconOf = 0x8014E248,
+    SlotOf = 0x8014E138,
+    MoveWork = 0x802BCF94,
+    MoveCount = 0x802BCFD0,
+    Rand = 0x802BC314,
+    Shortcut = 0x8016834C,
+    Vec3Set = 0x8028A7F4,
 };
 
-constexpr uint32_t kEntries = 0x806A7960; // small monsters, in pairs of 0x44 bytes
+constexpr uint32_t kEntries = 0x807387E8; // small monsters, in pairs of 0x44 bytes
 
 uint32_t Kind(GuestCall& game, uint32_t em) {
     return game.Call<MapKind>({R8(em + 0x1E0)}) & 0xFF;
@@ -123,7 +123,7 @@ int32_t Rejoin(GuestCall& game, uint32_t em, uint32_t kind, uint32_t n) {
 
     const uint32_t slot = Slot(game, R8(em + 3), R8(em + 10), R8(em + kSlot));
 
-    if (!slot || R8(slot + 0xD) != 1 || PackNear(game, em) || game.Call<0x80129A80>({em, n & 0xFFFF, 0x1E, em + 0x328}) != 1)
+    if (!slot || R8(slot + 0xD) != 1 || PackNear(game, em) || game.Call<0x80161E44>({em, n & 0xFFFF, 0x1E, em + 0x328}) != 1)
         return -1;
 
     if (game.Call<Shortcut>({em}) != 1) {
@@ -143,13 +143,13 @@ uint32_t PickArea(CpuContext* ctx) {
     if (!RoutedMap(kind))
         return 0;
 
-    if (game.Call<0x80129DA0>({em}) == 1) {
+    if (game.Call<0x80162150>({em}) == 1) {
         W8(em + kGoesOn, 0);
         return 1;
     }
 
     const uint32_t home = kind == 1 ? 9 : 5;
-    const uint32_t state = game.Call<0x80129E1C>({em, home}) & 0xFF;
+    const uint32_t state = game.Call<0x80162348>({em, home}) & 0xFF;
 
     if (state == 2) {
         W8(em + kGoesOn, 1);
@@ -159,7 +159,7 @@ uint32_t PickArea(CpuContext* ctx) {
     const bool atHome = state == 1;
 
     if (!atHome) {
-        const uint32_t other = game.Call<0x80129EAC>({em}) & 0xFF;
+        const uint32_t other = game.Call<0x801623D4>({em}) & 0xFF;
 
         if (other == 1)
             return 0;
@@ -170,7 +170,7 @@ uint32_t PickArea(CpuContext* ctx) {
         }
     }
 
-    if (game.Call<Shortcut>({em}) == 0 && S16(em + 0x452) > 899 && game.Call<0x8012A078>({em, 0, home, n & 0xFFFF, 0, frame.Arg(13) - 0x73C8}) == 1) {
+    if (game.Call<Shortcut>({em}) == 0 && S16(em + 0x452) > 899 && game.Call<0x80162754>({em, 0, home, n & 0xFFFF, 0, frame.Arg(13) - 0x79B8}) == 1) {
         W8(em + kGoesOn, 0);
         return 1;
     }
@@ -178,7 +178,7 @@ uint32_t PickArea(CpuContext* ctx) {
     if (const int32_t result = Rejoin(game, em, kind, n); result >= 0)
         return uint32_t(result);
 
-    if (game.Call<0x80129AD4>({em, n & 0xFFFF}) == 1) {
+    if (game.Call<0x80161E90>({em, n & 0xFFFF}) == 1) {
         if (game.Call<Shortcut>({em}) == 1 && HeadHome(em, kind, n))
             return 1;
 
@@ -186,7 +186,7 @@ uint32_t PickArea(CpuContext* ctx) {
         return 1;
     }
 
-    if (game.Call<0x8012A268>({em}) != 1)
+    if (game.Call<0x80162B10>({em}) != 1)
         return 0;
 
     if (atHome) {
@@ -233,7 +233,7 @@ uint32_t Condition(CpuContext* ctx) {
         if ((Kind(game, em) == 1 && R8(em + kArea) == 9) || (Kind(game, em) == 2 && R8(em + kArea) == 1))
             return 0;
 
-        return game.Call<0x80130198>({em, 0}) == 1;
+        return game.Call<0x8016A35C>({em, 0}) == 1;
     default:
         return 0;
     }
@@ -243,7 +243,7 @@ void FirstAction(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x30);
     GuestCall game{ctx};
     const uint32_t em = frame.Arg(3), mode = frame.Arg(4), sub = frame.Arg(5);
-    game.Call<0x801304DC>({em, 0});
+    game.Call<0x8016A708>({em, 0});
     W8(mode, 0xC);
     const uint32_t kind = Kind(game, em), area = R8(em + kArea);
 
@@ -257,7 +257,7 @@ void FirstAction(CpuContext* ctx) {
 
     for (const Start& s : kStarts)
         if (s.kind == kind && s.area == area) {
-            game.Call<0x80126388>({em, s.a, s.b}, {0.0});
+            game.Call<0x8015DBD8>({em, s.a, s.b}, {0.0});
             W8(sub, s.sub);
             return;
         }
@@ -267,7 +267,7 @@ void FirstAction(CpuContext* ctx) {
         W32(em + 0x1BC + k, 0);
     }
 
-    game.Call<0x8012B3E4>({em, 5, 2, 10});
+    game.Call<0x801640C0>({em, 5, 2, 10});
     W8(sub, 0);
 }
 
@@ -277,58 +277,29 @@ void Start(CpuContext* ctx) {
     const uint32_t em = frame.Arg(3), mode = frame[9], sub = frame[8], at = frame[12];
 
     if ((frame.Arg(4) & 0xFF) == 2) {
-        game.Call<0x801760F4>({em, mode, sub});
-        game.Call<0x80128AF0>({em, R8(mode), R8(sub)});
-        game.Call<0x80133C24>({em});
+        game.Call<0x800D3E44>({em, mode, sub});
+        game.Call<0x80160904>({em, R8(mode), R8(sub)});
+        game.Call<0x8016E9EC>({em});
     }
 
     if (R8(em + 9) == 0) {
         game.Call<Vec3Set>({at}, {0.0, 0.0, 45.0});
-        game.Call<0x80105808>({em, 0x14, at, 0x1C72}, {double(0.7f)});
+        game.Call<0x8004431C>({em, 0x14, at, 0x1C72}, {double(0.7f)});
     }
 }
 
-void ActionStart(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x20);
-    GuestCall game{ctx};
-    const uint32_t em = frame.Arg(3);
-
-    if ((frame.Arg(4) & 0xFF) != 1)
-        return;
-
-    switch (frame.Arg(5) & 0xFF) {
-    case 5:
-        game.Call<0x80130FD8>({em});
-        break;
-    case 10:
-        W8(em + 0x32A, 0);
-        break;
-    case 12:
-    case 13:
-        if (R8(em + 0x1F5) == 1)
-            game.Call<0x8017071C>({em});
-
-        break;
-    case 14:
-        game.Call<0x80137718>({em});
-        break;
-    default:
-        break;
-    }
-}
-
-// The first hunter its senses and 0x801924AC accept becomes its target.
+// The first hunter its senses and 0x801924AC (JPN 0x800F01F8) accept becomes its target.
 void TargetHunter(GuestCall& game, uint32_t em) {
     const uint32_t count = game.Call<MoveCount>({2}) & 0xFFFF;
     uint32_t hunter = game.Call<MoveWork>({2});
 
     for (uint32_t i = 0; i < count; ++i, hunter += 0xB20) {
-        if (R8(hunter) == 0 || game.Call<0x8012D20C>({R8(hunter + 8)}) != 0 || game.Call<0x8012D118>({em, hunter}) == 0 || game.Call<0x8027D594>({hunter}) == 0 ||
-            game.Call<0x801924AC>({em}) == 0)
+        if (R8(hunter) == 0 || game.Call<0x80165F70>({R8(hunter + 8)}) != 0 || game.Call<0x80165E80>({em, hunter}) == 0 || game.Call<0x8034DDA0>({hunter}) == 0 ||
+            game.Call<0x800F01F8>({em}) == 0)
             continue;
 
         if (S8(em + 0x1F6) != int32_t(i))
-            game.Call<0x80125324>({em, i & 0xFF});
+            game.Call<0x8015CBF8>({em, i & 0xFF});
 
         return;
     }
@@ -340,15 +311,15 @@ void EnemyActionStart(CpuContext* ctx) {
     const uint32_t em = frame.Arg(3), mode = frame.Arg(4) & 0xFF, sub = frame.Arg(5) & 0xFF;
 
     if (R32(em + 0x334) != 0xFFFFFFFFu) {
-        game.Call<0x803B99F8>({R32(em + 0x334)});
+        game.Call<0x80207DD4>({R32(em + 0x334)});
         W32(em + 0x334, 0xFFFFFFFFu);
     }
 
     if (mode == 1) {
         if (sub == 5)
-            game.Call<0x80130FD8>({em});
+            game.Call<0x8016B2C4>({em});
         else if (sub == 7)
-            game.Call<0x80137718>({em});
+            game.Call<0x8017543C>({em});
     } else if (mode == 5) {
         switch (sub) {
         case 0xE:
@@ -356,18 +327,18 @@ void EnemyActionStart(CpuContext* ctx) {
             break;
         case 0x1F:
             if (R8(em + 0x1F5) == 1)
-                game.Call<0x802BC814>({em});
+                game.Call<0x803747CC>({em});
 
             break;
         case 0x20:
-            game.Call<0x803A9328>({0x12, 2});
+            game.Call<0x801F7204>({0x12, 2});
             W16(em + 0x360, 0xA8C);
             break;
         case 0x21:
-            game.Call<0x8011E748>({em, 0xFFFFFF9Cu});
+            game.Call<0x80155DEC>({em, 0xFFFFFF9Cu});
 
             if (int32_t(R32(em + 0x7A0)) < 1)
-                game.Call<0x8011E7C4>({em, 1});
+                game.Call<0x80155F4C>({em, 1});
 
             W16(em + 0x362, 900);
             break;
@@ -377,37 +348,23 @@ void EnemyActionStart(CpuContext* ctx) {
 
             break;
         case 0x25:
-            game.Call<0x80137718>({em});
+            game.Call<0x8017543C>({em});
             break;
         default:
             break;
         }
     } else if (mode == 10) {
         if (sub == 0xC8)
-            game.Call<0x80135CC0>({em, 0, game.Call<0x80130168>({em}) == 1 ? 3u : 0u});
+            game.Call<0x80171A58>({em, 0, game.Call<0x8016A344>({em}) == 1 ? 3u : 0u});
         else if (sub == 0xD0)
-            game.Call<0x80135CC0>({em, 0, 0});
+            game.Call<0x80171A58>({em, 0, 0});
         else if (sub == 0xB2)
             W32(em + 0x20, 0x3C);
     }
 }
 
-void NetSend(CpuContext* ctx) {
-    GuestFrame frame(ctx, 0x20);
-    GuestCall game{ctx};
-    const uint32_t em = frame.Arg(3), kind = frame.Arg(4) & 0xFF, arg = frame.Arg(5) & 0xFF;
-
-    if (game.Call<0x8045169C>() == 0 || S16(em + 0x1A) == -1 || game.Call<0x80334AB0>() == 0)
-        return;
-
-    static constexpr uint32_t kSenders[]{0x80336100, 0x8033694C, 0x80336D78, 0x80336F04, 0x80336FE8, 0x80337168, 0x80337288};
-
-    if (kind - 1 < 7)
-        game(kSenders[kind - 1], {em, game.Call<0x800CF3E8>() & 0xFF, 5, kind, arg});
-}
-
 void LeaveTo(GuestCall& game, uint32_t em, uint32_t route, uint32_t area) {
-    Move(em, game.Call<0x80176B0C>({route, R8(em + kArea)}) == 1, area);
+    Move(em, game.Call<0x800D4890>({route, R8(em + kArea)}) == 1, area);
 }
 
 uint32_t LeaveArea(CpuContext* ctx) {
@@ -441,7 +398,7 @@ void EntryMove(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
     GuestCall game{ctx};
     const uint32_t entry = frame.Arg(3);
-    const uint32_t kind = game.Call<MapKind>({game.Call<0x802AFCD8>() & 0xFF}) & 0xFF;
+    const uint32_t kind = game.Call<MapKind>({game.Call<0x8037D328>() & 0xFF}) & 0xFF;
 
     if (!RoutedMap(kind))
         return;
@@ -473,9 +430,9 @@ void EntryMove(CpuContext* ctx) {
     W16(entry + 0x22, 0);
     const uint32_t target = R8(slot + (R8(slot + 0xF) == 3 ? 0x10 : 0x14));
     const uint32_t seed = game.Call<Rand>({1}) & 0xFFFF;
-    const uint32_t area = game.Call<0x80126EA0>({R8(entry + 2), R8(entry + 3), R8(entry + 10), target, seed}) & 0xFF;
+    const uint32_t area = game.Call<0x8015E7D0>({R8(entry + 2), R8(entry + 3), R8(entry + 10), target, seed}) & 0xFF;
 
-    if (game.Call<0x80126C38>({entry, R8(slot + 0x13), area}) == 1) {
+    if (game.Call<0x8015E43C>({entry, R8(slot + 0x13), area}) == 1) {
         W8(entry + 0xB, R8(entry + 10));
         W8(entry + 10, area);
     }
@@ -489,56 +446,47 @@ void Returning(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_8017643C(CpuContext* ctx);
+extern "C" void func_800D419C(CpuContext* ctx);
 extern "C" void MH3_JaggiPickArea(CpuContext* ctx) {
-    PortCheck::Call(ctx, "JaggiPickArea", func_8017643C, Returning<PickArea>);
+    PortCheck::Call(ctx, "JaggiPickArea", func_800D419C, Returning<PickArea>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8017643C, MH3_JaggiPickArea, "JaggiPickArea");
+REGISTER_NATIVE_FUNCTION_AS(0x800D419C, MH3_JaggiPickArea, "JaggiPickArea");
 
-extern "C" void func_80175ED8(CpuContext* ctx);
+extern "C" void func_800D3C28(CpuContext* ctx);
 extern "C" void MH3_JaggiCondition(CpuContext* ctx) {
-    PortCheck::Call(ctx, "JaggiCondition", func_80175ED8, Returning<Condition>);
+    PortCheck::Call(ctx, "JaggiCondition", func_800D3C28, Returning<Condition>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80175ED8, MH3_JaggiCondition, "JaggiCondition");
+REGISTER_NATIVE_FUNCTION_AS(0x800D3C28, MH3_JaggiCondition, "JaggiCondition");
 
-extern "C" void func_801760F4(CpuContext* ctx);
+extern "C" void func_800D3E44(CpuContext* ctx);
 extern "C" void MH3_JaggiFirstAction(CpuContext* ctx) {
-    PortCheck::Call(ctx, "JaggiFirstAction", func_801760F4, FirstAction);
+    PortCheck::Call(ctx, "JaggiFirstAction", func_800D3E44, FirstAction);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x801760F4, MH3_JaggiFirstAction, "JaggiFirstAction");
+REGISTER_NATIVE_FUNCTION_AS(0x800D3E44, MH3_JaggiFirstAction, "JaggiFirstAction");
 
-extern "C" void func_80170674(CpuContext* ctx);
+extern "C" void func_800CE37C(CpuContext* ctx);
 extern "C" void MH3_JaggiStart(CpuContext* ctx) {
-    PortCheck::Call(ctx, "JaggiStart", func_80170674, Start);
+    PortCheck::Call(ctx, "JaggiStart", func_800CE37C, Start);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80170674, MH3_JaggiStart, "JaggiStart");
+REGISTER_NATIVE_FUNCTION_AS(0x800CE37C, MH3_JaggiStart, "JaggiStart");
 
-extern "C" void func_801707BC(CpuContext* ctx);
-extern "C" void MH3_JaggiActionStart(CpuContext* ctx) {
-    PortCheck::Call(ctx, "JaggiActionStart", func_801707BC, ActionStart);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x801707BC, MH3_JaggiActionStart, "JaggiActionStart");
+// Disabled for RMHJ08: JaggiActionStart (0x800CE41C) and EnemyNetSend (0x802A8330)
+// have no variable-step scaling and inline multi-arg helpers in RMHJ08.
 
-extern "C" void func_80192920(CpuContext* ctx);
+extern "C" void func_800F05F4(CpuContext* ctx);
 extern "C" void MH3_EnemyActionStart(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyActionStart", func_80192920, EnemyActionStart);
+    PortCheck::Call(ctx, "EnemyActionStart", func_800F05F4, EnemyActionStart);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80192920, MH3_EnemyActionStart, "EnemyActionStart");
+REGISTER_NATIVE_FUNCTION_AS(0x800F05F4, MH3_EnemyActionStart, "EnemyActionStart");
 
-extern "C" void func_803373E0(CpuContext* ctx);
-extern "C" void MH3_EnemyNetSend(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyNetSend", func_803373E0, NetSend);
-}
-REGISTER_NATIVE_FUNCTION_AS(0x803373E0, MH3_EnemyNetSend, "EnemyNetSend");
-
-extern "C" void func_8016CBEC(CpuContext* ctx);
+extern "C" void func_800CA998(CpuContext* ctx);
 extern "C" void MH3_EnemyLeaveArea(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyLeaveArea", func_8016CBEC, Returning<LeaveArea>);
+    PortCheck::Call(ctx, "EnemyLeaveArea", func_800CA998, Returning<LeaveArea>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8016CBEC, MH3_EnemyLeaveArea, "EnemyLeaveArea");
+REGISTER_NATIVE_FUNCTION_AS(0x800CA998, MH3_EnemyLeaveArea, "EnemyLeaveArea");
 
-extern "C" void func_8016CDB8(CpuContext* ctx);
+extern "C" void func_800CAB8C(CpuContext* ctx);
 extern "C" void MH3_EntryMove(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EntryMove", func_8016CDB8, EntryMove);
+    PortCheck::Call(ctx, "EntryMove", func_800CAB8C, EntryMove);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8016CDB8, MH3_EntryMove, "EntryMove");
+REGISTER_NATIVE_FUNCTION_AS(0x800CAB8C, MH3_EntryMove, "EntryMove");

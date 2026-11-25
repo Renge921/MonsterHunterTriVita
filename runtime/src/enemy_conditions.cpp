@@ -162,19 +162,19 @@ extern "C" void func_8012FA28(CpuContext* ctx);
 extern "C" void MH3_EnemyPartEnabled(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyPartEnabled", func_8012FA28, PartEnabledPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012FA28, MH3_EnemyPartEnabled, "EnemyPartEnabled");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012FA28, MH3_EnemyPartEnabled, "EnemyPartEnabled");
 
 extern "C" void func_8012F9C4(CpuContext* ctx);
 extern "C" void MH3_EnemyNodePart(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyNodePart", func_8012F9C4, NodePartPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012F9C4, MH3_EnemyNodePart, "EnemyNodePart");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012F9C4, MH3_EnemyNodePart, "EnemyNodePart");
 
 extern "C" void func_8012FC10(CpuContext* ctx);
 extern "C" void MH3_EnemyShowNode(CpuContext* ctx) {
     PortCheck::Call(ctx, "EnemyShowNode", func_8012FC10, ShowNodePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012FC10, MH3_EnemyShowNode, "EnemyShowNode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012FC10, MH3_EnemyShowNode, "EnemyShowNode");
 
 extern "C" void func_80140C64(CpuContext* ctx);
 static uint32_t ActionTableChecked([[maybe_unused]] uint32_t r1, uint32_t r3, uint32_t r4) {
@@ -208,18 +208,18 @@ extern "C" void MH3_EnemyActionTable(CpuContext* ctx) {
 #endif
     ctx->gpr[3] = ActionTableChecked(ctx->gpr[1], ctx->gpr[3], ctx->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80140C64, MH3_EnemyActionTable, "EnemyActionTable");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80140C64, MH3_EnemyActionTable, "EnemyActionTable");
 
 extern "C" void MH3_EnemyData(CpuContext* ctx) {
     const uint32_t em = ctx->gpr[3];
     ctx->gpr[3] = ActionTable(MemoryInline::FlatRead8(em + 3), MemoryInline::FlatRead8(em + 0xA));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80126098, MH3_EnemyData, "EnemyData");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80126098, MH3_EnemyData, "EnemyData");
 
 extern "C" void MH3_EnemyFlag1F5(CpuContext* ctx) {
     ctx->gpr[3] = MemoryInline::FlatRead8(ctx->gpr[3] + 0x1F5);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012D204, MH3_EnemyFlag1F5, "EnemyFlag1F5");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012D204, MH3_EnemyFlag1F5, "EnemyFlag1F5");
 
 extern "C" void func_8012D090(CpuContext* ctx);
 extern "C" void MH3_EnemyDying(CpuContext* ctx) {
@@ -228,7 +228,7 @@ extern "C" void MH3_EnemyDying(CpuContext* ctx) {
         c->gpr[3] = dying;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012D090, MH3_EnemyDying, "EnemyDying");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012D090, MH3_EnemyDying, "EnemyDying");
 
 extern "C" void func_8012D0D8(CpuContext* ctx);
 extern "C" void MH3_EnemyInArea(CpuContext* ctx) {
@@ -237,4 +237,4 @@ extern "C" void MH3_EnemyInArea(CpuContext* ctx) {
         c->gpr[3] = in;
     });
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8012D0D8, MH3_EnemyInArea, "EnemyInArea");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8012D0D8, MH3_EnemyInArea, "EnemyInArea");

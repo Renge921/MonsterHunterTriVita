@@ -22,10 +22,10 @@ extern "C" void func_80102008(CpuContext* ctx);
 extern "C" void MH3_LensFlareUpdate(CpuContext* ctx) {
     func_80102008(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80102008, MH3_LensFlareUpdate, "LensFlareUpdate");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80102008, MH3_LensFlareUpdate, "LensFlareUpdate");
 
 extern "C" void func_80102660(CpuContext* ctx);
 extern "C" void MH3_LensFlareFade(CpuContext* ctx) {
     func_80102660(ctx);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80102660, MH3_LensFlareFade, "LensFlareFade");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80102660, MH3_LensFlareFade, "LensFlareFade");

@@ -68,7 +68,7 @@ static void StartTaskPort(CpuContext* ctx) {
 extern "C" void MH3_StartTask(CpuContext* ctx) {
     PortCheck::Call(ctx, "StartTask", func_80041930, StartTaskPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80041930, MH3_StartTask, "StartTask");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80041930, MH3_StartTask, "StartTask");
 
 // 0x800419DC StartGameModeTask(): starts the scene task of the game mode.
 void GameTasks::StartGameModeTask() {
@@ -91,7 +91,7 @@ static void StartGameModeTaskPort(CpuContext*) {
 extern "C" void MH3_StartGameModeTask(CpuContext* ctx) {
     PortCheck::Call(ctx, "StartGameModeTask", func_800419DC, StartGameModeTaskPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800419DC, MH3_StartGameModeTask, "StartGameModeTask");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800419DC, MH3_StartGameModeTask, "StartGameModeTask");
 
 // 0x800408B8 RunExitHook(): runs system_w+0x904 if set (a tail call: it gets
 // the caller's registers).
@@ -109,7 +109,7 @@ static void RunExitHookPort(CpuContext* ctx) {
 extern "C" void MH3_RunExitHook(CpuContext* ctx) {
     PortCheck::Call(ctx, "RunExitHook", func_800408B8, RunExitHookPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800408B8, MH3_RunExitHook, "RunExitHook");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800408B8, MH3_RunExitHook, "RunExitHook");
 
 // The boot task (0x80059648, slot 0) shows the Wii strap screen: phase 2
 // fades it in, 3 holds it until a button (after 30 steps) or for 600 steps, 4

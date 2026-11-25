@@ -310,58 +310,58 @@ extern "C" void func_80284140(CpuContext* ctx);
 extern "C" void MH3_PlSwordActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlSwordActions", func_80284140, Actions<kSwordShield, false>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80284140, MH3_PlSwordActions, "PlSwordActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80284140, MH3_PlSwordActions, "PlSwordActions");
 
 extern "C" void func_80286E5C(CpuContext* ctx);
 extern "C" void MH3_PlHammerActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlHammerActions", func_80286E5C, HammerActions);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80286E5C, MH3_PlHammerActions, "PlHammerActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80286E5C, MH3_PlHammerActions, "PlHammerActions");
 
 extern "C" void func_802844D8(CpuContext* ctx);
 extern "C" void MH3_PlHammerChargeLevel(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlHammerChargeLevel", func_802844D8, HammerChargeLevelPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802844D8, MH3_PlHammerChargeLevel, "PlHammerChargeLevel");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802844D8, MH3_PlHammerChargeLevel, "PlHammerChargeLevel");
 
 extern "C" void func_8027C0C8(CpuContext* ctx);
 extern "C" void MH3_PlWeaponPoint(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlWeaponPoint", func_8027C0C8, WeaponPointPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8027C0C8, MH3_PlWeaponPoint, "PlWeaponPoint");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8027C0C8, MH3_PlWeaponPoint, "PlWeaponPoint");
 
 extern "C" void func_80282A18(CpuContext* ctx);
 extern "C" void MH3_PlGreatSwordActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlGreatSwordActions", func_80282A18, GreatSwordActions);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80282A18, MH3_PlGreatSwordActions, "PlGreatSwordActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80282A18, MH3_PlGreatSwordActions, "PlGreatSwordActions");
 
 extern "C" void func_8034EE7C(CpuContext* ctx);
 extern "C" void MH3_PlLanceActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlLanceActions", func_8034EE7C, Actions<kLance, false>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8034EE7C, MH3_PlLanceActions, "PlLanceActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8034EE7C, MH3_PlLanceActions, "PlLanceActions");
 
 extern "C" void func_802888AC(CpuContext* ctx);
 extern "C" void MH3_PlBowgunActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlBowgunActions", func_802888AC, Actions<kBowgun, false>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802888AC, MH3_PlBowgunActions, "PlBowgunActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802888AC, MH3_PlBowgunActions, "PlBowgunActions");
 
 extern "C" void func_8028B394(CpuContext* ctx);
 extern "C" void MH3_PlLongSwordActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlLongSwordActions", func_8028B394, Actions<kLongSword, true>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8028B394, MH3_PlLongSwordActions, "PlLongSwordActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8028B394, MH3_PlLongSwordActions, "PlLongSwordActions");
 
 extern "C" void func_803347BC(CpuContext* ctx);
 extern "C" void MH3_PlSwitchAxeActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlSwitchAxeActions", func_803347BC, Actions<kSwitchAxe, true>);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x803347BC, MH3_PlSwitchAxeActions, "PlSwitchAxeActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803347BC, MH3_PlSwitchAxeActions, "PlSwitchAxeActions");
 
 extern "C" void func_8025B6FC(CpuContext* ctx);
 extern "C" void MH3_PlWeaponCommonActions(CpuContext* ctx) {
     PortCheck::Call(ctx, "PlWeaponCommonActions", func_8025B6FC, CommonActions);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8025B6FC, MH3_PlWeaponCommonActions, "PlWeaponCommonActions");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8025B6FC, MH3_PlWeaponCommonActions, "PlWeaponCommonActions");

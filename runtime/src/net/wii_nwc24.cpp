@@ -566,110 +566,110 @@ int32_t PrepareShutdown(CpuContext* cpu) {
 extern "C" void MH3_NWC24GetMyUserId(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(GetMyUserId(cpu, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DD90, MH3_NWC24GetMyUserId, "NWC24GetMyUserId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DD90, MH3_NWC24GetMyUserId, "NWC24GetMyUserId");
 
 extern "C" void MH3_NWC24RegisterVersion(CpuContext* cpu) {
     RegisterVersion(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DEF8, MH3_NWC24RegisterVersion, "NWC24iRegisterVersion");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DEF8, MH3_NWC24RegisterVersion, "NWC24iRegisterVersion");
 
 extern "C" void MH3_NWC24IsState1(CpuContext* cpu) {
     cpu->gpr[3] = Read(kState) == 1;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DF30, MH3_NWC24IsState1, "NWC24iIsState1");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DF30, MH3_NWC24IsState1, "NWC24iIsState1");
 
 extern "C" void MH3_NWC24IsState2(CpuContext* cpu) {
     cpu->gpr[3] = Read(kState) == 2;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DF44, MH3_NWC24IsState2, "NWC24iIsState2");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DF44, MH3_NWC24IsState2, "NWC24iIsState2");
 
 extern "C" void MH3_NWC24IsMakingId(CpuContext* cpu) {
     cpu->gpr[3] = Read(kState) == 3;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DF58, MH3_NWC24IsMakingId, "NWC24iIsMakingId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DF58, MH3_NWC24IsMakingId, "NWC24iIsMakingId");
 
 extern "C" void MH3_NWC24SetMakingId(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetMakingId(cpu, cpu->gpr[3] != 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051DF6C, MH3_NWC24SetMakingId, "NWC24iSetMakingId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051DF6C, MH3_NWC24SetMakingId, "NWC24iSetMakingId");
 
 extern "C" void MH3_NWC24SuspendScheduler(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SuspendScheduler(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E00C, MH3_NWC24SuspendScheduler, "NWC24SuspendScheduler");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E00C, MH3_NWC24SuspendScheduler, "NWC24SuspendScheduler");
 
 extern "C" void MH3_NWC24ResumeScheduler(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(ResumeScheduler(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E0DC, MH3_NWC24ResumeScheduler, "NWC24ResumeScheduler");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E0DC, MH3_NWC24ResumeScheduler, "NWC24ResumeScheduler");
 
 extern "C" void MH3_NWC24SetScriptMode(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetScriptMode(cpu, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E1CC, MH3_NWC24SetScriptMode, "NWC24iSetScriptMode");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E1CC, MH3_NWC24SetScriptMode, "NWC24iSetScriptMode");
 
 extern "C" void MH3_NWC24RequestGenerateUserId(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(RequestGenerateUserId(cpu, cpu->gpr[3], cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E36C, MH3_NWC24RequestGenerateUserId, "NWC24iRequestGenerateUserId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E36C, MH3_NWC24RequestGenerateUserId, "NWC24iRequestGenerateUserId");
 
 // The /dev/net/kd/request commands with no input (0x8051E528..0x8051E578).
 extern "C" void MH3_NWC24StartSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kStartSocket, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E528, MH3_NWC24StartSocket, "NWC24iStartSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E528, MH3_NWC24StartSocket, "NWC24iStartSocket");
 
 extern "C" void MH3_NWC24CleanupSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kCleanupSocket, cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E538, MH3_NWC24CleanupSocket, "NWC24iCleanupSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E538, MH3_NWC24CleanupSocket, "NWC24iCleanupSocket");
 
 extern "C" void MH3_NWC24SuspendForSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kSuspendForSocket, 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E548, MH3_NWC24SuspendForSocket, "NWC24iSuspendForSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E548, MH3_NWC24SuspendForSocket, "NWC24iSuspendForSocket");
 
 extern "C" void MH3_NWC24ResumeForSocket(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kResumeForSocket, 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E558, MH3_NWC24ResumeForSocket, "NWC24iResumeForSocket");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E558, MH3_NWC24ResumeForSocket, "NWC24iResumeForSocket");
 
 extern "C" void MH3_NWC24RequestSuspend(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kSuspendScheduler, 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E568, MH3_NWC24RequestSuspend, "NWC24iRequestSuspend");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E568, MH3_NWC24RequestSuspend, "NWC24iRequestSuspend");
 
 extern "C" void MH3_NWC24RequestResume(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, kResumeScheduler, 0));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E578, MH3_NWC24RequestResume, "NWC24iRequestResume");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E578, MH3_NWC24RequestResume, "NWC24iRequestResume");
 
 extern "C" void MH3_NWC24Request(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Request(cpu, cpu->gpr[4], cpu->gpr[5]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E588, MH3_NWC24Request, "NWC24iRequest");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E588, MH3_NWC24Request, "NWC24iRequest");
 
 extern "C" void MH3_NWC24CheckUserId(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(CheckUserId(cpu->gpr[3], cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E6E8, MH3_NWC24CheckUserId, "NWC24iCheckUserId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E6E8, MH3_NWC24CheckUserId, "NWC24iCheckUserId");
 
 extern "C" void MH3_NWC24DecodeUserId(CpuContext* cpu) {
     const uint64_t value = DecodeUserId(cpu->gpr[3], cpu->gpr[4]);
     cpu->gpr[3] = uint32_t(value >> 32);
     cpu->gpr[4] = uint32_t(value);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051E780, MH3_NWC24DecodeUserId, "NWC24iDecodeUserId");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051E780, MH3_NWC24DecodeUserId, "NWC24iDecodeUserId");
 
 extern "C" void MH3_NWC24SetRtcCounter(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(SetRtcCounter(cpu, cpu->gpr[3], cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EA04, MH3_NWC24SetRtcCounter, "NWC24iSetRtcCounter");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EA04, MH3_NWC24SetRtcCounter, "NWC24iSetRtcCounter");
 
 extern "C" void MH3_NWC24SynchronizeRtcCounter(CpuContext* cpu) {
     SynchronizeRtcCounter(cpu, cpu->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EB4C, MH3_NWC24SynchronizeRtcCounter, "NWC24iSynchronizeRtcCounter");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EB4C, MH3_NWC24SynchronizeRtcCounter, "NWC24iSynchronizeRtcCounter");
 
 // The device helpers take the caller's name first, for nothing.
 extern "C" void MH3_NWC24Open(CpuContext* cpu) {
@@ -684,27 +684,27 @@ extern "C" void MH3_NWC24Open(CpuContext* cpu) {
 
     cpu->gpr[3] = uint32_t(result);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EBE0, MH3_NWC24Open, "NWC24iOpen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EBE0, MH3_NWC24Open, "NWC24iOpen");
 
 extern "C" void MH3_NWC24Close(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Close(cpu, cpu->gpr[4]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EC58, MH3_NWC24Close, "NWC24iClose");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EC58, MH3_NWC24Close, "NWC24iClose");
 
 extern "C" void MH3_NWC24Ioctl(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(Ioctl(cpu, cpu->gpr[4], cpu->gpr[5], cpu->gpr[6], cpu->gpr[7], cpu->gpr[8], cpu->gpr[9]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EC8C, MH3_NWC24Ioctl, "NWC24iIoctl");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EC8C, MH3_NWC24Ioctl, "NWC24iIoctl");
 
 extern "C" void MH3_NWC24IoctlAsync(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(IoctlAsync(cpu, cpu->gpr[4], cpu->gpr[5], cpu->gpr[6], cpu->gpr[7], cpu->gpr[8], cpu->gpr[9], cpu->gpr[10]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051ECD4, MH3_NWC24IoctlAsync, "NWC24iIoctlAsync");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051ECD4, MH3_NWC24IoctlAsync, "NWC24iIoctlAsync");
 
 extern "C" void MH3_NWC24IsAsyncBusy(CpuContext* cpu) {
     cpu->gpr[3] = Read(kAsyncBusy);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051ED30, MH3_NWC24IsAsyncBusy, "NWC24iIsAsyncBusy");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051ED30, MH3_NWC24IsAsyncBusy, "NWC24iIsAsyncBusy");
 
 extern "C" void MH3_NWC24AsyncDone(CpuContext* cpu) {
     if (const uint32_t result = cpu->gpr[4])
@@ -713,14 +713,14 @@ extern "C" void MH3_NWC24AsyncDone(CpuContext* cpu) {
     Write(kAsyncBusy, 0);
     cpu->gpr[3] = 0;
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051ED38, MH3_NWC24AsyncDone, "NWC24iAsyncDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051ED38, MH3_NWC24AsyncDone, "NWC24iAsyncDone");
 
 extern "C" void MH3_NWC24PrepareShutdown(CpuContext* cpu) {
     cpu->gpr[3] = uint32_t(PrepareShutdown(cpu));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051ED54, MH3_NWC24PrepareShutdown, "NWC24iPrepareShutdown");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051ED54, MH3_NWC24PrepareShutdown, "NWC24iPrepareShutdown");
 
 extern "C" void MH3_NWC24ShutdownHook(CpuContext* cpu) {
     cpu->gpr[3] = ShutdownHook(cpu, cpu->gpr[3], cpu->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8051EE14, MH3_NWC24ShutdownHook, "NWC24iShutdownHook");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8051EE14, MH3_NWC24ShutdownHook, "NWC24iShutdownHook");

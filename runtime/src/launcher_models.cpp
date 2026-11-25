@@ -39,7 +39,10 @@ struct Selector {
     std::vector<uint16_t> shapes;
 };
 
-const Selector Selectors[] = {{"15/m02d/m02a06d/m02a06d.brres", "m02a06d", {43, 49}}};
+const Selector Selectors[] = {
+    {"15/m02d/m02a06d/m02a06d.brres", "m02a06d", {43, 49}},
+    {"stage/m02d/m02a06d/m02a06d.brres", "m02a06d", {43, 49}},
+};
 
 struct Memory {
     std::vector<uint8_t> data;

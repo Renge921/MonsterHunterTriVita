@@ -79,7 +79,7 @@ extern "C" void MH3_CheatSaveFill(CpuContext* ctx) {
     func_80440864(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80440864, MH3_CheatSaveFill, "CheatSaveFill");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80440864, MH3_CheatSaveFill, "CheatSaveFill");
 
 // 0x803975D0 (the quest's result): stores a new arena record in the save
 // data. Don't save new arena records (US 0x80397A60 and 0x80397A6C, EU
@@ -119,7 +119,7 @@ extern "C" void MH3_CheatArenaRecords(CpuContext* ctx) {
         Memory::Write8(save + kArenaNames + i, names[i]);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803975D0, MH3_CheatArenaRecords, "CheatArenaRecords");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803975D0, MH3_CheatArenaRecords, "CheatArenaRecords");
 
 // 0x8039CC9C (the quest result screen's step). Hold to hide rewards (US
 // 0x8039CC64, EU 0x8039CCC8: to its end) skips it while the buttons are held.
@@ -132,7 +132,7 @@ extern "C" void MH3_CheatResultScreen(CpuContext* ctx) {
     func_8039CC9C(ctx);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8039CC9C, MH3_CheatResultScreen, "CheatResultScreen");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8039CC9C, MH3_CheatResultScreen, "CheatResultScreen");
 
 // 0x803AF9F0 (player index): a hunter fainted; the reward loses the faint
 // penalty (at most all of it) and the faints count up. Infinite retries (US
@@ -165,7 +165,7 @@ extern "C" void MH3_CheatFaint(CpuContext* ctx) {
         Memory::Write8(quest + kFaints, 0);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803AF9F0, MH3_CheatFaint, "CheatFaint");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AF9F0, MH3_CheatFaint, "CheatFaint");
 
 // QuestStep (0x803B0228): the quest fails when its reward reaches 0 (state 5
 // at +0x6A3C). Autofail (US 0x803B030C, EU 0x803B0370: the reward's check
@@ -182,7 +182,7 @@ extern "C" void MH3_CheatQuestStep(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestStep", func_803B0228, QuestStepPorts::QuestStepPort);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803B0228, MH3_CheatQuestStep, "CheatQuestStep");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803B0228, MH3_CheatQuestStep, "CheatQuestStep");
 
 // 0x803AA0C4 (quest, objective, flag): 1 when the objective (0 to 3; 4 asks
 // about the three) is done: started (8), not failed (0x40) and met (0x20 of
@@ -207,7 +207,7 @@ extern "C" void MH3_CheatObjectiveDone(CpuContext* ctx) {
     PortCheck::Call(ctx, "QuestObjectiveDone", PortCheck::Returns::Gpr3, func_803AA0C4, QuestStepPorts::ObjectiveDonePort);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803AA0C4, MH3_CheatObjectiveDone, "CheatObjectiveDone");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803AA0C4, MH3_CheatObjectiveDone, "CheatObjectiveDone");
 
 // 0x80321034 (the quest board's menu): +4 counts up to 6 as the selected
 // box jiggles. No quest box jiggle (US 0x80320FFC, EU 0x80321060: the count's
@@ -229,7 +229,7 @@ extern "C" void MH3_CheatQuestBoard(CpuContext* ctx) {
         Memory::Write16(menu + 4, count);
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x80321034, MH3_CheatQuestBoard, "CheatQuestBoard");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80321034, MH3_CheatQuestBoard, "CheatQuestBoard");
 
 // 0x8043E1D8 (the arena's equipment choice): s16 +0x48 counts the time left
 // down. Infinite time for choosing your equipment (US 0x80447DFC, EU
@@ -251,7 +251,7 @@ extern "C" void MH3_CheatArenaEquipment(CpuContext* ctx) {
         Memory::Write16(menu + 0x48, uint16_t(time));
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x8043E1D8, MH3_CheatArenaEquipment, "CheatArenaEquipment");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8043E1D8, MH3_CheatArenaEquipment, "CheatArenaEquipment");
 
 namespace {
 
@@ -312,7 +312,7 @@ extern "C" void MH3_CheatGather(CpuContext* ctx) {
     }
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803BAC14, MH3_CheatGather, "CheatGather");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803BAC14, MH3_CheatGather, "CheatGather");
 
 // 0x803BAEE4 (a spot's item table: u16 weight, u16 item pairs, 0xFFFF
 // ending): picks an item by weight, 0xFFFF for none. Gathering/carving mod
@@ -327,7 +327,7 @@ extern "C" void MH3_CheatGatherItem(CpuContext* ctx) {
         ctx->gpr[3] = uint32_t(Value(Id::GatherItem)) & 0xFFFF;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803BAEE4, MH3_CheatGatherItem, "CheatGatherItem");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803BAEE4, MH3_CheatGatherItem, "CheatGatherItem");
 
 // 0x803BAA14 (player, ...): the spot the hunter can gather or carve at, its
 // item kind, 0xFFFF for none. Can't carve/gather (US 0x803BAB44 and
@@ -342,4 +342,4 @@ extern "C" void MH3_CheatGatherSpot(CpuContext* ctx) {
         ctx->gpr[3] = 0xFFFF;
 }
 
-REGISTER_NATIVE_FUNCTION_AS(0x803BAA14, MH3_CheatGatherSpot, "CheatGatherSpot");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x803BAA14, MH3_CheatGatherSpot, "CheatGatherSpot");

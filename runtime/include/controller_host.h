@@ -76,3 +76,7 @@ float MouseSensitivity();
 bool MouseInvertY();
 void ServiceHostController(CpuContext* cpu, bool force = false);
 void RunControllerSelfTests(CpuContext* cpu);
+
+// 2x fast-forward mode toggled by L + Select (initially disabled).
+bool FastForwardEnabled();
+void SetFastForwardEnabled(bool enabled);

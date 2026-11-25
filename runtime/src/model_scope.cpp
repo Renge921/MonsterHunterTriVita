@@ -23,6 +23,7 @@
 #include "native_shade_snapshot.h"
 #include "model_render_prep.h"
 #include "model_assets.h"
+#include "render_diag.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -39,8 +40,8 @@
 
 const mh3_res_memory& MH3NativeResourceMemory();
 namespace {
-constexpr uint32_t genmode = 0x80685300, coordinate_cache = 0x8068530c, sync_address = 0x80796db0;
-constexpr mh3_matrix_runtime_locations locations{0x80685530, 0x80685510, 0x80796db4, 0x80688d94, 0x80686368};
+constexpr uint32_t genmode = 0x80866560, coordinate_cache = 0x8086656c, sync_address = 0x8089a330;
+constexpr mh3_matrix_runtime_locations locations{0x80866790, 0x80866770, 0x8089a334, 0x80869fe0, 0x808675b4};
 
 // G3D cache mirrors (game thread draw state; recorded items carry their sizes).
 constinit mh3_model_texcoord_sizes map_sizes{}, coordinate_sizes{};
@@ -178,11 +179,15 @@ mh3_model_material_scope Scope(uint32_t reference, uint32_t swaps) {
     if (material) {
         uint32_t parent = 0;
         Checked(mh3_res_runtime_offset(&MH3NativeResourceMemory(), reference, int32_t(Memory::Read32(material + 4)), 4, &parent));
-        const auto owner = ResolveNativeModelOwner(parent);
-        (void)ResolveNativeModelResource(owner, material, true);
-        mh3_catalog_model model{};
-        PackChecked(mh3_model_catalog_model(owner.catalog, owner.catalog_model_index, &model));
-        version = model.revision;
+        NativeModelOwner owner{};
+        if (TryResolveNativeModelOwner(parent, owner).ok()) {
+            (void)ResolveNativeModelResource(owner, material, true);
+            mh3_catalog_model model{};
+            if (mh3_model_catalog_model(owner.catalog, owner.catalog_model_index, &model) == MH3_PACK_OK)
+                version = model.revision;
+        } else if (parent && Memory::Contains(parent, 12) && Memory::Read32(parent) == 0x4D444C30) {
+            version = Memory::Read32(parent + 8);
+        }
     }
 
     mh3_model_material_scope scope{};
@@ -206,10 +211,10 @@ struct PrepareContext {
 };
 
 void OperatorKnown(uint32_t address) {
-    Checked(mh3_matrix_runtime_operator(&MH3NativeResourceMemory(), address, 0x80088a5c, 0x800888bc));
+    Checked(mh3_matrix_runtime_operator(&MH3NativeResourceMemory(), address, 0x800f22e4, 0x800f2100));
     const uint32_t table = Memory::Read32(address);
 
-    if (Memory::Read32(table + 8) != 0x80088aac)
+    if (Memory::Read32(table + 8) != 0x800f2514 && Memory::Read32(table + 8) != 0x80008c20)
         MH3_THROW(std::runtime_error("Custom indirect apply callback has no native producer"));
 }
 
@@ -245,7 +250,7 @@ mh3_res_status PrepareStep(void* opaque, const mh3_model_material_step* step) {
         Checked(mh3_model_material_misc_read(Bytes(resource, 12), &misc));
         mh3_native_fog fog{};
         int apply = 0;
-        Checked(mh3_fog_state_select(Mutable(0x80685d60, 1544), uint32_t(int32_t(misc.fog_reference)), &fog, &apply));
+        Checked(mh3_fog_state_select(Mutable(0x80866fa0, 1544), uint32_t(int32_t(misc.fog_reference)), &fog, &apply));
 
         if (apply)
             SetNativeFog(fog);
@@ -256,7 +261,7 @@ mh3_res_status PrepareStep(void* opaque, const mh3_model_material_step* step) {
         mh3_model_material_misc misc{};
         Checked(mh3_model_material_misc_read(Bytes(resource, 12), &misc));
         int apply = 0;
-        Checked(mh3_depth_compare_cache(Mutable(0x80796dc8, 5), Mutable(sync_address, 1), misc.depth_before_texture, &apply));
+        Checked(mh3_depth_compare_cache(Mutable(0x8089a348, 5), Mutable(sync_address, 1), misc.depth_before_texture, &apply));
 
         if (apply)
             SetNativeDepthCompareBeforeTexture(misc.depth_before_texture);
@@ -264,10 +269,10 @@ mh3_res_status PrepareStep(void* opaque, const mh3_model_material_step* step) {
         break;
     }
     case MH3_MATERIAL_PREP_PALETTES:
-        SelectNativeModelPaletteObjects(0x806854a0, resource);
+        SelectNativeModelPaletteObjects(0x80866700, resource);
         break;
     case MH3_MATERIAL_PREP_TEXTURES:
-        SelectNativeModelTextureObjects(0x80685380, resource);
+        SelectNativeModelTextureObjects(0x808665e0, resource);
         break;
     case MH3_MATERIAL_PREP_GENMODE:
         Checked(mh3_model_genmode_select(Mutable(genmode, 12), Bytes(resource, 8)));
@@ -287,7 +292,7 @@ mh3_res_status PrepareStep(void* opaque, const mh3_model_material_step* step) {
     case MH3_MATERIAL_PREP_LIGHTS: {
         mh3_model_material_misc misc{};
         Checked(mh3_model_material_misc_read(Bytes(resource, 12), &misc));
-        const auto& lights = SelectNativeModelLightSet(0x80686368, uint32_t(int32_t(misc.light_reference)));
+        const auto& lights = SelectNativeModelLightSet(0x808675b4, uint32_t(int32_t(misc.light_reference)));
         context.masks[0] = lights.diffuse_color;
         context.masks[1] = lights.diffuse_alpha;
         context.masks[2] = lights.specular_color;
@@ -333,6 +338,8 @@ struct ShapeSources {
 // The owner's prepared mesh and the authored vertex sources of the shape.
 Status TryReadSources(const NativeModelOwner& owner, uint32_t shape, ShapeSources& result) {
     result = {};
+    if (!owner.catalog)
+        return Status::Error("Unresolved model owner");
     result.source_generation = owner.source_generation;
     result.resident_handle = owner.resident_handle;
     result.resident_generation = owner.resident_generation;
@@ -374,8 +381,10 @@ Status TryReadSources(const NativeModelOwner& owner, uint32_t shape, ShapeSource
 }
 
 ShapeSources ReadSources(const NativeModelOwner& owner, uint32_t shape) {
-    ShapeSources result;
-    CheckStatus(TryReadSources(owner, shape, result));
+    ShapeSources result{};
+    if (owner.catalog) {
+        (void)TryReadSources(owner, shape, result);
+    }
     return result;
 }
 
@@ -403,8 +412,10 @@ NativeModelOwner ShapeOwner(uint32_t reference, uint32_t* shape) {
     *shape = Resource(reference, true);
     uint32_t parent = 0;
     Checked(mh3_res_runtime_shape_parent(&MH3NativeResourceMemory(), reference, &parent));
-    auto owner = ResolveNativeModelOwner(parent);
-    (void)ResolveNativeModelResource(owner, *shape, false);
+    NativeModelOwner owner{};
+    if (TryResolveNativeModelOwner(parent, owner).ok()) {
+        (void)ResolveNativeModelResource(owner, *shape, false);
+    }
     return owner;
 }
 
@@ -1243,7 +1254,7 @@ void PrePrimitive(const ShapeContext& context) {
     const auto& sources = *context.sources;
     PrepareNativeModelCoordinateSizes(Mode().texgens);
     Genmode(true);
-    Checked(mh3_model_shape_cache(Mutable(0x80685504, 12), Bytes(shape + 12, 12)));
+    Checked(mh3_model_shape_cache(Mutable(0x80866758, 12), Bytes(shape + 12, 12)));
     Memory::Write8(sync_address, 0);
 
     for (uint32_t i = 0; i < 12; i++)
@@ -1326,7 +1337,7 @@ void LoadNativeModelPipeline(uint32_t resource) {
     const auto& fields = ReadNativeLiveMaterialBlockView(resource + 32, MH3_MODEL_MATERIAL_PIPELINE).fields;
     const auto generation = fields.generation;
 
-    if (Memory::Read32(0x80796dbc) == resource && pipeline_address == resource && pipeline_revision == generation)
+    if (Memory::Read32(0x8089a33c) == resource && pipeline_address == resource && pipeline_revision == generation)
         return;
 
     uint8_t table[8], known = 0;
@@ -1336,7 +1347,7 @@ void LoadNativeModelPipeline(uint32_t resource) {
     Genmode(false);
     Memory::Write8(sync_address, 0);
     OverlayNativeModelMaterialGroup(fields, MH3_MODEL_MATERIAL_PIPELINE);
-    Memory::Write32(0x80796dbc, resource);
+    Memory::Write32(0x8089a33c, resource);
     pipeline_address = resource;
     pipeline_revision = generation;
     PrepareNativeModelCoordinateSizes(Mode().texgens);
@@ -1715,26 +1726,26 @@ void ExecuteNativeModelDraw(uint32_t slot, uint32_t index) {
 extern "C" void MH3_ModelMaterialScope(CpuContext* cpu) {
     PrepareNativeModelMaterial(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5], cpu->gpr[6], cpu->gpr[7] != 0);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80076220, MH3_ModelMaterialScope, "ModelMaterialScope");
+REGISTER_NATIVE_FUNCTION(0x8052C888, MH3_ModelMaterialScope);
 extern "C" void MH3_ModelPipelineLoad(CpuContext* cpu) {
     LoadNativeModelPipeline(Resource(cpu->gpr[3]));
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800865CC, MH3_ModelPipelineLoad, "ModelPipelineLoad");
+REGISTER_NATIVE_FUNCTION(0x8052A5C4, MH3_ModelPipelineLoad);
 extern "C" void MH3_ModelIndirectOperatorLoad(CpuContext* cpu) {
     const uint32_t resource = Resource(cpu->gpr[3]);
 
     if (resource)
         Indirect(resource, cpu->gpr[4]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80086B0C, MH3_ModelIndirectOperatorLoad, "ModelIndirectOperatorLoad");
+REGISTER_NATIVE_FUNCTION(0x8052A9E4, MH3_ModelIndirectOperatorLoad);
 extern "C" void MH3_ModelShapePrePrimitive(CpuContext* cpu) {
     PrePrimitive(cpu->gpr[3]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800879DC, MH3_ModelShapePrePrimitive, "ModelShapePrePrimitive");
+REGISTER_NATIVE_FUNCTION(0x8052B61C, MH3_ModelShapePrePrimitive);
 extern "C" void MH3_ModelShapePrimitive(CpuContext* cpu) {
     SubmitNativeModelShape(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80087B34, MH3_ModelShapePrimitive, "ModelShapePrimitive");
+REGISTER_NATIVE_FUNCTION(0x8052B7C0, MH3_ModelShapePrimitive);
 uint32_t NativeModelIndirectMatrices(uint32_t material_reference, uint32_t node_reference, uint32_t shape_reference) {
     return NativeModelIndirectMatricesAt(Resource(material_reference), Resource(shape_reference), material_reference, node_reference, shape_reference);
 }
@@ -1751,11 +1762,13 @@ uint32_t NativeModelIndirectMatricesAt(uint32_t material, uint32_t shape, uint32
     {
         uint32_t parent = 0;
         Checked(mh3_res_runtime_shape_parent(&MH3NativeResourceMemory(), shape_reference, &parent));
-        const auto owner = ResolveNativeModelOwner(parent);
-        const auto binding = ReadNativeModelMatrixSources(locations.arrays);
+        NativeModelOwner owner{};
+        if (TryResolveNativeModelOwner(parent, owner).ok()) {
+            const auto binding = ReadNativeModelMatrixSources(locations.arrays);
 
-        if (int32_t(Memory::Read32(shape + 8)) >= 0)
-            (void)ReadNativeModelPose(binding.address, owner.model_address);
+            if (int32_t(Memory::Read32(shape + 8)) >= 0)
+                (void)ReadNativeModelPose(binding.address, owner.model_address);
+        }
     }
 
     Checked(mh3_matrix_runtime_indirect(&MH3NativeResourceMemory(), &locations, material_reference, node_reference, shape_reference, &current_operator));
@@ -1763,7 +1776,7 @@ uint32_t NativeModelIndirectMatricesAt(uint32_t material, uint32_t shape, uint32
     if (!current_operator.active)
         return 0;
 
-    operator_address = Resource(0x80793708, true);
+    operator_address = Resource(0x8089F4C4, true);
     OperatorKnown(operator_address);
     Checked(mh3_matrix_store_indirect(Mutable(operator_address, 152), &current_operator));
     return operator_address;
@@ -1775,7 +1788,7 @@ extern "C" void MH3_ModelIndirectMatrices(CpuContext* cpu) {
 
 // Only integer guest arguments/results reach the native matrix producers;
 // no guest call or CpuContext is passed to their descendants.
-REGISTER_NATIVE_FUNCTION_AS(0x80077814, MH3_ModelIndirectMatrices, "ModelIndirectMatrices");
+REGISTER_NATIVE_FUNCTION(0x805303F8, MH3_ModelIndirectMatrices);
 namespace {
 // The dispatch's shape visibility: its resolved shape's flag, or by reference.
 bool ShapeVisible(const NativeModelDispatch& d, const Resolved* r) {
@@ -1795,12 +1808,12 @@ void GameLightingSteps(const mh3_model_material_scope& scope) {
     Checked(mh3_model_material_misc_read(Bytes(scope.selected.resource_slots[MH3_MAT_MISC], 12), &misc));
     mh3_native_fog fog{};
     int apply = 0;
-    Checked(mh3_fog_state_select(Mutable(0x80685d60, 1544), uint32_t(int32_t(misc.fog_reference)), &fog, &apply));
+    Checked(mh3_fog_state_select(Mutable(0x80866fa0, 1544), uint32_t(int32_t(misc.fog_reference)), &fog, &apply));
 
     if (apply)
         SetNativeFog(fog);
 
-    (void)SelectNativeModelLightSet(0x80686368, uint32_t(int32_t(misc.light_reference)));
+    (void)SelectNativeModelLightSet(0x808675b4, uint32_t(int32_t(misc.light_reference)));
 }
 
 // 800879DC's vertex source bindings: the game thread keeps them to check that
@@ -1944,6 +1957,7 @@ Hidden& HiddenMaterials() {
 
 void Dispatch(const NativeModelDispatch& d, const Resolved* r) {
     TraceNativeModelDispatch(d);
+    RenderDiag::Count(RenderDiag::Dispatch);
 
     // Skipped frames record nothing (the game-side steps still run); the
     // render thread forgets its caches at the next recorded frame.
@@ -1994,11 +2008,16 @@ void Dispatch(const NativeModelDispatch& d, const Resolved* r) {
     draws = draws && !HiddenMaterials().Has(scope.material_address);
 #endif
 
+    if (!draws)
+        RenderDiag::Count(RenderDiag::DispatchInvisible);
+
     if (draws) {
         if (scope.fur_address)
             MH3_THROW(std::runtime_error("Fur model needs native sampled-shell material preparation"));
 
         if (!r && !Resource(d.shape)) {
+            RenderDiag::Count(RenderDiag::DispatchNoShape);
+
             if (!(d.flags & 2))
                 Replacements(ResolveShape(d.shape), scope);
 
@@ -2007,27 +2026,59 @@ void Dispatch(const NativeModelDispatch& d, const Resolved* r) {
             MH3_SPLIT_DETAIL_SCOPE(MH3_SPLIT_SHAPE_PREP);
             const auto shape = r ? r->shape : ResolveShape(d.shape);
 
-            if (!(d.flags & 2)) {
-                // A table's sources stay put while its owner lives: bind them
-                // in place instead of copying twelve records per draw.
-                if (r)
-                    BindNativeVertexSourcesInPlace(shape.sources->source.data(), shape.sources->known);
-                else
-                    PrePrimitiveSources(shape);
+            if (!shape.sources || !shape.sources->prepared) {
+                RenderDiag::Count(RenderDiag::DispatchNoSources);
 
-                Replacements(shape, scope);
+                if (RenderDiag::WantNote()) {
+                    uint32_t parent = 0;
+                    NativeModelOwner owner{};
+                    const bool have_parent = mh3_res_runtime_shape_parent(&MH3NativeResourceMemory(), d.shape, &parent) == MH3_RES_OK;
+                    Status owner_status = have_parent ? TryResolveNativeModelOwner(parent, owner) : Status::Error("shape has no parent model");
+                    std::string reason;
+
+                    if (!owner_status.ok()) {
+                        reason = owner_status.message();
+                    } else {
+                        const mh3_prepared_mesh* mesh = nullptr;
+                        const Status prepared_status = ReadNativePreparedMesh(owner, shape.shape, mesh);
+                        reason = prepared_status.ok() ? "shape sources could not be read" : prepared_status.message();
+                    }
+
+                    RenderDiag::NoteDispatch(d.material, d.shape, shape.shape, owner.model_address, reason.c_str());
+                }
+
+                draws = false;
+            } else {
+                if (!(d.flags & 2)) {
+                    // A table's sources stay put while its owner lives: bind them
+                    // in place instead of copying twelve records per draw.
+                    if (r)
+                        BindNativeVertexSourcesInPlace(shape.sources->source.data(), shape.sources->known);
+                    else
+                        PrePrimitiveSources(shape);
+
+                    Replacements(shape, scope);
+
+                    if (item)
+                        std::memcpy(item->prep.shape_cache, Bytes(shape.shape + 12, 12).data, 12);
+                }
 
                 if (item)
-                    std::memcpy(item->prep.shape_cache, Bytes(shape.shape + 12, 12).data, 12);
-            }
+                    CaptureShape(*item, shape, d.position, d.normal);
 
-            if (item)
-                CaptureShape(*item, shape, d.position, d.normal);
+                RenderDiag::NoteModel(shape.sources->owner.model_address, shape.shape, shape.sources->prepared->immutable.index_count,
+                                      shape.sources->prepared->skin_row_count);
+            }
         }
     }
 
-    if (!item)
+    if (!item) {
+        RenderDiag::Count(RenderDiag::DispatchNoFrame);
         return;
+    }
+
+    if (draws)
+        RenderDiag::Count(RenderDiag::DispatchRecorded);
 
     item->prep.visible = draws;
     MH3_SPLIT_DETAIL_SCOPE(MH3_SPLIT_MODEL_RECORD);
@@ -2075,4 +2126,4 @@ extern "C" void MH3_ModelDispatch(CpuContext* cpu) {
 }
 
 // Material/shape preparation and packet recording preserve every guest FPR.
-REGISTER_NATIVE_FUNCTION_AS(0x80076A58, MH3_ModelDispatch, "ModelDisplayListDispatch");
+REGISTER_NATIVE_FUNCTION(0x8052CD1C, MH3_ModelDispatch);

@@ -23,22 +23,25 @@ using MemoryInline::FlatWrite32;
 
 namespace {
 
-// Globals (r13-relative in the original).
-constexpr uint32_t kChannels = 0x80797760;    // MIXChannel* (0x70 per voice)
-constexpr uint32_t kInitialized = 0x80797764;
-constexpr uint32_t kVoiceCount = 0x80797768;
-constexpr uint32_t kSoundMode = 0x8079776C;   // 0 mono, 1 stereo, 2 surround, 3 DPL2
-constexpr uint32_t kRemotes = 0x80797770;     // per voice remote record (0x44)
-constexpr uint32_t kChannelStorage = 0x8074B078, kRemoteStorage = 0x8074DA78;
+// Globals (r13-relative in JPN RMHJ08).
+// JPN SDA Base r13 = 0x808A4880
+constexpr uint32_t kChannels = 0x808A0BE8;    // r13 - 15512 (PAL was 0x80797760)
+constexpr uint32_t kInitialized = 0x808A0BEC; // r13 - 15508 (PAL was 0x80797764)
+constexpr uint32_t kVoiceCount = 0x808A0BF0;  // r13 - 15504 (PAL was 0x80797768)
+constexpr uint32_t kSoundMode = 0x808A0BF4;   // r13 - 15500 (PAL was 0x8079776C)
+constexpr uint32_t kRemotes = 0x808A0BF8;     // r13 - 15496 (PAL was 0x80797770)
+constexpr uint32_t kChannelStorage = 0x807C78E0; // (PAL was 0x8074B078)
+constexpr uint32_t kRemoteStorage = 0x807DA2E0;  // (PAL was 0x8074DA78)
 
 // AX state read by MIXInit (native_audio.h Guest::kAxInitialized/kVoiceCount).
-constexpr uint32_t kAxInitialized = 0x80797388, kAxVoiceCount = 0x807974A4;
+constexpr uint32_t kAxInitialized = 0x808A0AA8; // r13 - 15832 (PAL was 0x80797388)
+constexpr uint32_t kAxVoiceCount = 0x808A0BC4;  // r13 - 15548 (PAL was 0x807974A4)
 
 // Tables in .data.
-constexpr uint32_t kVolumeTable = 0x8061B6C0;  // u16[0x388 + 0x3C]: dB x 10 -> volume
-constexpr uint32_t kPanTable = 0x8061BE50;     // s32[128]: pan -> dB x 10
-constexpr uint32_t kDpl2Front = 0x8061C050;    // s16[128]
-constexpr uint32_t kDpl2Rear = 0x8061C150;     // s16[128]
+constexpr uint32_t kVolumeTable = 0x80702D20;  // (PAL was 0x8061B6C0)
+constexpr uint32_t kPanTable = 0x807034B0;     // (PAL was 0x8061BE50)
+constexpr uint32_t kDpl2Front = 0x807036B0;    // (PAL was 0x8061C050)
+constexpr uint32_t kDpl2Rear = 0x807037B0;     // (PAL was 0x8061C150)
 
 // MIXChannel.
 enum : uint32_t {
@@ -101,7 +104,10 @@ uint16_t Volume(int32_t db) {
 }
 
 uint32_t Channel(uint32_t voice) {
-    return FlatRead32(kChannels) + SoundVoice::Index(voice) * kChannelSize;
+    const uint32_t channels = FlatRead32(kChannels);
+    if (!channels)
+        return kChannelStorage + SoundVoice::Index(voice) * kChannelSize;
+    return channels + SoundVoice::Index(voice) * kChannelSize;
 }
 
 // __MIXSetPan: the pan and surround pan attenuations.
@@ -460,12 +466,8 @@ uint32_t SoundMode() {
 } // namespace SdkMix
 
 extern "C" {
-void func_804C2D60(CpuContext*);
-void func_804C2EC0(CpuContext*);
-void func_804C4750(CpuContext*);
-
 void MH3_MIXInit(CpuContext* cpu) {
-    PortCheck::Call(cpu, "MIXInit", func_804C2D60, InitPort);
+    InitPort(cpu);
 }
 
 void MH3_MIXQuit(CpuContext*) {
@@ -493,7 +495,7 @@ void MH3_MIXSetSoundMode(CpuContext* cpu) {
 }
 
 void MH3_MIXInitChannel(CpuContext* cpu) {
-    PortCheck::Call(cpu, "MIXInitChannel", func_804C2EC0, InitChannelPort);
+    InitChannelPort(cpu);
 }
 
 void MH3_MIXReleaseChannel(CpuContext* cpu) {
@@ -525,19 +527,19 @@ void MH3_MIXSetFader(CpuContext* cpu) {
 }
 
 void MH3_MIXUpdateSettings(CpuContext* cpu) {
-    PortCheck::Call(cpu, "MIXUpdateSettings", func_804C4750, UpdateSettingsPort);
+    UpdateSettingsPort(cpu);
 }
 } // extern "C"
 
-REGISTER_NATIVE_FUNCTION_AS(0x804C2D60, MH3_MIXInit, "MIXInit");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2E80, MH3_MIXQuit, "MIXQuit");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2EA0, MH3_MIXSetSoundMode, "MIXSetSoundMode");
-REGISTER_NATIVE_FUNCTION_AS(0x804C2EC0, MH3_MIXInitChannel, "MIXInitChannel");
-REGISTER_NATIVE_FUNCTION_AS(0x804C4590, MH3_MIXReleaseChannel, "MIXReleaseChannel");
-REGISTER_NATIVE_FUNCTION_AS(0x804C45B0, MH3_MIXSetInput, "MIXSetInput");
-REGISTER_NATIVE_FUNCTION_AS(0x804C45E0, MH3_MIXSetAuxA, "MIXSetAuxA");
-REGISTER_NATIVE_FUNCTION_AS(0x804C4610, MH3_MIXSetAuxB, "MIXSetAuxB");
-REGISTER_NATIVE_FUNCTION_AS(0x804C4640, MH3_MIXSetPan, "MIXSetPan");
-REGISTER_NATIVE_FUNCTION_AS(0x804C46B0, MH3_MIXSetSPan, "MIXSetSPan");
-REGISTER_NATIVE_FUNCTION_AS(0x804C4720, MH3_MIXSetFader, "MIXSetFader");
-REGISTER_NATIVE_FUNCTION_AS(0x804C4750, MH3_MIXUpdateSettings, "MIXUpdateSettings");
+REGISTER_NATIVE_FUNCTION(0x80445918, MH3_MIXInit);
+REGISTER_NATIVE_FUNCTION(0x80445A2C, MH3_MIXQuit);
+REGISTER_NATIVE_FUNCTION(0x80445A40, MH3_MIXSetSoundMode);
+REGISTER_NATIVE_FUNCTION(0x80445A50, MH3_MIXInitChannel);
+REGISTER_NATIVE_FUNCTION(0x80447110, MH3_MIXReleaseChannel);
+REGISTER_NATIVE_FUNCTION(0x80447128, MH3_MIXSetInput);
+REGISTER_NATIVE_FUNCTION(0x8044714C, MH3_MIXSetAuxA);
+REGISTER_NATIVE_FUNCTION(0x80447170, MH3_MIXSetAuxB);
+REGISTER_NATIVE_FUNCTION(0x80447194, MH3_MIXSetPan);
+REGISTER_NATIVE_FUNCTION(0x80447200, MH3_MIXSetSPan);
+REGISTER_NATIVE_FUNCTION(0x8044726C, MH3_MIXSetFader);
+REGISTER_NATIVE_FUNCTION(0x80447290, MH3_MIXUpdateSettings);

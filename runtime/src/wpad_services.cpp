@@ -14,31 +14,31 @@
 // Bluetooth stack. Preserve the SDK state queried by WPADGetStatus and setters.
 // WPAD's original initialization still creates all four channel control blocks.
 extern "C" void MH3_WUDInit(CpuContext* cpu) {
-    const auto initialized = cpu->gpr[13] - 0x3700;
+    const auto initialized = cpu->gpr[13] - 0x3A40;
 
     if (Memory::Read32(initialized)) {
         cpu->gpr[3] = 0;
         return;
     }
 
-    constexpr uint32_t state = 0x80760F60;
+    constexpr uint32_t state = 0x807DF500;
 
     for (uint32_t offset : {0u, 4u, 8u, 0x6ECu, 0x6F0u})
         Memory::Write32(state + offset, 0);
 
     Memory::Write8(state + 0x10, 1);
     Memory::Write8(state + 0x708, 3); // WUD library ready, no connected remotes yet
-    Memory::Write8(cpu->gpr[13] - 0x36CC, 0);
+    Memory::Write8(cpu->gpr[13] - 0x3A0C, 0);
     Memory::Write32(initialized, 1);
     cpu->gpr[3] = 1;
     std::cerr << "MH3 WPAD: host controller transport initialized\n";
 }
-REGISTER_NATIVE_FUNCTION(0x804FD450, MH3_WUDInit);
+REGISTER_NATIVE_FUNCTION(0x8048C854, MH3_WUDInit);
 
 // The RMHP08 SDK still owns callback registration and sampling-buffer metadata.
 // Host input replaces Bluetooth report delivery, probe and control transactions.
 namespace {
-constexpr uint32_t channelTable = 0x8075D790;
+constexpr uint32_t channelTable = 0x807DBD30;
 uint32_t ControlBlock(uint32_t channel) {
     if (channel >= 4)
         return 0;
@@ -206,7 +206,7 @@ extern "C" void MH3_WPADProbe(CpuContext* cpu) {
 
     cpu->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION(0x804EF040, MH3_WPADProbe);
+REGISTER_NATIVE_FUNCTION(0x8047E730, MH3_WPADProbe);
 
 extern "C" void MH3_WPADSetDataFormat(CpuContext* cpu) {
     const auto channel = cpu->gpr[3], format = cpu->gpr[4];
@@ -225,7 +225,7 @@ extern "C" void MH3_WPADSetDataFormat(CpuContext* cpu) {
 
     cpu->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION(0x804EF2A0, MH3_WPADSetDataFormat);
+REGISTER_NATIVE_FUNCTION(0x8047E96C, MH3_WPADSetDataFormat);
 
 extern "C" void MH3_WPADRead(CpuContext* cpu) {
     const auto channel = cpu->gpr[3];
@@ -235,7 +235,7 @@ extern "C" void MH3_WPADRead(CpuContext* cpu) {
     const auto size = status || !block ? 0x2Au : ReportSize(Memory::Read32(block + 0x8B8));
     CopyReport(cpu->gpr[4], Report(sample, status, block && IrOn(block)), size);
 }
-REGISTER_NATIVE_FUNCTION(0x804EF9D0, MH3_WPADRead);
+REGISTER_NATIVE_FUNCTION(0x8047F060, MH3_WPADRead);
 
 extern "C" void MH3_WPADGetInfoAsync(CpuContext* cpu) {
     const auto channel = cpu->gpr[3], output = cpu->gpr[4], callback = cpu->gpr[5];
@@ -256,7 +256,7 @@ extern "C" void MH3_WPADGetInfoAsync(CpuContext* cpu) {
     CompleteController(callback, channel, status);
     cpu->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION(0x804EF3C0, MH3_WPADGetInfoAsync);
+REGISTER_NATIVE_FUNCTION(0x8047EA78, MH3_WPADGetInfoAsync);
 
 // The IR camera (the pointer, from the touch screen or mouse) switches on and
 // off. There is no remote speaker: disabling it succeeds, enabling returns
@@ -272,7 +272,7 @@ extern "C" void MH3_WPADControlDpd(CpuContext* cpu) {
     CompleteController(cpu->gpr[5], channel, status);
     cpu->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION(0x804F1B20, MH3_WPADControlDpd);
+REGISTER_NATIVE_FUNCTION(0x804810C8, MH3_WPADControlDpd);
 
 extern "C" void MH3_WPADControlSpeaker(CpuContext* cpu) {
     const auto channel = cpu->gpr[3];
@@ -284,14 +284,14 @@ extern "C" void MH3_WPADControlSpeaker(CpuContext* cpu) {
     CompleteController(cpu->gpr[5], channel, status);
     cpu->gpr[3] = status;
 }
-REGISTER_NATIVE_FUNCTION(0x804EFF80, MH3_WPADControlSpeaker);
+REGISTER_NATIVE_FUNCTION(0x8047F554, MH3_WPADControlSpeaker);
 
 void ServiceHostController(CpuContext* cpu, bool force) {
     using Clock = std::chrono::steady_clock;
     static auto next = Clock::time_point::min();
     static bool wasConnected = false;
 
-    if (!Memory::Contains(cpu->gpr[13] - 0x3700, 4) || !Memory::Read32(cpu->gpr[13] - 0x3700))
+    if (!Memory::Contains(cpu->gpr[13] - 0x3A40, 4) || !Memory::Read32(cpu->gpr[13] - 0x3A40))
         return;
 
     const auto now = Clock::now();

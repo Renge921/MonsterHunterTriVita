@@ -34,10 +34,10 @@
 #include <cstdio>
 #include <stdexcept>
 
-extern "C" void MH3_EmitterCalcEmitter(CpuContext* ctx);   // 0x800A8AC0, effect_step.cpp
-extern "C" void MH3_EmitterCalcEmission(CpuContext* ctx);  // 0x800A8E5C, effect_step.cpp
-extern "C" void MH3_ParticleManagerCalc(CpuContext* ctx);  // 0x800AC35C, effect_step.cpp
-extern "C" void MH3_EmitterCalcParticle(CpuContext* ctx);  // 0x800A8D94, below
+extern "C" void MH3_EmitterCalcEmitter(CpuContext* ctx);   // 0x804F72E8, effect_step.cpp
+extern "C" void MH3_EmitterCalcEmission(CpuContext* ctx);  // 0x804F7528, effect_step.cpp
+extern "C" void MH3_ParticleManagerCalc(CpuContext* ctx);  // 0x805017B4, effect_step.cpp
+extern "C" void MH3_EmitterCalcParticle(CpuContext* ctx);  // 0x804F74A0, below
 
 namespace {
 using MemoryInline::FlatRead16;
@@ -83,17 +83,17 @@ void CallVirtual(CpuContext* cpu, uint32_t object, uint32_t slot) {
     cpu->gpr[3] = object;
 
     switch (fn) {
-    case 0x800A8AC0:
+    case 0x804F72E8:
         MH3_EmitterCalcEmitter(cpu);
         return;
-    case 0x800A8D94:
-        MH3_EmitterCalcParticle(cpu);
-        return;
-    case 0x800A8E5C:
+    case 0x804F7528:
         MH3_EmitterCalcEmission(cpu);
         return;
-    case 0x800AC35C:
+    case 0x805017B4:
         MH3_ParticleManagerCalc(cpu);
+        return;
+    case 0x804F74A0:
+        MH3_EmitterCalcParticle(cpu);
         return;
     default:
         GuestCall{cpu}(fn, {object});
@@ -225,7 +225,7 @@ void EffectCalcNative(CpuContext* cpu) {
 #ifdef MH3_DEVELOPMENT
             EffectStep::NoteQueuedChildren(FlatRead32(queue));
 #endif
-            GuestCall{cpu}.Call<0x800A377C>({queue}); // the queued child emissions
+            GuestCall{cpu}.Call<0x80505B58>({queue}); // the queued child emissions
         }
 
         if (FlatRead32(effect + 0x54) & 0x10000)
@@ -256,7 +256,7 @@ void EffectCalcNative(CpuContext* cpu) {
         for (uint32_t m = ListNext(list, 0); m; m = ListNext(list, m))
             EndCalc(m);
 
-        GuestCall{cpu}.Call<0x800A9508>({e, matrix}); // EmitterCalcGlobalMtx
+        GuestCall{cpu}.Call<0x804F7A48>({e, matrix}); // EmitterCalcGlobalMtx
         FlatWrite32(e + 0x108, FlatRead32(matrix + 0x0C));
         FlatWrite32(e + 0x10C, FlatRead32(matrix + 0x1C));
         FlatWrite32(e + 0x110, FlatRead32(matrix + 0x2C));
@@ -282,31 +282,31 @@ static void EmitterCalcParticlePort(CpuContext* cpu) {
         CallVirtual(cpu, managers[i], 0x18);
 }
 
-extern "C" void func_800A8D94(CpuContext* ctx);
+extern "C" void func_804F74A0(CpuContext* ctx);
 extern "C" void MH3_EmitterCalcParticle(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EmitterCalcParticle", func_800A8D94, EmitterCalcParticlePort);
+    PortCheck::Call(ctx, "EmitterCalcParticle", func_804F74A0, EmitterCalcParticlePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800A8D94, MH3_EmitterCalcParticle, "EmitterCalcParticle");
+REGISTER_NATIVE_FUNCTION_AS(0x804F74A0, MH3_EmitterCalcParticle, "EmitterCalcParticle");
 
 static void ParticleManagerBeginCalcPort(CpuContext* cpu) {
     BeginCalc(cpu->gpr[3], cpu->gpr[4] != 0);
 }
 
-extern "C" void func_800AE564(CpuContext* ctx);
+extern "C" void func_80503164(CpuContext* ctx);
 extern "C" void MH3_ParticleManagerBeginCalc(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleManagerBeginCalc", func_800AE564, ParticleManagerBeginCalcPort);
+    PortCheck::Call(ctx, "ParticleManagerBeginCalc", func_80503164, ParticleManagerBeginCalcPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AE564, MH3_ParticleManagerBeginCalc, "ParticleManagerBeginCalc");
+REGISTER_NATIVE_FUNCTION_AS(0x80503164, MH3_ParticleManagerBeginCalc, "ParticleManagerBeginCalc");
 
 static void ParticleManagerEndCalcPort(CpuContext* cpu) {
     EndCalc(cpu->gpr[3]);
 }
 
-extern "C" void func_800AE614(CpuContext* ctx);
+extern "C" void func_805031D0(CpuContext* ctx);
 extern "C" void MH3_ParticleManagerEndCalc(CpuContext* ctx) {
-    PortCheck::Call(ctx, "ParticleManagerEndCalc", func_800AE614, ParticleManagerEndCalcPort);
+    PortCheck::Call(ctx, "ParticleManagerEndCalc", func_805031D0, ParticleManagerEndCalcPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800AE614, MH3_ParticleManagerEndCalc, "ParticleManagerEndCalc");
+REGISTER_NATIVE_FUNCTION_AS(0x805031D0, MH3_ParticleManagerEndCalc, "ParticleManagerEndCalc");
 
 // EffUtilListToArray(list, u32* array, s32 limit) -> u16 count.
 static void ListToArrayPort(CpuContext* cpu) {
@@ -334,9 +334,9 @@ static void ListToArrayPort(CpuContext* cpu) {
     cpu->gpr[3] = n;
 }
 
-extern "C" void func_8009B3D8(CpuContext* ctx);
+extern "C" void func_805043E4(CpuContext* ctx);
 extern "C" void MH3_EffUtilListToArray(CpuContext* ctx) {
     EffectStep::Touch();
-    PortCheck::Call(ctx, "EffUtilListToArray", func_8009B3D8, ListToArrayPort);
+    PortCheck::Call(ctx, "EffUtilListToArray", func_805043E4, ListToArrayPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8009B3D8, MH3_EffUtilListToArray, "EffUtilListToArray");
+REGISTER_NATIVE_FUNCTION_AS(0x805043E4, MH3_EffUtilListToArray, "EffUtilListToArray");

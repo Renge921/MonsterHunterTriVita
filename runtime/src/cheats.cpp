@@ -538,7 +538,7 @@ bool QuestEndPressed() {
 }
 
 namespace {
-constexpr uint32_t kPsw = 0x8065B7D0; // channel 0's pad work
+constexpr uint32_t kPsw = 0x80754428; // channel 0's pad work (RMHJ08)
 constexpr uint32_t kClassicHeld = 0xD6, kClassicPressed = 0xDA;
 
 // The pressed words of the Wii Remote's, the Classic Controller's, the

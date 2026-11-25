@@ -47,7 +47,7 @@ extern "C" void MH3_ScnGroupInsert(CpuContext* cpu) {
 #endif
     func_8008228C(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8008228C, MH3_ScnGroupInsert, "ScnGroupInsert");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8008228C, MH3_ScnGroupInsert, "ScnGroupInsert");
 
 extern "C" void func_80082438(CpuContext* cpu);
 extern "C" void MH3_ScnGroupRemove(CpuContext* cpu) {
@@ -56,4 +56,4 @@ extern "C" void MH3_ScnGroupRemove(CpuContext* cpu) {
 #endif
     func_80082438(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80082438, MH3_ScnGroupRemove, "ScnGroupRemove");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80082438, MH3_ScnGroupRemove, "ScnGroupRemove");

@@ -58,18 +58,18 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    VecDot = 0x80052278,
-    VecYaw = 0x80050B08,   // calcVecAng3
-    VecPitch = 0x80050BAC, // calcVecAngX
-    BlendToward = 0x8012F8C4,
-    TurnToward = 0x80133E14,
-    PitchSetup = 0x80133CA0,
-    MotionNo = 0x8012F960, // em_get_mot_no
-    MotionEnded = 0x8012F9A0,
-    StartMotion = 0x8012F568,
-    StartMotionDone = 0x8012F874,
-    MotionSpeed = 0x8012F950,
-    MotionSpeedSet = 0x8012F838,
+    VecDot = 0x8050F7EC,
+    VecYaw = 0x8028B6DC,   // calcVecAng3
+    VecPitch = 0x8028B788, // calcVecAngX
+    BlendToward = 0x80169A08,
+    TurnToward = 0x8016EBF4,
+    PitchSetup = 0x8016EA78,
+    MotionNo = 0x80169AA0, // em_get_mot_no
+    MotionEnded = 0x80169AD4,
+    StartMotion = 0x80168E80,
+    StartMotionDone = 0x801699B8,
+    MotionSpeed = 0x80169A90,
+    MotionSpeedSet = 0x80169A70,
 };
 
 float F(uint32_t a) {
@@ -213,9 +213,9 @@ static void EnemyGlide(CpuContext* ctx) {
     ctx->gpr[3] = result;
 }
 
-extern "C" void func_80135064(CpuContext* ctx);
+extern "C" void func_80170700(CpuContext* ctx);
 
 extern "C" void MH3_EnemyGlide(CpuContext* ctx) {
-    PortCheck::Call(ctx, "EnemyGlide", func_80135064, EnemyGlide);
+    PortCheck::Call(ctx, "EnemyGlide", func_80170700, EnemyGlide);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80135064, MH3_EnemyGlide, "EnemyGlide");
+REGISTER_NATIVE_FUNCTION_AS(0x80170700, MH3_EnemyGlide, "EnemyGlide");

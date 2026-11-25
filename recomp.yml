@@ -2,27 +2,27 @@ schema_version: 1
 workspace_root: .
 
 project:
-  id: mh3-rmhp08
-  display_name: Monster Hunter Tri PAL
-  game_id: RMHP08
-  region: P
+  id: mh3-rmhj08
+  display_name: Monster Hunter Tri JPN
+  game_id: RMHJ08
+  region: J
 
 memory:
   base: 0x80000000
   size: 0x01800000
-  sda_base: 0x8079B2E0
-  sda2_base: 0x8079FF60
+  sda_base: 0x808A4880
+  sda2_base: 0x808A93C0
 
 inputs:
   dol:
     path: Assets/DATA/sys/main.dol
-    sha256: db5c9939f677c33d15d446aa4ad19c28044d0b80c5b3cc75adc7f1340ecab162
+    sha256: 994d489161983c438987fb59abe1d9127ed25e4892088a0a61e12e3b47244972
 
 translation:
   function_map:
     path: build/MAP.txt
   entry_points:
-    - 0x80006310
+    - 0x8000403C
   allow_unsupported_instructions: false
   # Step counter reads answered in game time (scripts/step_counter_sites.py).
   load_hooks_path: runtime/src/step_counter_sites.inc
@@ -36,9 +36,9 @@ translation:
   # Panics and fatal errors end the game, so callers need not take on their
   # complete-context call boundary (nw4r::db::Panic, OSPanic, OSFatal).
   no_return_functions:
-    - 0x80501130
-    - 0x804CDD30
-    - 0x804CFE20
+    - 0x804F42D4
+    - 0x804241EC
+    - 0x8042632C
 
 # Mario Kart's address-specific native registrations must not be used for MH3.
 runtime:

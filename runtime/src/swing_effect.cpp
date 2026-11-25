@@ -20,11 +20,11 @@
 namespace {
 
 enum : uint32_t {
-    SinF = 0x80464560,          // sinf(f1) -> f1
-    MoveMHchar = 0x800E078C,    // MHchar::move(u16)
-    JointCount = 0x800E0C44,    // MHchar::get_joint_num() -> u32
-    SetVisibility = 0x800E3154, // MHchar::setVisibility(u32 joint, bool)
-    SubmitModel = 0x800F943C,   // (work, MHchar**, 2, 1, 0)
+    SinF = 0x80465AE4,          // sinf(f1) -> f1
+    MoveMHchar = 0x802A24A8,    // MHchar::move(u16)
+    JointCount = 0x802A2A98,    // MHchar::get_joint_num() -> u32
+    SetVisibility = 0x802A524C, // MHchar::setVisibility(u32 joint, bool)
+    SubmitModel = 0x80037B74,   // (work, MHchar**, 2, 1, 0)
 };
 
 enum : uint32_t {
@@ -61,7 +61,7 @@ float SwingSin(GuestCall& game, double phase, uint32_t shift) {
 
 } // namespace
 
-extern "C" void func_80116B64(CpuContext* ctx);
+extern "C" void func_800562CC(CpuContext* ctx);
 
 static void SwingEffectUpdatePort(CpuContext* ctx) {
     GuestFrame frame(ctx, 0x20);
@@ -121,6 +121,6 @@ static void SwingEffectUpdatePort(CpuContext* ctx) {
 }
 
 extern "C" void MH3_SwingEffectUpdate(CpuContext* ctx) {
-    PortCheck::Call(ctx, "SwingEffectUpdate", func_80116B64, SwingEffectUpdatePort);
+    PortCheck::Call(ctx, "SwingEffectUpdate", func_800562CC, SwingEffectUpdatePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80116B64, MH3_SwingEffectUpdate, "SwingEffectUpdate");
+REGISTER_NATIVE_FUNCTION_AS(0x800562CC, MH3_SwingEffectUpdate, "SwingEffectUpdate");

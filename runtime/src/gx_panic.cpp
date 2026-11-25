@@ -110,6 +110,46 @@ _Unwind_Reason_Code NativeFrame(_Unwind_Context* context, void* value) {
     std::fprintf(stderr, "GX calls and FIFO decoding must be replaced with native submissions.\n");
     std::fflush(nullptr);
 #ifdef __vita__
+    if (FILE* crash = std::fopen("ux0:/data/mh3-wii/crash.txt", "wb")) {
+        std::fprintf(crash, "MH3 GX PANIC: %s", entry);
+        if (guestAddress)
+            std::fprintf(crash, " (guest address 0x%08x)", guestAddress);
+        std::fputc('\n', crash);
+        std::fprintf(crash, "Host LR: %p\n",
+                     __builtin_return_address(0));
+        if (cpu) {
+            std::fprintf(crash, "LR: 0x%08x\nPC: 0x%08x\nSP: 0x%08x\n", cpu->lr, cpu->pc, cpu->gpr[1]);
+            uint32_t stack = cpu->gpr[1];
+            for (unsigned depth = 0; depth < 48; ++depth) {
+                if ((stack & 3) || !Memory::Contains(stack, 4))
+                    break;
+                const uint32_t parent = Memory::Read32(stack);
+                if ((parent & 3) || parent <= stack || parent - stack > 0x100000 || !Memory::Contains(parent, 8))
+                    break;
+                const uint32_t link = Memory::Read32(parent + 4);
+                if (!link)
+                    break;
+                std::fprintf(crash, "  caller[%u]: 0x%08x\n", depth, link);
+                stack = parent;
+            }
+        }
+#if !defined(MH3_NO_UNWIND_TABLES) && !defined(__EMSCRIPTEN__)
+        std::fprintf(crash, "Native backtrace:\n");
+        struct FileTrace {
+            FILE* f;
+            unsigned count = 0;
+        } fileTrace{crash, 0};
+        _Unwind_Backtrace([](_Unwind_Context* context, void* arg) -> _Unwind_Reason_Code {
+            auto& ft = *static_cast<FileTrace*>(arg);
+            const uintptr_t ip = _Unwind_GetIP(context);
+            if (!ip || ft.count == 64)
+                return _URC_END_OF_STACK;
+            std::fprintf(ft.f, "  native[%u]: %p\n", ft.count++, reinterpret_cast<void*>(ip));
+            return _URC_NO_REASON;
+        }, &fileTrace);
+#endif
+        std::fclose(crash);
+    }
     sceKernelExitProcess(1);
 #endif
     std::_Exit(EXIT_FAILURE);

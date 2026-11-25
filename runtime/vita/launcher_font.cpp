@@ -22,6 +22,26 @@ namespace {
 // baseline is row 40. Both sources draw at an 18-pixel em.
 constexpr unsigned Cell = 64, PenX = 8, Baseline = 40;
 using Bitmap = std::array<uint8_t, Cell * Cell>;
+
+// Next code point of UTF-8 text (invalid bytes become '?'); advances i.
+unsigned NextCodePoint(std::string_view text, size_t& i) {
+    const unsigned char c = text[i++];
+
+    if (c < 0x80)
+        return c;
+
+    const unsigned extra = c >= 0xF0 ? 3 : c >= 0xE0 ? 2 : c >= 0xC0 ? 1 : 0;
+
+    if (!extra || i + extra > text.size())
+        return '?';
+
+    unsigned code = c & (0x3F >> extra);
+
+    for (unsigned k = 0; k < extra; ++k)
+        code = (code << 6) | (static_cast<unsigned char>(text[i++]) & 0x3F);
+
+    return code;
+}
 } // namespace
 
 #ifdef __vita__
@@ -53,7 +73,11 @@ struct Font::Source {
             return "Cannot open the system font library";
         }
 
-        font = scePvfOpenDefaultLatinFontOnSharedMemory(library, &error);
+        // The Japanese system font covers kana, kanji and Latin.
+        font = scePvfOpenDefaultJapaneseFontOnSharedMemory(library, &error);
+
+        if (!font || error)
+            font = scePvfOpenDefaultLatinFontOnSharedMemory(library, &error);
 
         if (!font || error) {
             scePvfDoneLib(library);
@@ -151,7 +175,7 @@ Status Font::Open(std::unique_ptr<Font>& font) {
 Font::Font(std::unique_ptr<Source> source) : source(std::move(source)) {}
 Font::~Font() = default;
 Font::Glyph& Font::Get(unsigned character) {
-    if (character < 32 || character > 126)
+    if (character < 32)
         character = '?';
 
     auto [it, fresh] = glyphs.try_emplace(character);
@@ -200,8 +224,8 @@ Font::Glyph& Font::Get(unsigned character) {
 void Font::Text(std::vector<Rectangle>& rects, float x, float y, std::string_view text, uint32_t color, float maxWidth) {
     const float end = x + maxWidth;
 
-    for (unsigned char c : text) {
-        auto& glyph = Get(c);
+    for (size_t i = 0; i < text.size();) {
+        auto& glyph = Get(NextCodePoint(text, i));
 
         if (x + glyph.advance > end)
             break;
@@ -216,8 +240,8 @@ void Font::Text(std::vector<Rectangle>& rects, float x, float y, std::string_vie
 float Font::Width(std::string_view text) {
     float width = 0;
 
-    for (unsigned char c : text)
-        width += Get(c).advance;
+    for (size_t i = 0; i < text.size();)
+        width += Get(NextCodePoint(text, i)).advance;
 
     return width;
 }
@@ -228,21 +252,37 @@ std::vector<std::string> Font::Wrap(std::string_view text, float width) {
     for (size_t at = 0; at <= text.size();) {
         const size_t end = std::min(text.find('\n', at), text.size());
         std::string line;
+        bool space = false;
 
-        for (size_t word = at; word < end;) {
-            const size_t space = std::min(text.find(' ', word), end);
-            const auto piece = text.substr(word, space - word);
-
-            if (!line.empty() && Width(line) + Width(" ") + Width(piece) > width) {
-                lines.push_back(std::move(line));
-                line.clear();
+        // Tokens: an ASCII word, or one multibyte character (Japanese text
+        // has no spaces, so it may break after any character).
+        for (size_t i = at; i < end;) {
+            if (text[i] == ' ') {
+                space = true;
+                ++i;
+                continue;
             }
 
-            if (!line.empty())
+            size_t next = i;
+
+            if (static_cast<unsigned char>(text[i]) < 0x80) {
+                while (next < end && text[next] != ' ' && static_cast<unsigned char>(text[next]) < 0x80)
+                    ++next;
+            } else
+                NextCodePoint(text.substr(0, end), next);
+
+            const auto piece = text.substr(i, next - i);
+            const bool gap = space && !line.empty();
+
+            if (!line.empty() && Width(line) + (gap ? Width(" ") : 0) + Width(piece) > width) {
+                lines.push_back(std::move(line));
+                line.clear();
+            } else if (gap)
                 line += ' ';
 
             line += piece;
-            word = space + 1;
+            space = false;
+            i = next;
         }
 
         lines.push_back(std::move(line));

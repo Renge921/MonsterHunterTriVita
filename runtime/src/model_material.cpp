@@ -87,61 +87,61 @@ std::array<uint8_t, 4> Color(uint32_t address) {
 
 extern "C" void MH3_MatPixelSubmit(CpuContext* cpu) {
     Submit(cpu->gpr[3], MH3_MODEL_MATERIAL_PIXEL);
-} // 80094480
-REGISTER_NATIVE_FUNCTION_AS(0x80094480, MH3_MatPixelSubmit, "MatPixelSubmit");
+} // PAL 80094480 -> JPN 8051D2B8
+REGISTER_NATIVE_FUNCTION_AS(0x8051D2B8, MH3_MatPixelSubmit, "MatPixelSubmit");
 extern "C" void MH3_MatColorSubmit(CpuContext* cpu) {
     Submit(cpu->gpr[3], MH3_MODEL_MATERIAL_COLORS);
-} // 8009454C
-REGISTER_NATIVE_FUNCTION_AS(0x8009454C, MH3_MatColorSubmit, "MatColorSubmit");
+} // PAL 8009454C -> JPN 8051D2E8
+REGISTER_NATIVE_FUNCTION_AS(0x8051D2E8, MH3_MatColorSubmit, "MatColorSubmit");
 extern "C" void MH3_MatIndirectSubmit(CpuContext* cpu) {
     Submit(cpu->gpr[3], MH3_MODEL_MATERIAL_INDIRECT, uint8_t(cpu->gpr[4]));
-} // 80096634
-REGISTER_NATIVE_FUNCTION_AS(0x80096634, MH3_MatIndirectSubmit, "MatIndirectSubmit");
+} // PAL 80096634 -> JPN 8051E030
+REGISTER_NATIVE_FUNCTION_AS(0x8051E030, MH3_MatIndirectSubmit, "MatIndirectSubmit");
 extern "C" void MH3_MatTexgenSubmit(CpuContext* cpu) {
     Submit(cpu->gpr[3], MH3_MODEL_MATERIAL_TEXGEN, uint8_t(cpu->gpr[4]));
-} // 80097210
-REGISTER_NATIVE_FUNCTION_AS(0x80097210, MH3_MatTexgenSubmit, "MatTexgenSubmit");
+} // PAL 80097210 -> JPN 8051E8BC
+REGISTER_NATIVE_FUNCTION_AS(0x8051E8BC, MH3_MatTexgenSubmit, "MatTexgenSubmit");
 extern "C" void MH3_MatPipelineSubmit(CpuContext* cpu) {
     Submit(cpu->gpr[3], MH3_MODEL_MATERIAL_PIPELINE);
-} // 8009A244
-REGISTER_NATIVE_FUNCTION_AS(0x8009A244, MH3_MatPipelineSubmit, "MatPipelineSubmit");
+} // PAL 8009A244 -> JPN 8051D154
+REGISTER_NATIVE_FUNCTION_AS(0x8051D154, MH3_MatPipelineSubmit, "MatPipelineSubmit");
 extern "C" void MH3_MatPixelCopy(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], MH3_MODEL_MATERIAL_PIXEL);
-} // 800946D8
-REGISTER_NATIVE_FUNCTION_AS(0x800946D8, MH3_MatPixelCopy, "MatPixelCopy");
+} // PAL 800946D8 -> JPN 8051D318
+REGISTER_NATIVE_FUNCTION_AS(0x8051D318, MH3_MatPixelCopy, "MatPixelCopy");
 extern "C" void MH3_MatColorCopy(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], MH3_MODEL_MATERIAL_COLORS);
-} // 80094724
-REGISTER_NATIVE_FUNCTION_AS(0x80094724, MH3_MatColorCopy, "MatColorCopy");
+} // PAL 80094724 -> JPN 8051D354
+REGISTER_NATIVE_FUNCTION_AS(0x8051D354, MH3_MatColorCopy, "MatColorCopy");
 extern "C" void MH3_MatIndirectCopy(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], MH3_MODEL_MATERIAL_INDIRECT);
-} // 80094770
-REGISTER_NATIVE_FUNCTION_AS(0x80094770, MH3_MatIndirectCopy, "MatIndirectCopy");
+} // PAL 80094770 -> JPN 8051D390
+REGISTER_NATIVE_FUNCTION_AS(0x8051D390, MH3_MatIndirectCopy, "MatIndirectCopy");
 extern "C" void MH3_MatTexgenCopy(CpuContext* cpu) {
     cpu->gpr[3] = Copy(cpu->gpr[3], cpu->gpr[4], MH3_MODEL_MATERIAL_TEXGEN);
-} // 800947BC
-REGISTER_NATIVE_FUNCTION_AS(0x800947BC, MH3_MatTexgenCopy, "MatTexgenCopy");
+} // PAL 800947BC -> JPN 8051D3CC
+REGISTER_NATIVE_FUNCTION_AS(0x8051D3CC, MH3_MatTexgenCopy, "MatTexgenCopy");
 extern "C" void MH3_MatAlphaCompare(CpuContext* cpu) {
     Update(cpu->gpr[3], MH3_MODEL_MATERIAL_PIXEL, [&](auto* state, auto bytes, uint64_t revision) {
         return mh3_model_material_alpha_compare(state, bytes, cpu->gpr[4], uint8_t(cpu->gpr[5]), cpu->gpr[6], cpu->gpr[7], uint8_t(cpu->gpr[8]), revision);
     });
-} // 80095F94
-REGISTER_NATIVE_FUNCTION_AS(0x80095F94, MH3_MatAlphaCompare, "MatAlphaCompare");
+} // PAL 80095F94 -> JPN 8051DC2C
+REGISTER_NATIVE_FUNCTION_AS(0x8051DC2C, MH3_MatAlphaCompare, "MatAlphaCompare");
 extern "C" void MH3_MatBlend(CpuContext* cpu) {
     Update(cpu->gpr[3], MH3_MODEL_MATERIAL_PIXEL,
            [&](auto* state, auto bytes, uint64_t revision) { return mh3_model_material_blend(state, bytes, cpu->gpr[4], cpu->gpr[5], cpu->gpr[6], cpu->gpr[7], revision); });
-} // 80096100
-REGISTER_NATIVE_FUNCTION_AS(0x80096100, MH3_MatBlend, "MatBlend");
+} // PAL 80096100 -> JPN 8051DCF4
+REGISTER_NATIVE_FUNCTION_AS(0x8051DCF4, MH3_MatBlend, "MatBlend");
 extern "C" void MH3_MatTevColor(CpuContext* cpu) {
     const auto color = Color(cpu->gpr[5]);
     Update(cpu->gpr[3], MH3_MODEL_MATERIAL_COLORS, [&](auto* state, auto bytes, uint64_t revision) { return mh3_model_material_tev_color(state, bytes, cpu->gpr[4], color.data(), revision); });
-} // 80096300
-REGISTER_NATIVE_FUNCTION_AS(0x80096300, MH3_MatTevColor, "MatTevColor");
+} // PAL 80096300 -> JPN 8051DE60
+REGISTER_NATIVE_FUNCTION_AS(0x8051DE60, MH3_MatTevColor, "MatTevColor");
 extern "C" void MH3_MatKonstColor(CpuContext* cpu) {
     const auto color = Color(cpu->gpr[5]);
     Update(cpu->gpr[3], MH3_MODEL_MATERIAL_COLORS, [&](auto* state, auto bytes, uint64_t revision) { return mh3_model_material_konst_color(state, bytes, cpu->gpr[4], color.data(), revision); });
-} // 80096548
-REGISTER_NATIVE_FUNCTION_AS(0x80096548, MH3_MatKonstColor, "MatKonstColor");
+} // PAL 80096548 -> JPN 8051DFAC
+REGISTER_NATIVE_FUNCTION_AS(0x8051DFAC, MH3_MatKonstColor, "MatKonstColor");
 extern "C" void MH3_MatIndirectMatrix(CpuContext* cpu) {
     std::array<float, 12> matrix{};
 
@@ -150,5 +150,5 @@ extern "C" void MH3_MatIndirectMatrix(CpuContext* cpu) {
 
     Update(cpu->gpr[3], MH3_MODEL_MATERIAL_INDIRECT,
            [&](auto* state, auto bytes, uint64_t revision) { return mh3_model_material_indirect_matrix(state, bytes, cpu->gpr[4], matrix.data(), int8_t(cpu->gpr[6]), revision); });
-} // 80096C10
-REGISTER_NATIVE_FUNCTION_AS(0x80096C10, MH3_MatIndirectMatrix, "MatIndirectMatrix");
+} // PAL 80096C10 -> JPN 8051E514
+REGISTER_NATIVE_FUNCTION_AS(0x8051E514, MH3_MatIndirectMatrix, "MatIndirectMatrix");

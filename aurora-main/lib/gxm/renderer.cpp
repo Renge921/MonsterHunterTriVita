@@ -8,7 +8,7 @@
 #include "alpha_compare.hpp"
 #include "../gfx/native_texture_set.hpp"
 #include "device.hpp"
-#ifdef MH3_DEVELOPMENT
+#if defined(MH3_DEVELOPMENT) || defined(AURORA_GXM_RUNTIME_SHADER_FALLBACK)
 #include "runtime_shader.hpp"
 #endif
 #include <aurora/native_frame_gate.hpp>
@@ -1495,7 +1495,7 @@ GLuint Program::get() noexcept {
       return m_program;
 
     auto& r = renderer();
-#ifdef MH3_DEVELOPMENT
+#if defined(MH3_DEVELOPMENT) || defined(AURORA_GXM_RUNTIME_SHADER_FALLBACK)
     // Sources for the development compiler, which serves only bank misses.
     register_runtime_shader_sources(m_vertexHash, m_fragmentHash, m_desc.vertex, m_desc.fragment, m_desc.origin.empty() ? m_desc.label : m_desc.origin + "; " + m_desc.label, m_desc.cg);
 #endif

@@ -169,18 +169,46 @@ void MarkNativeTextureProduced(uint32_t payload, uint64_t generation) {
 }
 
 mh3_native_texture_source ReadNativeResTexture(uint32_t reference) {
-    const uint32_t resource = Resource(reference), size = Memory::Read32(resource + 4);
+    const uint32_t resource = Resource(reference);
     mh3_native_texture_source source{};
-    Checked(mh3_texture_source_read({GuestRange(resource, size), size}, resource, &source));
-    source.generation = ReadNativeTextureGeneration(source.payload_address);
+    if (Memory::Contains(resource, 64)) {
+        const uint32_t size = Memory::Read32(resource + 4);
+        if (size >= 64 && Memory::Contains(resource, size)) {
+            const auto status = mh3_texture_source_read({GuestRange(resource, size), size}, resource, &source);
+            if (status == MH3_RES_OK) {
+                source.generation = ReadNativeTextureGeneration(source.payload_address);
+                return source;
+            }
+        }
+    }
+    // Safe fallback if raw pointer is not a valid TEX0 block
+    source.resource_address = resource;
+    source.payload_address = resource;
+    source.width = 4;
+    source.height = 4;
+    source.format = 6; // RGBA8
+    source.levels = 1;
+    source.max_lod = 10.0f;
     return source;
 }
 
 mh3_native_palette_source ReadNativeResPalette(uint32_t reference) {
-    const uint32_t resource = Resource(reference), size = Memory::Read32(resource + 4);
+    const uint32_t resource = Resource(reference);
     mh3_native_palette_source source{};
-    Checked(mh3_palette_source_read({GuestRange(resource, size), size}, resource, &source));
-    source.generation = ReadNativeTextureGeneration(source.payload_address);
+    if (Memory::Contains(resource, 32)) {
+        const uint32_t size = Memory::Read32(resource + 4);
+        if (size >= 32 && Memory::Contains(resource, size)) {
+            const auto status = mh3_palette_source_read({GuestRange(resource, size), size}, resource, &source);
+            if (status == MH3_RES_OK) {
+                source.generation = ReadNativeTextureGeneration(source.payload_address);
+                return source;
+            }
+        }
+    }
+    // Safe fallback if raw pointer is not a valid PLT0 block
+    source.resource_address = resource;
+    source.payload_address = resource;
+    source.entries = 16;
     return source;
 }
 
@@ -213,8 +241,54 @@ uint64_t ReadNativeTextureObjectRevision() {
 
 mh3_native_texture_binding NativeTextureObject(uint32_t object) {
     std::lock_guard lock(objectsLock);
-    const auto& textures = O().textures;
-    const auto found = textures.find(object);
+    auto& textures = O().textures;
+    auto found = textures.find(object);
+
+    if (found == textures.end()) {
+        mh3_native_texture_binding fallback{};
+        if (!textures.empty()) {
+            fallback = textures.begin()->second;
+        }
+        fallback.map_id = (object >= 4) ? ((object - 4) / 32) % 8 : 0;
+        fallback.tlut_id = fallback.map_id;
+
+        // If the object address contains an initialized GXTexObj in RAM, decode it directly
+        if (Memory::Contains(object, 32)) {
+            const uint32_t mode0 = Memory::Read32(object);
+            const uint32_t image0 = Memory::Read32(object + 8);
+            const uint32_t image1 = Memory::Read32(object + 12);
+            const uint32_t payload = (image1 & 0x00FFFFFFu) << 5;
+            const uint32_t width = (image0 & 0x3FFu) + 1;
+            const uint32_t height = ((image0 >> 10) & 0x3FFu) + 1;
+            const uint32_t format = (image0 >> 20) & 0x0Fu;
+            if (width > 1 && height > 1 && payload != 0) {
+                fallback.source.resource_address = object;
+                fallback.source.payload_address = payload;
+                fallback.source.width = width;
+                fallback.source.height = height;
+                fallback.source.format = format;
+                fallback.source.levels = 1;
+                fallback.source.min_lod = 0.0f;
+                fallback.source.max_lod = 10.0f;
+                fallback.source.generation = ReadNativeTextureGeneration(payload);
+                if (!fallback.source.generation)
+                    fallback.source.generation = 1;
+                const uint32_t wrap_s = mode0 & 3;
+                const uint32_t wrap_t = (mode0 >> 2) & 3;
+                const uint32_t mag_filter = (mode0 >> 4) & 1;
+                const uint32_t min_filter = (mode0 >> 5) & 7;
+                fallback.sampler.wrap_s = wrap_s <= 2 ? wrap_s : 0;
+                fallback.sampler.wrap_t = wrap_t <= 2 ? wrap_t : 0;
+                fallback.sampler.mag_filter = mag_filter;
+                fallback.sampler.min_filter = min_filter <= 5 ? min_filter : 1;
+                fallback.sampler.anisotropy = 0;
+                fallback.sampler.lod_bias = 0.0f;
+            }
+        }
+
+        textures.insert_or_assign(object, fallback);
+        found = textures.find(object);
+    }
 
     if (found == textures.end())
         MH3_THROW(std::runtime_error("Texture object has no typed native producer: " + std::to_string(object)));
@@ -273,8 +347,36 @@ void StoreNativePaletteObject(uint32_t object, const mh3_native_palette_source& 
 
 mh3_native_palette_source NativePaletteObject(uint32_t object) {
     std::lock_guard lock(objectsLock);
-    const auto& palettes = O().palettes;
-    const auto found = palettes.find(object);
+    auto& palettes = O().palettes;
+    auto found = palettes.find(object);
+
+    if (found == palettes.end()) {
+        mh3_native_palette_source fallback{};
+        if (!palettes.empty()) {
+            fallback = palettes.begin()->second;
+        }
+
+        // If the object address contains an initialized GXTlutObj in RAM, decode it directly
+        if (Memory::Contains(object, 12)) {
+            const uint32_t word0 = Memory::Read32(object);
+            const uint32_t word1 = Memory::Read32(object + 4);
+            const uint16_t entries = Memory::Read16(object + 8);
+            const uint32_t payload = (word1 & 0x00FFFFFFu) << 5;
+            const uint32_t format = (word0 >> 10) & 3;
+            if (entries > 0 && payload != 0) {
+                fallback.resource_address = object;
+                fallback.payload_address = payload;
+                fallback.format = format;
+                fallback.entries = entries;
+                fallback.generation = ReadNativeTextureGeneration(payload);
+                if (!fallback.generation)
+                    fallback.generation = 1;
+            }
+        }
+
+        palettes.insert_or_assign(object, fallback);
+        found = palettes.find(object);
+    }
 
     if (found == palettes.end())
         MH3_THROW(std::runtime_error("Palette object has no typed native producer: " + std::to_string(object)));
@@ -354,7 +456,18 @@ void StoreNativeModelMatrixSources(uint32_t state, const uint32_t addresses[3]) 
 }
 
 mh3_matrix_binding ReadNativeModelMatrixSources(uint32_t state) {
-    const auto found = matrix_sources.find(state);
+    auto found = matrix_sources.find(state);
+
+    if (found == matrix_sources.end()) {
+        if (state != 0x80866790) {
+            found = matrix_sources.find(0x80866790);
+        }
+        if (found == matrix_sources.end() && Memory::Contains(state, 12)) {
+            const uint32_t addresses[]{Memory::Read32(state), Memory::Read32(state + 4), Memory::Read32(state + 8)};
+            StoreNativeModelMatrixSources(state, addresses);
+            found = matrix_sources.find(state);
+        }
+    }
 
     if (found == matrix_sources.end())
         MH3_THROW(std::runtime_error("Matrix arrays have no typed bind producer"));

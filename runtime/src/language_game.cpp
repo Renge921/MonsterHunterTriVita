@@ -187,7 +187,7 @@ extern "C" void MH3_LoadFile(CpuContext* cpu) {
     if (!name.empty() && cpu->gpr[3])
         FileLoaded(name, destination);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800CECC8, MH3_LoadFile, "load_file");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x800CECC8, MH3_LoadFile, "load_file");
 
 void PatchExecutable() {
     if (!Active())

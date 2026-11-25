@@ -34,7 +34,7 @@
 
 namespace {
 
-constexpr uint32_t kAnimationBaseRate = 0x80793628; // f32 nw4r::g3d::FrameCtrl::smBaseUpdateRate
+constexpr uint32_t kAnimationBaseRate = 0x8089F4B8; // f32 nw4r::g3d::FrameCtrl::smBaseUpdateRate
 
 // MHchar fields (this = the MHchar).
 enum : uint32_t {
@@ -60,14 +60,11 @@ enum : uint32_t {
 };
 
 enum : uint32_t {
-    ChannelAnim = 0x800E1C90,       // (this, channel) -> AnmObj* or 0
-    ReleaseAnim = 0x8007B3AC,       // (AnmObj*)
-    Hermite = 0x800522EC,           // (f1 t, f2..f7 curve) -> f1
-    InitAnmResult = 0x800610CC,     // (buffer)
-    VecScale = 0x80051F44,          // (out, in; f1 scale)
-    VecAdd = 0x80073FCC,            // (inout, add)
-    RotVecZXY = 0x80051278,         // (inout VEC3*, rotation)
-    ResultTranslation = 0x8008E224, // (const ChrAnmResult*, out VEC3*)
+    ChannelAnim = 0x802A3C6C,       // (this, channel) -> AnmObj* or 0
+    ReleaseAnim = 0x80528794,       // (AnmObj*)
+    Hermite = 0x8028D1E4,           // (f1 t, f2..f7 curve) -> f1
+    RotVecZXY = 0x8028BFD0,         // (inout VEC3*, rotation)
+    ResultTranslation = 0x80521BA4, // (const ChrAnmResult*, out VEC3*)
 };
 
 // AnmObj virtual slots (kDetach and the weights: the channel set's).
@@ -83,10 +80,25 @@ enum : uint32_t {
     kGetWeight = 0x4C,
 };
 
-constexpr uint32_t kZero = 0x807988F8, kOne = 0x807988FC; // f32 0 and 1 (r2-30312, r2-30308)
+constexpr uint32_t kZero = 0x808A6C10, kOne = 0x808A6C14; // f32 0 and 1 (r2-30312, r2-30308)
 
 float F32(uint32_t address) {
     return Memory::ReadFloat32(address);
+}
+
+void InitAnmResultHost(uint32_t buffer) {
+    // 0x800610CC / nw4r::g3d::ChrAnmResult reset: zeroes flags (inlined in RMHJ08).
+    Memory::Write32(buffer, 0);
+}
+
+void VecScaleHost(uint32_t out, uint32_t in, float scale) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::WriteFloat32(out + k * 4, F32(in + k * 4) * scale);
+}
+
+void VecAddHost(uint32_t inout, uint32_t add) {
+    for (uint32_t k = 0; k < 3; ++k)
+        Memory::WriteFloat32(inout + k * 4, F32(inout + k * 4) + F32(add + k * 4));
 }
 
 // The pause and hold counters count ticks of game time. A tick can be part
@@ -184,7 +196,7 @@ std::array<float, 3> RootAt(GuestCall& game, uint32_t self, uint32_t anim, float
 // minus at `from` (zero without an animation), the channel's frame restored.
 // `known` is the translation at `from` when the caller has it.
 std::array<float, 3> RootDelta(GuestCall& game, uint32_t self, uint32_t anim, float from, float to, uint32_t result, uint32_t out, const std::array<float, 3>* known, std::array<float, 3>* atTo) {
-    game.Call<InitAnmResult>({result});
+    InitAnmResultHost(result);
 
     if (Memory::Read32(anim) == kAnmObjChrResVtable) {
         // Setting an AnmObjChrRes's frame re-evaluates its whole result cache,
@@ -309,11 +321,11 @@ static void MHcharChannelBlendPort(CpuContext* ctx) {
     BlendChannels(game, frame.Arg(3));
 }
 
-extern "C" void func_800E1EB4(CpuContext* ctx);
+extern "C" void func_802A3EE0(CpuContext* ctx);
 extern "C" void MH3_MHcharChannelBlend(CpuContext* ctx) {
-    PortCheck::Call(ctx, "MHcharChannelBlend", func_800E1EB4, MHcharChannelBlendPort);
+    PortCheck::Call(ctx, "MHcharChannelBlend", func_802A3EE0, MHcharChannelBlendPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E1EB4, MH3_MHcharChannelBlend, "MHcharChannelBlend");
+REGISTER_NATIVE_FUNCTION_AS(0x802A3EE0, MH3_MHcharChannelBlend, "MHcharChannelBlend");
 
 static void MHcharRootMotionDeltaPort(CpuContext* ctx) {
     const uint32_t self = ctx->gpr[3], out = ctx->gpr[4], channelIndex = ctx->gpr[5];
@@ -330,11 +342,11 @@ static void MHcharRootMotionDeltaPort(CpuContext* ctx) {
         Memory::WriteFloat32(out + k * 4, d[k]);
 }
 
-extern "C" void func_800E1D2C(CpuContext* ctx);
+extern "C" void func_802A3D00(CpuContext* ctx);
 extern "C" void MH3_MHcharRootMotionDelta(CpuContext* ctx) {
-    PortCheck::Call(ctx, "MHcharRootMotionDelta", func_800E1D2C, MHcharRootMotionDeltaPort);
+    PortCheck::Call(ctx, "MHcharRootMotionDelta", func_802A3D00, MHcharRootMotionDeltaPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E1D2C, MH3_MHcharRootMotionDelta, "MHcharRootMotionDelta");
+REGISTER_NATIVE_FUNCTION_AS(0x802A3D00, MH3_MHcharRootMotionDelta, "MHcharRootMotionDelta");
 
 static void MHcharRootMotionPort(CpuContext* ctx) {
     const CpuContext saved = *ctx;
@@ -384,7 +396,7 @@ static void MHcharRootMotionPort(CpuContext* ctx) {
     if (animated != step)
         Memory::WriteFloat32(kAnimationBaseRate, float(stepRate * (animated / step)));
 
-    game.Call<InitAnmResult>({result});
+    InitAnmResultHost(result);
 
     for (uint32_t i = 0; i < 6; ++i)
         Memory::Write32(channel(i, kPrevFrame), Memory::Read32(channel(i, kFrame)));
@@ -399,7 +411,7 @@ static void MHcharRootMotionPort(CpuContext* ctx) {
 
     BlendChannels(game, self);
 
-    const float zero = 0.0f; // f32 at r2-30312 (0x807988F8)
+    const float zero = 0.0f; // f32 at r2-30312 (0x808A6C10)
     for (uint32_t k = 0; k < 3; ++k)
         Memory::WriteFloat32(sum + k * 4, zero);
 
@@ -457,15 +469,15 @@ static void MHcharRootMotionPort(CpuContext* ctx) {
             Memory::WriteFloat32(delta + k * 4, d[k]);
 
         game.Virtual<kGetWeight>(channelSet, {i});
-        game.Call<VecScale>({scaled, delta}, {game.F1()});
-        game.Call<VecAdd>({sum, scaled});
+        VecScaleHost(scaled, delta, game.F1());
+        VecAddHost(sum, scaled);
     }
 
     Memory::WriteFloat32(kAnimationBaseRate, stepRate);
     const bool holding = Memory::Read8(self + kHoldSteps) != 0;
     const double moved = holding ? Spend(self + kHoldSteps, state.hold, animated) : animated;
 
-    if (moved > 0 && (Memory::Read32(self + kFlags) & 2) == 0) { // 0x800E19BC, inlined
+    if (moved > 0 && (Memory::Read32(self + kFlags) & 2) == 0) { // 0x802A398C, inlined
         // After a hold ends within the step, only the motion of the rest of it.
         const float part = moved == animated ? 1.0f : float(moved / animated);
 
@@ -473,17 +485,17 @@ static void MHcharRootMotionPort(CpuContext* ctx) {
             Memory::WriteFloat32(sum + k * 4, F32(sum + k * 4) * F32(self + kScale + k * 4) * part);
 
         game.Call<RotVecZXY>({sum, self + kRotation});
-        game.Call<VecAdd>({self + kPosition, sum});
+        VecAddHost(self + kPosition, sum);
     }
 
     *ctx = saved;
 }
 
-extern "C" void func_800E19D4(CpuContext* ctx);
+extern "C" void func_802A39A4(CpuContext* ctx);
 extern "C" void MH3_MHcharRootMotion(CpuContext* ctx) {
-    PortCheck::Call(ctx, "MHcharRootMotion", func_800E19D4, MHcharRootMotionPort);
+    PortCheck::Call(ctx, "MHcharRootMotion", func_802A39A4, MHcharRootMotionPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E19D4, MH3_MHcharRootMotion, "MHcharRootMotion");
+REGISTER_NATIVE_FUNCTION_AS(0x802A39A4, MH3_MHcharRootMotion, "MHcharRootMotion");
 
 namespace {
 
@@ -619,20 +631,19 @@ uint32_t FrameCheck(uint32_t self, uint32_t mode, bool ahead, double frame, doub
 // A precise native (docs/optimizations/cpu/native-function-ports.md): its body names only
 // the argument registers, and r1 for the port check, so translated callers
 // call it directly, without the dispatch's guard.
-extern "C" void func_800E1740(CpuContext* ctx);
+extern "C" void func_802A3720(CpuContext* ctx);
 extern "C" void MH3_MHcharFrameCheck(CpuContext* ctx) {
 #ifdef MH3_DEVELOPMENT
-    if (PortCheck::RunPrecise("MHcharFrameCheck", ctx->gpr[1], func_800E1740, MHcharFrameCheckPort)) [[unlikely]]
+    if (PortCheck::RunPrecise("MHcharFrameCheck", ctx->gpr[1], func_802A3720, MHcharFrameCheckPort)) [[unlikely]]
         return;
 #endif
     ctx->gpr[3] = FrameCheck(ctx->gpr[3], ctx->gpr[4] & 0xFFFF, (ctx->gpr[5] & 0xFFFF) == 0, ctx->fpr[1].d, ctx->fpr[2].d);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E1740, MH3_MHcharFrameCheck, "MHcharFrameCheck");
+REGISTER_NATIVE_FUNCTION_AS(0x802A3720, MH3_MHcharFrameCheck, "MHcharFrameCheck");
 
 namespace {
 
-// MHchar motion end (0x800E21FC; enemies call it through 0x8012F9A0, the hunter
-// through 0x8026A3A0, NPCs through 0x801FE250): whether channel r4's next
+// MHchar motion end (0x802A4424): whether channel r4's next
 // advance passes its end frame, frame + rate > end. The advance is the step's,
 // rate * smBaseUpdateRate frames, as the channel's UpdateFrame moves it. The
 // original took the whole per-tick rate: at steps shorter than a tick a
@@ -662,11 +673,11 @@ void MHcharMotionEndingPort(CpuContext* ctx) {
 
 } // namespace
 
-extern "C" void func_800E21FC(CpuContext* ctx);
+extern "C" void func_802A4424(CpuContext* ctx);
 extern "C" void MH3_MHcharMotionEnding(CpuContext* ctx) {
-    PortCheck::Call(ctx, "MHcharMotionEnding", func_800E21FC, MHcharMotionEndingPort);
+    PortCheck::Call(ctx, "MHcharMotionEnding", func_802A4424, MHcharMotionEndingPort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x800E21FC, MH3_MHcharMotionEnding, "MHcharMotionEnding");
+REGISTER_NATIVE_FUNCTION_AS(0x802A4424, MH3_MHcharMotionEnding, "MHcharMotionEnding");
 
 #ifdef MH3_DEVELOPMENT
 // MH3_PORT_CHECK: the frame windows are host state beside the guest RAM it

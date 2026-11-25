@@ -878,7 +878,7 @@ extern "C" void MH3_LandSweepTriangleCounts(CpuContext* cpu) {
 #endif
     cpu->gpr[3] = TriangleCountsOf(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5], cpu->gpr[6], cpu->gpr[7], cpu->gpr[8], cpu->gpr[9]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802962C4, MH3_LandSweepTriangleCounts, "LandSweepTriangleCounts");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802962C4, MH3_LandSweepTriangleCounts, "LandSweepTriangleCounts");
 
 extern "C" void func_80292524(CpuContext* cpu);
 extern "C" void MH3_LandSweepTriangleCandidateFilter(CpuContext* cpu) {
@@ -888,7 +888,7 @@ extern "C" void MH3_LandSweepTriangleCandidateFilter(CpuContext* cpu) {
 #endif
     cpu->gpr[3] = CandidateFilter(cpu->gpr[3], cpu->gpr[4], cpu->gpr[5]);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80292524, MH3_LandSweepTriangleCandidateFilter, "LandSweepTriangleCandidateFilter");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80292524, MH3_LandSweepTriangleCandidateFilter, "LandSweepTriangleCandidateFilter");
 
 extern "C" void MH3_LandSweepTriangle(CpuContext* cpu) {
     if (PortCheck::Enabled("LandSweepTriangle"))
@@ -896,19 +896,19 @@ extern "C" void MH3_LandSweepTriangle(CpuContext* cpu) {
     else
         SweepTrianglePort(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8029459C, MH3_LandSweepTriangle, "LandSweepTriangle");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8029459C, MH3_LandSweepTriangle, "LandSweepTriangle");
 
 extern "C" void MH3_LandSweepSegmentCapsule(CpuContext* cpu) {
     PortCheck::Call(cpu, "LandSweepSegmentCapsule", func_802908A4, SegmentCapsulePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x802908A4, MH3_LandSweepSegmentCapsule, "LandSweepSegmentCapsule");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x802908A4, MH3_LandSweepSegmentCapsule, "LandSweepSegmentCapsule");
 
 extern "C" void func_8029015C(CpuContext* cpu);
 
 extern "C" void MH3_LandSweepCapsuleSphere(CpuContext* cpu) {
     PortCheck::Call(cpu, "LandSweepCapsuleSphere", func_8029015C, CapsuleSpherePort);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x8029015C, MH3_LandSweepCapsuleSphere, "LandSweepCapsuleSphere");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x8029015C, MH3_LandSweepCapsuleSphere, "LandSweepCapsuleSphere");
 
 extern "C" void func_80293AEC(CpuContext* cpu);
 extern "C" void MH3_LandSweepQuery(CpuContext* cpu) {
@@ -917,4 +917,4 @@ extern "C" void MH3_LandSweepQuery(CpuContext* cpu) {
     else
         SweepQuery(cpu);
 }
-REGISTER_NATIVE_FUNCTION_AS(0x80293AEC, MH3_LandSweepQuery, "LandSweepQuery");
+// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION_AS(0x80293AEC, MH3_LandSweepQuery, "LandSweepQuery");

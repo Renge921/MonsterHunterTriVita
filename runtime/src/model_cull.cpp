@@ -1,6 +1,7 @@
 // Native visibility culling of model draws (model_cull.h).
 #include "model_cull.h"
 #include "bytes_equal.h"
+#include "character_creation.h"
 #include "native_graphics.h"
 #include "runtime/native/mh3_model_cull.h"
 #include <atomic>
@@ -28,6 +29,13 @@ struct {
 } // namespace
 
 bool CullNativeModelMesh(const mh3_resolved_mesh_submit& mesh) {
+    // Character creation assembles the preview from models copied into its own
+    // heap; their view matrices and bounds are not the loaded file's, so the
+    // draw-time frustum test rejects every mesh. The scene-side test is already
+    // bypassed there (scene_cull.cpp); this is the last cull before submission.
+    if (MH3CharacterCreationActive())
+        return false;
+
     if (!mesh.palette || !mesh.projection)
         return false;
 
