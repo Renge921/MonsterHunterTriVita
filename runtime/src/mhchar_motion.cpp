@@ -185,9 +185,14 @@ double Spend(uint32_t address, Partial& partial, double time) {
 
 // The root node's translation in channel animation `anim` at `frame`, through
 // the guest's result buffer `result` and VEC3 `out`; leaves the frame set.
+// Unbound nodes return flags == 0 without writing the matrix rows in `result`;
+// ResultTranslation only checks FLAG_TRANS_ZERO (0x40), so reading an unbound
+// result would pull uninitialized stack floats into the cross-step root cache.
 std::array<float, 3> RootAt(GuestCall& game, uint32_t self, uint32_t anim, float frame, uint32_t result, uint32_t out) {
     game.Virtual<kSetFrame>(anim, {}, {frame});
     const uint32_t evaluated = game.Virtual<kGetResult>(anim, {result, Memory::Read32(self + kRootNode)});
+    if (Memory::Read32(evaluated) == 0)
+        return {0.0f, 0.0f, 0.0f};
     game.Call<ResultTranslation>({evaluated, out});
     return {F32(out), F32(out + 4), F32(out + 8)};
 }
@@ -204,7 +209,10 @@ std::array<float, 3> RootDelta(GuestCall& game, uint32_t self, uint32_t anim, fl
         // root alone at each end gives the same translation.
         const uint32_t root = Memory::Read32(self + kRootNode);
         const auto at = [&](float frame) {
-            game.Call<ResultTranslation>({AnmObjChrResResultAt(game, anim, result, root, frame), out});
+            const uint32_t evaluated = AnmObjChrResResultAt(game, anim, result, root, frame);
+            if (Memory::Read32(evaluated) == 0)
+                return std::array<float, 3>{0.0f, 0.0f, 0.0f};
+            game.Call<ResultTranslation>({evaluated, out});
             return std::array<float, 3>{F32(out), F32(out + 4), F32(out + 8)};
         };
 

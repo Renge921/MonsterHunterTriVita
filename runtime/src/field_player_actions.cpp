@@ -320,9 +320,10 @@ inline void ChargeEffectTrigger(GuestCall& game, uint32_t plw, uint32_t scratch)
 }
 
 inline bool AirGroundHitCheck(GuestCall& game, uint32_t plw, uint32_t scratch) {
-    if (Memory::Read8(plw + 0x16) == 0xFF)
+    const uint32_t area = Memory::Read8(plw + 0x16);
+    if (area == 0xFF)
         return false;
-    const uint32_t areaPtr = game.Call<0x8037D5A4>({Memory::Read8(plw + 0x15)});
+    const uint32_t areaPtr = game.Call<0x8037D5A4>({Memory::Read8(plw + 0x15), area});
     const uint32_t areaWork = scratch;      // 8 bytes
     const uint32_t tmpOut1 = scratch + 8;   // 12 bytes
     const uint32_t tmpOut2 = scratch + 20;  // 12 bytes

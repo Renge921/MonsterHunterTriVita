@@ -95,6 +95,41 @@ def discover_code_constant_seeds(dol, sections):
     return candidates
 
 
+def discover_tail_call_pointer_seeds(dol, sections, known_entries):
+    """Speculative entries referenced from data sections that either start with
+    a single-instruction tail-call branch to a known function, or immediately
+    follow a tail-call branch to a known function (e.g. monster action tables
+    such as 0x8014104C / 0x80141050)."""
+    text = [s for s in sections if s["kind"] == "text"]
+
+    def branch_target(va, word):
+        if (word & 0xFC000003) != 0x48000000:
+            return None
+        delta = ((word & 0x03FFFFFC) ^ 0x02000000) - 0x02000000
+        return (va + delta) & 0xFFFFFFFF
+
+    candidates = set()
+    for section in sections:
+        if section["kind"] != "data":
+            continue
+        for pos in range(section["file_offset"],
+                         section["file_offset"] + section["bytes"] - 3, 4):
+            address = struct.unpack_from(">I", dol, pos)[0]
+            if address % 4 or address in known_entries:
+                continue
+            for code in text:
+                base = int(code["address"], 16)
+                if base + 4 <= address < base + code["bytes"]:
+                    offset = code["file_offset"] + address - base
+                    prev_word, cur_word = struct.unpack_from(">II", dol, offset - 4)
+                    pt = branch_target(address - 4, prev_word)
+                    ct = branch_target(address, cur_word)
+                    if (pt in known_entries) or (ct in known_entries):
+                        candidates.add(address)
+                    break
+    return candidates
+
+
 def discover_vtable_pointer_seeds(dol, sections, known_entries):
     """Speculative vtables with a zero header and a recognized first method."""
     text = [s for s in sections if s["kind"] == "text"]
@@ -202,6 +237,8 @@ def main():
         symbols[int(section["address"], 16) + offset] = symbol["name"]
     for address in discover_vtable_pointer_seeds(dol, inventory["sections"], set(symbols)):
         symbols.setdefault(address, f"vtable_seed_{address:08X}")
+    for address in discover_tail_call_pointer_seeds(dol, inventory["sections"], set(symbols)):
+        symbols.setdefault(address, f"tail_call_seed_{address:08X}")
     # All 18 instructions and the final blr are checked, not just endpoints.
     families = [(0x804542BC, "_save_fpr_", 54, 8),
                 (0x80454308, "_rest_fpr_", 50, 8),
