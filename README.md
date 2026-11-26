@@ -2,7 +2,7 @@
   <img src="runtime/sce_sys/livearea/contents/bg0.png" alt="Monster Hunter Tri" width="820">
 </p>
 
-# モンスターハンター3 Vita
+# Monster Hunter Tri Vita
 
 Wii 向け『モンスターハンター3（トライ）』（日本版 `RMHJ08`）を PlayStation Vita（ARM Cortex-A9 / GXM）向けに静的リコンパイル移植したプロジェクトです。
 
