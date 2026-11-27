@@ -216,6 +216,10 @@ bool EndOverlappedNativeGraphicsFrame();
 // The game thread or the render thread: each owns its logical draw state.
 bool OnNativeGraphicsThread();
 
+// Render thread: snapshot copy of a mutable Japanese dynamic font atlas
+// captured into the packet slot when MH3_FontFlush bound it (native_ui.cpp).
+const uint8_t* NativeFontAtlasCopy(uint32_t address, uint64_t generation, size_t bytes);
+
 #ifdef MH3_DEVELOPMENT
 // The scene's temporal feedback (0x80055FBC, native_scene_feedback.cpp), since
 // the last call: enabled passes, those that drew the previous frame's image

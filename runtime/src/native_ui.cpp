@@ -17,6 +17,7 @@
 #include <array>
 #include <atomic>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -1030,10 +1031,70 @@ struct FontAtlasState {
     uint64_t writeEpoch = 0;
 };
 
+// The Japanese build (RMHJ08) writes glyphs into a single dynamic I4 atlas
+// buffer (e.g. 0x816be000) every frame, while the render thread decodes the
+// bound texture one or more frame packets later. Without a per-packet snapshot,
+// the next frame's MH3_FontGlyphWrite overwrites the atlas while the previous
+// packet is still being decoded (causing dialogue-adjacent panels such as quest
+// / request details to flicker as glyph slot indices shift). Keep immutable
+// shared snapshots per packet slot (zero copy on steady frames where generation
+// is unchanged, and supporting multiple flushes within a single frame).
+struct FontAtlasSnapshot {
+    std::shared_ptr<const uint8_t[]> bytes;
+    size_t size = 0;
+    uint32_t address = 0;
+    uint64_t generation = 0;
+};
+
+struct FontPacketSlot {
+    uint64_t sequence = UINT64_MAX;
+    std::vector<FontAtlasSnapshot> entries;
+};
+
 std::mutex fontGlyphCacheMutex;
 std::atomic<uint64_t> fontAtlasWriteEpoch[2]{{1}, {1}};
 FontBankGlyphCache fontBankGlyphCache[2]{};
 FontAtlasState fontAtlasCache[2]{};
+std::array<FontPacketSlot, kNativeFramePacketSlots> fontPacketSlots{};
+FontAtlasSnapshot fontLatestSnapshot[2]{};
+
+void CopyFontAtlasSnapshot(uint32_t bank, uint32_t payload, uint64_t generation, size_t bytes) {
+    if (!NativeFramePacketRecording())
+        return;
+
+    auto& slot = fontPacketSlots[NativeFramePacketSlot()];
+    const uint64_t sequence = NativeFramePacketSequence();
+    if (slot.sequence != sequence) {
+        slot.sequence = sequence;
+        slot.entries.clear();
+    }
+
+    for (const auto& entry : slot.entries) {
+        if (entry.address == payload && entry.generation == generation && entry.size >= bytes)
+            return;
+    }
+
+    auto& latest = fontLatestSnapshot[bank & 1u];
+    if (latest.address != payload || latest.generation != generation || latest.size < bytes) {
+        std::shared_ptr<uint8_t[]> copy(new uint8_t[bytes]);
+        std::memcpy(copy.get(), Memory::GetPointer(payload, bytes), bytes);
+        latest = {std::move(copy), bytes, payload, generation};
+    }
+
+    slot.entries.push_back(latest);
+}
+} // namespace
+
+const uint8_t* NativeFontAtlasCopy(uint32_t address, uint64_t generation, size_t bytes) {
+    const auto& slot = fontPacketSlots[NativeRenderPacketSlot()];
+    for (const auto& entry : slot.entries) {
+        if (entry.address == address && entry.generation == generation && entry.size >= bytes)
+            return entry.bytes.get();
+    }
+    return nullptr;
+}
+
+namespace {
 
 std::vector<GlyphAnchor> glyphAnchors;
 uint32_t partAnchor = 0, partQueued[2] = {};
@@ -1177,6 +1238,7 @@ extern "C" void MH3_FontFlush(CpuContext* cpu) {
             binding.sampler.wrap_s = 0;
             binding.sampler.wrap_t = 0;
             binding.sampler.min_filter = binding.sampler.mag_filter = 1;
+            CopyFontAtlasSnapshot(bank, payload, cache.generation, kFontAtlasBytes);
             BindNativeTexture(binding);
         }
         const auto records = Memory::Read32(font + 0x44);

@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <mutex>
@@ -74,6 +75,31 @@ aurora::NativeTextureSource SourceOf(const mh3_native_texture_binding& binding) 
     // identity.
     if (source.format == aurora::NativeTextureFormatYuv420)
         if (const uint8_t* copy = NativeMovieFrameCopy(input.payload_address, input.generation, bytes)) {
+            source.identity = source.bytes.data();
+            source.bytes = {copy, bytes};
+        }
+
+    // A mutable I4 font atlas (RMHJ08 dynamic glyph buffer) converts from the
+    // packet's snapshot copy so the next frame's glyph writes cannot race with
+    // render-thread decoding.
+    if (source.mutable_source && source.format == 0)
+        if (const uint8_t* copy = NativeFontAtlasCopy(input.payload_address, input.generation, bytes)) {
+#ifdef MH3_DEVELOPMENT
+            static const bool checkFontRace = [] {
+                const char* v = std::getenv("MH3_FONT_RACE_CHECK");
+                return v && v[0] == '1';
+            }();
+            if (checkFontRace) {
+                static uint64_t total = 0, races = 0;
+                ++total;
+                if (std::memcmp(source.bytes.data(), copy, bytes) != 0) {
+                    ++races;
+                    std::fprintf(stderr, "MH3 font race avoided: addr=%08x gen=%llu (%llu/%llu binds diverged from live RAM)\n",
+                                 input.payload_address, static_cast<unsigned long long>(input.generation),
+                                 static_cast<unsigned long long>(races), static_cast<unsigned long long>(total));
+                }
+            }
+#endif
             source.identity = source.bytes.data();
             source.bytes = {copy, bytes};
         }
