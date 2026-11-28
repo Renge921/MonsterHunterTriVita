@@ -47,6 +47,7 @@ void InitializeNativeTextureSource(uint32_t reference, bool palette);
  * returns it. */
 uint64_t ProduceNativeTextureSource(uint32_t payload);
 void CopyNativeResourceObjects(uint32_t destination, uint32_t source, bool palette);
+void RetireNativeResourceObjects(uint32_t address, uint32_t bytes);
 void RestoreNativeModelCamera();
 /* 800885F4 Invalidate: forgets the selected CPU cache fields (0x7ff: all). */
 void InvalidateNativeModelCaches(uint32_t fields);

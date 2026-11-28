@@ -4,6 +4,7 @@
 #include "abi_bridge.h"
 #include "fatal.h"
 #include <aurora/fast_map.h>
+#include "guest_call.h"
 #include "guest_span.h"
 #include "memory.h"
 #include "native_graphics.h"
@@ -487,31 +488,72 @@ extern "C" void MH3_ModelRenderMode(CpuContext* cpu) {
 }
 REGISTER_NATIVE_FUNCTION(0x8052C0B4, MH3_ModelRenderMode);
 
-extern "C" void MH3_ModelTextureObject(CpuContext* cpu) {
-    const uint32_t info = Resource(cpu->gpr[3]), objects = Resource(cpu->gpr[5]);
-    const auto source = ReadNativeResTexture(cpu->gpr[4]);
-    mh3_native_texture_binding binding{};
-    Checked(mh3_texture_binding_read(Bytes(info, 52), &source, &binding));
-    StoreNativeTextureObject(objects + 4 + binding.map_id * 32, binding);
-    Checked(mh3_texture_info_store_source(Mutable(info, 16), source.resource_address, 0));
-    Checked(mh3_resource_objects_validate(Mutable(objects, 260), binding.map_id, 0));
-}
-// In RMHJ08, func_8051EB68 is a recompiled guest function taking 4 stack variable pointers
-// (r3=&stack20, r4=&stack16, r5=&stack12, r6=&stack8) and internally invoking GXInitTexObj,
-// so it must NOT be hijacked with MH3_ModelTextureObject (which expects raw resource addresses).
-// REGISTER_NATIVE_FUNCTION(0x8051EB68, MH3_ModelTextureObject);
-extern "C" void MH3_ModelPaletteObject(CpuContext* cpu) {
-    const uint32_t info = Resource(cpu->gpr[3]), objects = Resource(cpu->gpr[5]), slot = Memory::Read32(info + 16);
+extern "C" void MH3_ModelTextureBind(CpuContext* cpu) {
+    // RMHJ08 0x8051EB68: ResTexPlttInfo::Bind(ResFile, ResTexObj, ResTlutObj)
+    // Inlines both PAL ModelTextureObject (0x800976C0) and ModelPaletteObject (0x80097990).
+    GuestFrame frame(cpu, 0x20);
+    GuestCall call{cpu};
+    const uint32_t infoRef = frame.Arg(3), fileRef = frame.Arg(4), texObjRef = frame.Arg(5), tlutObjRef = frame.Arg(6);
+    uint32_t ok = 1;
 
-    if (slot >= 8)
-        MH3_THROW(std::runtime_error("Native material palette slot outside0..7"));
+    {
+        const uint32_t info = Memory::Read32(infoRef);
+        if (info && !Memory::Read32(info + 8)) {
+            const uint32_t nameOff = Memory::Read32(info);
+            const uint32_t resName = nameOff ? (info + nameOff - 4) : 0;
+            Memory::Write32(frame[8], resName);
+            const uint32_t tex = call.Call<0x8051A444>({fileRef, frame[8]});
 
-    const auto palette = ReadNativeResPalette(cpu->gpr[4]);
-    StoreNativePaletteObject(objects + 4 + slot * 12, palette);
-    Checked(mh3_texture_info_store_source(Mutable(info, 16), palette.resource_address, 1));
-    Checked(mh3_resource_objects_validate(Mutable(objects, 100), slot, 1));
+            if (!tex) {
+                ok = 0;
+            } else if (Memory::Read32(info + 4) && !(Memory::Read32(tex + 24) & 1)) {
+                ok = 0;
+            } else {
+                Memory::Write32(frame[12], tex);
+                const auto source = ReadNativeResTexture(frame[12]);
+                const uint32_t objects = Memory::Read32(texObjRef);
+                mh3_native_texture_binding binding{};
+                Checked(mh3_texture_binding_read(Bytes(info, 52), &source, &binding));
+                Checked(mh3_texture_info_store_source(Mutable(info, 16), source.resource_address, 0));
+
+                if (objects && binding.map_id < 8) {
+                    StoreNativeTextureObject(objects + 4 + binding.map_id * 32, binding);
+                    Checked(mh3_resource_objects_validate(Mutable(objects, 260), binding.map_id, 0));
+                }
+            }
+        }
+    }
+
+    {
+        const uint32_t info = Memory::Read32(infoRef);
+        if (info && !Memory::Read32(info + 12)) {
+            const uint32_t plttOff = Memory::Read32(info + 4);
+            if (plttOff) {
+                const uint32_t plttName = info + plttOff - 4;
+                Memory::Write32(frame[8], plttName);
+                const uint32_t pltt = call.Call<0x8051A2CC>({fileRef, frame[8]});
+
+                if (!pltt) {
+                    ok = 0;
+                } else {
+                    Memory::Write32(frame[12], pltt);
+                    const uint32_t palettes = Memory::Read32(tlutObjRef);
+                    const uint32_t slot = Memory::Read32(info + 16);
+                    const auto palette = ReadNativeResPalette(frame[12]);
+                    Checked(mh3_texture_info_store_source(Mutable(info, 16), palette.resource_address, 1));
+
+                    if (palettes && slot < 8) {
+                        StoreNativePaletteObject(palettes + 4 + slot * 12, palette);
+                        Checked(mh3_resource_objects_validate(Mutable(palettes, 100), slot, 1));
+                    }
+                }
+            }
+        }
+    }
+
+    cpu->gpr[3] = ok;
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80097990, MH3_ModelPaletteObject);
+REGISTER_NATIVE_FUNCTION(0x8051EB68, MH3_ModelTextureBind);
 
 extern "C" void MH3_ModelTextureReplace(CpuContext* cpu) {
     const uint32_t objects = Resource(cpu->gpr[3]), palettes = Resource(cpu->gpr[4]), result = cpu->gpr[5];
@@ -531,11 +573,13 @@ extern "C" void MH3_ModelTextureReplace(CpuContext* cpu) {
             StoreNativePaletteObject(palettes + 4 + i * 12, ReadNativeResPalette(result + 0x24 + i * 4));
     }
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80069A2C, MH3_ModelTextureReplace);
+REGISTER_NATIVE_FUNCTION(0x80523BFC, MH3_ModelTextureReplace);
 extern "C" void MH3_ModelTextureSelect(CpuContext* cpu) {
-    SelectNativeModelTextureObjects(cpu->gpr[3], Resource(cpu->gpr[4]));
+    const uint32_t objects = Memory::Read32(cpu->gpr[3]);
+    if (objects)
+        SelectNativeModelTextureObjects(0x808665E0, objects);
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80085EAC, MH3_ModelTextureSelect);
+REGISTER_NATIVE_FUNCTION(0x8052A044, MH3_ModelTextureSelect);
 void SelectNativeModelTextureObjects(uint32_t state, uint32_t objects) {
     uint8_t changed = 0;
     Checked(mh3_resource_objects_cache(Mutable(state, 257), Bytes(objects, 260), 0, &changed));
@@ -565,9 +609,11 @@ void SelectNativeModelTextureObjects(uint32_t state, uint32_t objects) {
 }
 
 extern "C" void MH3_ModelPaletteSelect(CpuContext* cpu) {
-    SelectNativeModelPaletteObjects(cpu->gpr[3], Resource(cpu->gpr[4]));
+    const uint32_t objects = Memory::Read32(cpu->gpr[3]);
+    if (objects)
+        SelectNativeModelPaletteObjects(0x80866700, objects);
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x800860A8, MH3_ModelPaletteSelect);
+REGISTER_NATIVE_FUNCTION(0x8052A2AC, MH3_ModelPaletteSelect);
 void SelectNativeModelPaletteObjects(uint32_t state, uint32_t objects) {
     uint8_t changed = 0;
     Checked(mh3_resource_objects_cache(Mutable(state, 98), Bytes(objects, 100), 1, &changed));
@@ -594,11 +640,11 @@ extern "C" void MH3_ModelDepthCompare(CpuContext* cpu) {
 extern "C" void MH3_ModelTextureInitialize(CpuContext* cpu) {
     InitializeNativeTextureSource(cpu->gpr[3], false);
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x8009A784, MH3_ModelTextureInitialize);
+REGISTER_NATIVE_FUNCTION(0x8051F3DC, MH3_ModelTextureInitialize);
 extern "C" void MH3_ModelPaletteInitialize(CpuContext* cpu) {
     InitializeNativeTextureSource(cpu->gpr[3], true);
 }
-// Disabled unported PAL address for RMHJ08: REGISTER_NATIVE_FUNCTION(0x80093AFC, MH3_ModelPaletteInitialize);
+REGISTER_NATIVE_FUNCTION(0x8051F204, MH3_ModelPaletteInitialize);
 extern "C" void MH3_ModelTextureCopy(CpuContext* cpu) {
     const uint32_t destination = cpu->gpr[4];
     CopyNativeResourceObjects(destination, Resource(cpu->gpr[3]), false);

@@ -246,9 +246,6 @@ mh3_native_texture_binding NativeTextureObject(uint32_t object) {
 
     if (found == textures.end()) {
         mh3_native_texture_binding fallback{};
-        if (!textures.empty()) {
-            fallback = textures.begin()->second;
-        }
         fallback.map_id = (object >= 4) ? ((object - 4) / 32) % 8 : 0;
         fallback.tlut_id = fallback.map_id;
 
@@ -257,7 +254,8 @@ mh3_native_texture_binding NativeTextureObject(uint32_t object) {
             const uint32_t mode0 = Memory::Read32(object);
             const uint32_t image0 = Memory::Read32(object + 8);
             const uint32_t image1 = Memory::Read32(object + 12);
-            const uint32_t payload = (image1 & 0x00FFFFFFu) << 5;
+            const uint32_t phys = (image1 & 0x00FFFFFFu) << 5;
+            const uint32_t payload = phys ? (phys | 0x80000000u) : 0;
             const uint32_t width = (image0 & 0x3FFu) + 1;
             const uint32_t height = ((image0 >> 10) & 0x3FFu) + 1;
             const uint32_t format = (image0 >> 20) & 0x0Fu;
@@ -267,6 +265,7 @@ mh3_native_texture_binding NativeTextureObject(uint32_t object) {
                 fallback.source.width = width;
                 fallback.source.height = height;
                 fallback.source.format = format;
+                fallback.source.indexed = (format == 8 || format == 9 || format == 10) ? 1 : 0;
                 fallback.source.levels = 1;
                 fallback.source.min_lod = 0.0f;
                 fallback.source.max_lod = 10.0f;
@@ -352,16 +351,14 @@ mh3_native_palette_source NativePaletteObject(uint32_t object) {
 
     if (found == palettes.end()) {
         mh3_native_palette_source fallback{};
-        if (!palettes.empty()) {
-            fallback = palettes.begin()->second;
-        }
 
         // If the object address contains an initialized GXTlutObj in RAM, decode it directly
         if (Memory::Contains(object, 12)) {
             const uint32_t word0 = Memory::Read32(object);
             const uint32_t word1 = Memory::Read32(object + 4);
             const uint16_t entries = Memory::Read16(object + 8);
-            const uint32_t payload = (word1 & 0x00FFFFFFu) << 5;
+            const uint32_t phys = (word1 & 0x00FFFFFFu) << 5;
+            const uint32_t payload = phys ? (phys | 0x80000000u) : 0;
             const uint32_t format = (word0 >> 10) & 3;
             if (entries > 0 && payload != 0) {
                 fallback.resource_address = object;
@@ -442,6 +439,39 @@ void CopyNativeResourceObjects(uint32_t destination, uint32_t source, bool palet
         kept[i] = present[i] != 0;
 
     PutCopiedObjects(destination, palette, kept, textures, colors);
+}
+
+void RetireNativeResourceObjects(uint32_t address, uint32_t bytes) {
+    if (!bytes)
+        return;
+
+    const uint64_t end = uint64_t(address) + bytes;
+    std::lock_guard lock(objectsLock);
+    auto& o = O();
+    bool erased = false;
+
+    for (auto it = o.textures.begin(); it != o.textures.end();) {
+        const uint32_t key = it->first;
+        if (key >= address && uint64_t(key) < end) {
+            it = o.textures.erase(it);
+            erased = true;
+        } else {
+            ++it;
+        }
+    }
+
+    for (auto it = o.palettes.begin(); it != o.palettes.end();) {
+        const uint32_t key = it->first;
+        if (key >= address && uint64_t(key) < end) {
+            it = o.palettes.erase(it);
+            erased = true;
+        } else {
+            ++it;
+        }
+    }
+
+    if (erased)
+        ++o.revision;
 }
 
 void StoreNativeModelMatrixSources(uint32_t state, const uint32_t addresses[3]) {

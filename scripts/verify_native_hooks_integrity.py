@@ -175,7 +175,7 @@ def check_disallowed_guest_hooks():
     """ゲスト複合関数・引数ポインタ受け渡し関数が誤って REGISTER_NATIVE_FUNCTION されていないか監査"""
     print("[4/5] Checking for forbidden guest function hook hijacks...")
     disallowed_addrs = {
-        "0x8051EB68": "MH3_ModelTextureObject (func_8051EB68 is guest recompiled code with stack-pointer args)",
+        ("0x8051EB68", "MH3_ModelTextureObject"): "func_8051EB68 is ResTexPlttInfo::Bind (must use MH3_ModelTextureBind, not PAL MH3_ModelTextureObject)",
     }
     active_pattern = re.compile(r'^\s*REGISTER_NATIVE_FUNCTION(?:_AS)?\s*\(\s*(0x[0-9a-fA-F]+)\s*,\s*([a-zA-Z0-9_]+)')
     errors = []
@@ -189,9 +189,10 @@ def check_disallowed_guest_hooks():
                         m = active_pattern.search(line)
                         if m:
                             addr = m.group(1).upper()
-                            for bad_addr, reason in disallowed_addrs.items():
-                                if addr == bad_addr.upper():
-                                    errors.append(f"{os.path.relpath(p, REPO_ROOT)}:{i}: Hooked {addr} ({m.group(2)}) - {reason}")
+                            func = m.group(2)
+                            for (bad_addr, bad_func), reason in disallowed_addrs.items():
+                                if addr == bad_addr.upper() and func == bad_func:
+                                    errors.append(f"{os.path.relpath(p, REPO_ROOT)}:{i}: Hooked {addr} ({func}) - {reason}")
 
     if errors:
         for e in errors:

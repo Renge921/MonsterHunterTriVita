@@ -12,6 +12,7 @@
 #include "model_render_prep.h"
 #include "recomp_mod_loader.h"
 #include "runtime/native/adapters/model_catalog_bridge.h"
+#include "runtime/native/adapters/model_state_bridge.h"
 #include "runtime/native/mh3_resource_lifetime.h"
 #include <algorithm>
 #include <array>
@@ -133,7 +134,9 @@ void PrepareWrite(uint32_t address, uint32_t bytes) {
 // A heap's memory changing owner (created, destroyed, a block freed or handed
 // out): the textures loaded into it are gone with it, as on an area change.
 void RetireHeapRange(uint32_t address, uint32_t bytes) {
-    RetireNativeTextureSources(RamAddress(address, bytes), bytes);
+    const uint32_t canonical = RamAddress(address, bytes);
+    RetireNativeTextureSources(canonical, bytes);
+    RetireNativeResourceObjects(canonical, bytes);
 }
 
 void CopyBlocks(uint32_t destination, uint32_t source, uint32_t bytes) {
